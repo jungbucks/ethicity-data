@@ -84,12 +84,15 @@
     box.appendChild(el('span', { class: 'hero-pick-label', text: '달릴 주인공' }));
     var cur = DR.Save.hero();
     DR.HeroModel.ids.forEach(function (id) {
-      var b = el('button', { class: 'hero-chip hero-' + id, type: 'button', text: DR.HeroModel.names[id] });
+      var b = el('button', { class: 'hero-chip hero-' + id, type: 'button', 'aria-label': DR.HeroModel.names[id] }, [
+        DR.UI.characterPortrait(id, 88), el('span', { text: DR.HeroModel.names[id] })
+      ]);
       b.dataset.hero = id;
       b.setAttribute('aria-pressed', String(id === cur));
       b.addEventListener('click', function () { DR.Sfx.play('ui'); DR.Save.setHero(id); renderHeroPick(); });
       box.appendChild(b);
     });
+    box.appendChild(el('div', { class: 'hero-companion' }, [DR.UI.characterPortrait('robot', 88), el('span', { text: 'AI 봇' })]));
   }
 
   function renderTitle() {

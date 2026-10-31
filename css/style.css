@@ -222,3 +222,10 @@ body { overflow: hidden; word-break: keep-all; }
   .zone-sign { top: 150px; font-size: 15px; }
   .catch-notice { top: 135px; font-size: 14px; }
 }
+.character-portrait { display: inline-block; flex: none; overflow: hidden; vertical-align: middle; }
+.character-portrait img { display: block; width: 400%; max-width: none; height: 100%; image-rendering: auto; }
+.hero-pick { flex-wrap: wrap; justify-content: flex-start; align-items: flex-end; gap: 8px; }
+.hero-pick-label { flex-basis: 100%; }
+.hero-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: 12px; padding: 8px; }
+.hero-chip::before { display: none; }
+.hero-companion { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; font-size: 15px; color: var(--ink-2); }

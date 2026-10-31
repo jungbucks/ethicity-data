@@ -17,8 +17,22 @@
     return e;
   }
 
-  // 초상: 색과 도형으로만 구분(첫 버전)
+  // 공통 팩: 256px 표정 4칸. 이미지 파일은 게임 안에 포함해 file://에서도 표시한다.
+  function characterPortrait(id, size, expression) {
+    var names = { onyu: '온유', daon: '다온', robot: 'AI 봇' }, S = size || 72;
+    var frame = el('span', { class: 'portrait character-portrait', 'data-character': id, style: 'width:' + S + 'px;height:' + S + 'px' });
+    var img = el('img', { src: 'assets/characters/' + id + '-portraits.png', alt: names[id], draggable: 'false' });
+    img.style.transform = 'translateX(-' + ((expression || 0) * 25) + '%)';
+    frame.appendChild(img);
+    return frame;
+  }
+
+  // 요청된 공통 캐릭터 외의 인물은 기존 도형 초상을 유지한다.
   function portrait(who, size) {
+    var hero = root.DR.Save ? root.DR.Save.hero() : 'onyu';
+    if (who === 'runner') return characterPortrait(hero, size);
+    if (who === 'peer') return characterPortrait(hero === 'onyu' ? 'daon' : 'onyu', size);
+    if (who === 'guide' || who === 'bot') return characterPortrait('robot', size, who === 'guide' ? 3 : 0);
     var p = root.DR.Cast[who], c = document.createElement('canvas'), S = size || 72;
     c.width = c.height = S * 2; c.style.width = c.style.height = S + 'px';
     c.className = 'portrait';
@@ -192,6 +206,7 @@
   root.DR.UI = root.DR.UI || {};
   root.DR.UI.el = el;
   root.DR.UI.portrait = portrait;
+  root.DR.UI.characterPortrait = characterPortrait;
   root.DR.UI.line = line;
   root.DR.UI.dialogue = dialogue;
   root.DR.UI.briefing = briefing;
