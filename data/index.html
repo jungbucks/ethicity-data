@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>데이터 러너: 끊어진 도시</title>
+<meta name="description" content="AI 학습 데이터를 직접 골라 모으며 데이터 관리의 책임을 경험하는 3레인 러너 게임">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main id="app">
+  <section id="screen-title" class="screen">
+    <div class="title-wrap">
+      <p class="title-kicker">윤리시티 · 데이터 관리 편</p>
+      <h1>데이터 러너<span>끊어진 도시</span></h1>
+      <p class="title-lead">비가 오면 도시의 AI가 길을 잃는다. 무엇을 가져와 다시 이을지는 러너가 정한다.</p>
+      <div id="title-actions" class="actions"><button id="btn-start" class="btn btn-primary" type="button">시작하기</button></div>
+      <div id="hero-pick" class="hero-pick" role="group" aria-label="달릴 주인공"></div>
+    </div>
+  </section>
+  <section id="screen-profile" class="screen" hidden></section>
+  <section id="screen-story" class="screen" hidden></section>
+  <section id="screen-briefing" class="screen" hidden></section>
+  <section id="screen-run" class="screen" hidden>
+    <div id="run-stage"></div>
+    <div id="hud">
+      <div id="hud-bag" class="hud-bag" aria-label="가방"><span class="hud-bag-icon" aria-hidden="true"></span><b>0/0</b></div>
+      <div id="hud-hp" class="hud-hp" role="img" aria-label="HP"></div>
+      <div id="hud-progress" class="hud-progress" aria-hidden="true"><i></i></div>
+      <button id="btn-mute" class="hud-btn" type="button" aria-label="소리 끄기">♪</button>
+      <button id="btn-pause" class="hud-btn" type="button" aria-label="일시정지">❚❚</button>
+    </div>
+    <p id="run-hint" class="run-hint" hidden></p>
+  </section>
+  <section id="screen-inspect" class="screen" hidden></section>
+  <section id="screen-supervisor" class="screen" hidden></section>
+  <section id="screen-result" class="screen" hidden></section>
+  <section id="screen-prep" class="screen" hidden></section>
+  <section id="screen-knockout" class="screen" hidden></section>
+  <section id="screen-outro" class="screen" hidden></section>
+</main>
+<script src="vendor/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/rng.js"></script>
+<script src="missions/cast.js"></script>
+<script src="missions/tutorial.js"></script>
+<script src="missions/m1.js"></script>
+<script src="missions/prologue.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/judge.js"></script>
+<script src="js/stream.js"></script>
+<script src="js/catch.js"></script>
+<script src="js/input.js"></script>
+<script src="js/cardart.js"></script>
+<script src="js/save.js"></script>
+<script src="js/sfx.js"></script>
+<script src="assets/models/hero-onyu.js"></script>
+<script src="assets/models/hero-daon.js"></script>
+<script src="js/hero-model.js"></script>
+<script src="js/run-scenery.js"></script>
+<script src="js/run-feedback.js"></script>
+<script src="js/run3d.js"></script>
+<script src="js/ui-story.js"></script>
+<script src="js/ui-common.js"></script>
+<script src="js/ui-inspect.js"></script>
+<script src="js/ui-result.js"></script>
+<script src="js/ui-shell.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
