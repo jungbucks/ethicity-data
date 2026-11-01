@@ -13,7 +13,8 @@
     bot:        { name: '수거봇',  color: '#FF9F5A', shape: 'bot' },
     senior:     { name: '선배',    color: '#E58BFF', shape: 'circle' },
     examiner:   { name: '시험관',  color: '#C9C9D9', shape: 'diamond' },
-    client:     { name: '도로 관리원', color: '#A8E06A', shape: 'square' }
+    client:     { name: '도로 관리원', color: '#A8E06A', shape: 'square' },
+    sorter:     { name: '선별장 직원', color: '#F2C14E', shape: 'square' }
   };
 
   root.DR = root.DR || {};

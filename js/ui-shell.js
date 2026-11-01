@@ -95,8 +95,33 @@
     box.appendChild(el('div', { class: 'hero-companion' }, [DR.UI.characterPortrait('robot', 88), el('span', { text: 'AI 봇' })]));
   }
 
+  // 임무 고르기 — 팀원이 반복해서 볼 때 앞을 다시 하지 않게(spec §6). 고르면 그 임무 도입부터(저장된 진행은 브리핑에서 덮어씀)
+  function renderMissionPick() {
+    var box = document.getElementById('title-missions');
+    if (!box) return;
+    box.innerHTML = '';
+    box.appendChild(el('span', { class: 'title-missions-label', text: '임무 고르기' }));
+    [['m1', '1 임무 · 침수 판별'], ['m2', '2 임무 · 분리배출']].forEach(function (p) {
+      if (!DR.Missions[p[0]]) return;
+      var b = el('button', { id: 'btn-' + p[0], class: 'btn btn-small', type: 'button', text: p[1] });
+      b.addEventListener('click', function () {
+        DR.Sfx.unlock(); DR.Sfx.play('ui');
+        var saved = DR.Save.load();
+        if (!(saved && saved.mission)) { DR.App.startMission(p[0]); return; }
+        // 저장된 진행이 있으면 먼저 묻는다(옆의 '처음부터'와 같은 결 — 이어 하려던 학생의 진행을 지키게)
+        DR.UI.modal({
+          title: p[1].split(' · ')[0] + '부터 할까요?',
+          body: [el('p', { text: '저장된 진행은 지워져요. 하던 걸 이어 하려면 [이어하기]를 누르세요.' })],
+          actions: [{ text: p[1].split(' · ')[0] + ' 시작', primary: true, onClick: function () { DR.App.startMission(p[0]); } }, { text: '취소' }]
+        });
+      });
+      box.appendChild(b);
+    });
+  }
+
   function renderTitle() {
     renderHeroPick();
+    renderMissionPick();
     var box = document.getElementById('title-actions');
     if (!box) return;
     box.innerHTML = '';

@@ -109,3 +109,109 @@ test('m1 bot says it labelled everything', () => {
 test('no forbidden copy in fake lines', () => {
   assert.ok(!/지하차도|%|AI가 틀렸|당신이 실패/.test(JSON.stringify(m1.fakes)));
 });
+
+// 2 임무 「분리배출 분류 AI」(spec §5)
+const m2 = require('../missions/m2.js');
+const M2_ALL2 = { can_drink: 2, can_tin: 2, pet_clear: 2, pet_crushed: 2, vinyl_bag: 2, pack_milk: 2, paper_news: 2, trash_misc: 2, battery_aa: 2 };
+const fakesOf = (id, n, extra = {}) => Array.from({ length: n }, (_, i) => ({ id: id + '_' + i, fakeId: id, ...extra }));
+
+test('m2 well-formed', () => {
+  assert.equal(m2.id, 'm2');
+  assert.deepEqual(m2.labels.map((l) => l.id), ['can', 'pet', 'pack', 'paper', 'vinyl', 'battery', 'trash']);
+  const labelIds = new Set(m2.labels.map((l) => l.id));
+  for (const [k, t] of Object.entries(m2.cardTypes)) {
+    assert.ok(labelIds.has(t.label), k);
+    assert.deepEqual(t.icons, [t.label], k);
+    assert.ok(t.name && t.art, k);
+    assert.ok(m2.counts[k] >= 2, k);
+  }
+  assert.equal(m2.cardTypes.battery_aa.hazard, true);
+  for (const c of combos(m2)) for (const k of c.keys) assert.ok(m2.cardTypes[k], c.id);
+  for (const f of m2.fakes) {
+    assert.ok(labelIds.has(f.label), f.id);
+    assert.ok(f.truth === null || m2.cardTypes[f.truth], f.id);
+    assert.match(f.line, /^우리가 넣은 데이터에 .+\.$/, f.id);
+  }
+  for (const s of m2.scenes) assert.ok(s.cuts.danger && s.cuts.inconvenience && s.passLine, s.id);
+  const comboIds = new Set(combos(m2).map((c) => c.id)), fakeIds = new Set(m2.fakes.map((f) => f.id));
+  for (const it of m2.conveyor) {
+    assert.ok(m2.cardTypes[it.art] || fakeIds.has(it.art), it.id);
+    assert.ok(labelIds.has(it.bin) && labelIds.has(it.wrongBin) && it.bin !== it.wrongBin, it.id);
+    assert.ok(it.variant >= 3, it.id);
+    assert.ok(m2.scenes.some((s) => s.id === it.scene), it.id);
+    for (const c of it.causes) assert.ok(comboIds.has(c) || fakeIds.has(c) || /^(contaminated|danger):S[1-4]$/.test(c), it.id + ' ' + c);
+  }
+  assert.ok(m2.conveyor.length >= 10 && m2.conveyor.length <= 14);
+  for (const s of m2.scenes) assert.ok(m2.conveyor.some((it) => it.scene === s.id && it.art === 'battery_aa' && it.causes.includes('danger:' + s.id)), 'battery item per scene ' + s.id);
+});
+
+test('m2 scene art names the wrong bin its inconvenience cut shows (review)', () => {
+  for (const s of m2.scenes) {
+    assert.ok(m2.labels.some((l) => l.id === s.art.wrongBin), s.id);
+    const right = m2.cardTypes[s.art.focus[0]] ? m2.cardTypes[s.art.focus[0]].label : m2.cardTypes[m2.fakes.find((f) => f.id === s.art.focus[0]).truth].label;
+    assert.notEqual(s.art.wrongBin, right, s.id);
+  }
+  assert.equal(m2.scenes[2].art.wrongBin, 'paper'); // S3 문구: 종이 함에 영수증과 우유팩이 섞였다
+});
+
+test('m2 conveyor bins match the real sorting rules', () => {
+  const truthLabel = (art) => (m2.cardTypes[art] ? m2.cardTypes[art].label : m2.cardTypes[m2.fakes.find((f) => f.id === art).truth].label);
+  for (const it of m2.conveyor) assert.equal(it.bin, truthLabel(it.art), it.id);
+  // 영수증·칫솔 = 종량제(일반쓰레기), 건전지 = 전용 수거, 종이팩 ≠ 종이, 찌그러진 투명 페트도 투명 페트
+  assert.equal(m2.fakes.find((f) => f.id === 'f_receipt').truth, 'trash_misc');
+  assert.equal(m2.fakes.find((f) => f.id === 'f_toothbrush').truth, 'trash_misc');
+  assert.equal(m2.cardTypes.pack_milk.label, 'pack');
+  assert.equal(m2.cardTypes.pet_crushed.label, 'pet');
+});
+
+test('m2 passes in 30 cards avoiding fakes', () => {
+  const bag = bagOf({ ...M2_ALL2, can_drink: 5, pet_clear: 5, vinyl_bag: 4, paper_news: 4, pack_milk: 4 });
+  assert.equal(bag.length, 30);
+  assert.equal(judge(m2, bag, cfg).allPass, true);
+});
+
+test('m2 fixing fakes also passes', () => {
+  const bag = bagOf({ ...M2_ALL2, trash_misc: 0 }).concat(fakesOf('f_receipt', 2, { label: 'trash' }));
+  assert.equal(judge(m2, bag, cfg).allPass, true);
+  const unfixed = bagOf({ ...M2_ALL2, trash_misc: 0 }).concat(fakesOf('f_receipt', 2));
+  const s3 = judge(m2, unfixed, cfg).scenes[2];
+  assert.equal(s3.pass, false);
+  assert.deepEqual(s3.contaminated, ['f_receipt']);
+});
+
+test('m2 every scene can fail on its own', () => {
+  const only = (drop) => judge(m2, bagOf({ ...M2_ALL2, [drop]: 0 }), cfg).scenes.map((s) => s.pass);
+  assert.deepEqual(only('can_tin'), [false, true, true, true]);
+  assert.deepEqual(only('pet_crushed'), [true, false, true, true]);
+  assert.deepEqual(only('pack_milk'), [true, true, false, true]);
+  assert.deepEqual(only('battery_aa'), [true, true, true, false]);
+  assert.equal(judge(m2, bagOf({ ...M2_ALL2, battery_aa: 0 }), cfg).scenes[3].failKind, 'danger');
+});
+
+test('f_battery x2 fails S1 and S4 as danger', () => {
+  const r = judge(m2, bagOf(M2_ALL2).concat(fakesOf('f_battery', 2)), cfg);
+  assert.deepEqual(r.scenes.map((s) => s.failKind), ['danger', null, null, 'danger']);
+});
+
+test('m2 fake cat cannot be fixed', () => {
+  for (const l of m2.labels) assert.equal(Cards.isMislabeled(m2, { id: 'c', fakeId: 'f_cat', label: l.id }), true, l.id);
+});
+
+test('no forbidden copy (m2)', () => {
+  assert.ok(!/지하차도|%|AI가 틀렸|당신이 실패/.test(JSON.stringify(m2)));
+  for (const c of combos(m2)) assert.match(c.missingLine, /^우리가 넣은 데이터에는 .+(없었다|부족했다)\.$/, c.id);
+});
+
+test('cast covers every speaker (m2)', () => {
+  const lines = Object.values(m2.story).flatMap((v) => (Array.isArray(v) ? v : v && v.who ? [v] : []));
+  for (const l of lines) assert.ok(cast[l.who], l.who);
+  assert.equal(cast.sorter.name, '선별장 직원');
+  assert.ok(m2.story.recordLine.firstTry && m2.story.recordLine.supplemented);
+  assert.ok(m2.story.intro.some((l) => l.who === 'senior'));
+  assert.ok(m2.story.intro.some((l) => l.who === 'bot' && /이름표/.test(l.text)));
+  assert.equal(m2.story.conveyorIntro.text, '그럼, 실제로 돌려 보자.');
+});
+
+test('config has conveyor step', () => {
+  assert.ok(cfg.conveyor && cfg.conveyor.step > 0);
+});

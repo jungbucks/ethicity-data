@@ -2,6 +2,7 @@
  * 저장·이어하기(P4) — 키 이름은 시리즈 규칙(ethicity.publicness.save / .sound)에 맞춘다.
  *   ethicity.data.save   체크포인트(화면 경계에서만: 브리핑·검수·결과·보충 준비 진입). 달리기 도중은 저장하지 않는다.
  *   ethicity.data.sound  효과음 켬/끔('1'/'0'). 없으면 켜짐. 옛 키 dr.muted는 읽기만 해서 이어받는다.
+ *   (save.records = 임무 완료 기록, 체크포인트·임무 끝에도 남고 '처음부터'에서 지워진다)
  *   ethicity.data.hero   달릴 주인공(공통 팩 'onyu' 온유 / 'daon' 다온). 없거나 모르는 값이면 온유.
  * 저장소가 막혀 있으면(사생활 보호 창 등) 조용히 실패하고 게임은 그대로 진행한다.
  */
@@ -39,8 +40,9 @@
       v: 1, screen: screen, mission: state.mission,
       bag: (state.bag || []).map(function (c) { var o = {}; Object.keys(c).forEach(function (k) { if (c[k] !== undefined) o[k] = c[k]; }); return o; }),
       supplements: state.supplements || 0, firstTry: state.firstTry === undefined ? null : state.firstTry,
-      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [],
+      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [],
       tutorialDone: !!((flags && flags.tutorialDone) || prev.tutorialDone),
+      records: prev.records || {},
       savedAt: Date.now()
     }, st);
   }
@@ -54,7 +56,7 @@
     return {
       mission: o.mission || null, screen: o.screen || null, bag: o.bag || [],
       supplements: o.supplements || 0, firstTry: o.firstTry === undefined ? null : o.firstTry,
-      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], tutorialDone: !!o.tutorialDone
+      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], tutorialDone: !!o.tutorialDone
     };
   }
 
@@ -69,13 +71,27 @@
   function finish(st) {
     st = storage(st);
     var prev = read(st) || {};
-    return write({ v: 1, mission: null, tutorialDone: !!prev.tutorialDone }, st);
+    return write({ v: 1, mission: null, tutorialDone: !!prev.tutorialDone, records: prev.records || {} }, st);
   }
 
+  // 처음부터: 진행과 임무 기록을 지우고 튜토리얼 완료만 남긴다
   function clear(st) {
     st = storage(st);
     var prev = read(st) || {};
     return write({ v: 1, mission: null, tutorialDone: !!prev.tutorialDone }, st);
+  }
+
+  // 임무 완료 기록 { 임무 id: { cleared, firstTry, supplements, firstFails } } — 다음 임무 대사·3 임무 정체 공개·도시 복구 화면이 읽는다
+  function records(st) {
+    var o = read(storage(st));
+    return (o && o.records && typeof o.records === 'object') ? o.records : {};
+  }
+  function setRecord(id, rec, st) {
+    st = storage(st);
+    var o = read(st) || { v: 1, mission: null };
+    o.records = o.records || {};
+    o.records[id] = rec;
+    return write(o, st);
   }
 
   function soundOn(st) {
@@ -101,7 +117,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, markTutorialDone: markTutorialDone, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

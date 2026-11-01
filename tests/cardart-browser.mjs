@@ -48,6 +48,46 @@ try {
     return out;
   });
   await page.screenshot({ path: shotPath('cardart') });
+
+  // 2 임무(spec §7): 물건 카드·가짜·컨베이어 변형·이름표 아이콘 7종·선별장 컷 — 시트는 따로(_shot-cardart-m2.png)
+  const r2 = await page.evaluate(() => {
+    document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
+    const A = DR.CardArt, M = DR.Missions, m2 = M.m2;
+    const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
+    const out = { bad: [], scenes: 0, variantDiff: [] };
+    const ids = [...Object.keys(m2.cardTypes), ...m2.fakes.map((f) => f.id)];
+    for (const id of ids) for (const v of [0, 1, 2]) if (std(A.card(m2, id, v, 256)) <= 10) out.bad.push(id + ' v' + v);
+    for (const it of m2.conveyor) if (std(A.card(m2, it.art, it.variant, 256)) <= 10) out.bad.push(it.id);
+    for (const k of Object.keys(m2.cardTypes)) if (A.card(m2, k, 0, 256).toDataURL() === A.card(m2, k, 3, 256).toDataURL()) out.variantDiff.push(k);
+    const icons = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat', ...m2.labels.map((l) => l.id)];
+    out.iconUnique = new Set(icons.map((n) => A.icon(n, 64).toDataURL())).size;
+    out.iconStd = m2.labels.filter((l) => std(A.icon(l.id, 64)) > 10).length;
+    for (const s of m2.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(m2, s.id, o, 320)) > 10) out.scenes++;
+    out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m2, 'S4', o, 320).toDataURL())).size;
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
+    const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
+    for (const id of ids) add(A.card(m2, id, 0, 256), id);
+    for (const id of ['can_drink', 'pet_clear', 'paper_news', 'trash_misc', 'battery_aa']) add(A.card(m2, id, 1, 256), id + ' v1');
+    for (const id of ['paper_news', 'trash_misc']) add(A.card(m2, id, 2, 256), id + ' v2');
+    for (const it of m2.conveyor.slice(0, 6)) add(A.card(m2, it.art, it.variant, 256), it.id + ' ' + it.art);
+    // 24칸 썸네일에서 헷갈리기 쉬운 짝: 영수증↔종이, 칫솔↔페트, 건전지↔캔
+    for (const id of ['f_receipt', 'paper_news', 'f_toothbrush', 'pet_clear', 'battery_aa', 'can_drink', 'can_tin', 'pack_milk']) add(A.thumb(A.card(m2, id, 0, 256), 24), 'thumb ' + id, 80);
+    for (const l of m2.labels) add(A.icon(l.id, 64), l.text, 56);
+    for (const s of m2.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(m2, s.id, o, 320), s.id + ' ' + o, 150);
+    document.body.append(sheet);
+    return out;
+  });
+  await page.screenshot({ path: shotPath('cardart-m2') });
+  assert.deepEqual(r2.bad, [], 'm2 blank art');
+  assert.deepEqual(r2.variantDiff, [], 'm2 variant 0 vs 3');
+  assert.equal(r2.iconUnique, 16, 'icons unique');
+  assert.equal(r2.iconStd, 7, 'm2 icons drawn');
+  assert.equal(r2.scenes, 16, 'm2 scenes');
+  assert.equal(r2.outcomesDiffer, 4, 'm2 outcomes differ');
+
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
   assert.ok(r.variantDiffers, 'variant');

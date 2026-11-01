@@ -96,7 +96,8 @@
     show();
   }
 
-  function briefing(mission, done) {
+  // extraLine: 이전 임무 기록에 따른 안내 AI 한 줄(기획서 §9 '대사 변화 한 줄') — 없으면 생략
+  function briefing(mission, done, extraLine) {
     var screen = document.getElementById('screen-briefing');
     var A = root.DR.CardArt;
     screen.innerHTML = '';
@@ -111,6 +112,7 @@
     screen.appendChild(el('div', { class: 'page' }, [
       el('p', { class: 'kicker', text: '브리핑 · ' + mission.title }),
       line({ who: 'guide', text: mission.story.guideBrief }),
+      extraLine ? line({ who: 'guide', text: extraLine }) : null,
       el('h2', { text: '이 AI가 판단해야 할 장면' }),
       scenes,
       root.DR.UI.legend(mission),
@@ -187,16 +189,19 @@
   }
 
   // 마무리 안내(기획서 §4.7) — 대화 뒤 안내 카드
-  function outro(lines, done) {
+  // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]) }
+  function outro(lines, done, opts) {
+    opts = opts || {};
     dialogue(lines, function () {
       var screen = document.getElementById('screen-outro');
       screen.innerHTML = '';
-      var again = el('button', { id: 'btn-again', class: 'btn btn-primary', type: 'button', text: '처음부터 다시', onclick: done });
+      var again = el('button', { id: 'btn-again', class: 'btn' + (opts.next ? '' : ' btn-primary'), type: 'button', text: '타이틀로', onclick: done });
+      var next = opts.next ? el('button', { id: 'btn-next-mission', class: 'btn btn-primary', type: 'button', text: '다음 임무로', onclick: function () { root.DR.Sfx.play('ui'); opts.next(); } }) : null;
       screen.appendChild(el('div', { class: 'page' }, [
-        el('p', { class: 'kicker', text: '1 임무 완료' }),
+        el('p', { class: 'kicker', text: opts.kicker || '임무 완료' }),
         el('h2', { text: '도시 한 구간이 다시 이어졌다' }),
         el('p', { class: 'lead', text: '이 게임의 결과는 실제 AI가 아니라 단순화한 규칙으로 만든 것이다. 실제 AI라면 무엇이 다를지, 우리가 넣는 데이터가 어떤 판단으로 이어지는지 이야기해 보자.' }),
-        el('div', { class: 'actions' }, [again])
+        el('div', { class: 'actions' }, [next, again])
       ]));
       root.DR.App.go('outro');
     });

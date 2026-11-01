@@ -56,17 +56,19 @@
       var amb = !!card.ambiguousId, label = cardLabel(mission, card);
       var state = amb && card.assigned === undefined ? '아직 안 정함' : '';
       var isNew = opts.newIds && opts.newIds.indexOf(card.id) >= 0;
+      var fixed = !amb && card.label !== undefined; // 2 임무: 플레이어가 이름표를 고친 카드(맞았는지는 표시하지 않음)
       var open = el('button', { class: 'bag-open', type: 'button', 'aria-label': (amb ? '"?" 카드 열기: ' : '크게 보기: ') + label + (isNew ? ' (새로 담음)' : '') }, [
         el('img', { src: thumbUrl(mission, card), alt: '' }),
         DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)),
         el('span', { class: 'bag-label', text: label }),
         state ? el('span', { class: 'bag-state', text: state }) : null,
-        isNew ? el('span', { class: 'badge-new', 'aria-hidden': 'true', text: 'NEW' }) : null
+        isNew ? el('span', { class: 'badge-new', 'aria-hidden': 'true', text: 'NEW' }) : null,
+        fixed ? el('span', { class: 'bag-fixed', text: '고침' }) : null
       ]);
       if (opts.onOpen) open.addEventListener('click', function () { opts.onOpen(card); });
       var rm = el('button', { class: 'btn-remove', type: 'button', text: '빼기', 'aria-label': '빼기: ' + label });
       rm.addEventListener('click', function () { DR.Sfx.play('ui'); opts.onRemove(card); });
-      grid.appendChild(el('div', { class: 'bag-card' + (amb ? ' ambiguous' : '') + (amb && card.assigned === undefined ? ' undecided' : '') + (isNew ? ' is-new' : ''), 'data-id': card.id, 'data-key': card.key || card.ambiguousId || card.fakeId }, [open, rm]));
+      grid.appendChild(el('div', { class: 'bag-card' + (amb ? ' ambiguous' : '') + (amb && card.assigned === undefined ? ' undecided' : '') + (isNew ? ' is-new' : '') + (fixed ? ' fixed' : ''), 'data-id': card.id, 'data-key': card.key || card.ambiguousId || card.fakeId }, [open, rm]));
     });
     return grid;
   }
@@ -88,7 +90,7 @@
   function inspect(mission, bag, done, opts) {
     opts = opts || {};
     var screen = document.getElementById('screen-inspect');
-    var zoomed = null, zoomCleanup = null;
+    var zoom = zoomer(mission, screen, 'inspect-zoom', function () { render(); });
 
     function render() {
       var undecided = bag.filter(function (c) { return c.ambiguousId && c.assigned === undefined; }).length;
@@ -110,27 +112,38 @@
         scenes.appendChild(el('section', { class: 'scene-sum', 'data-scene': s.id }, [el('h3', { text: s.title }), combos, row]));
       });
       var submit = el('button', { id: 'btn-submit', class: 'btn btn-primary', type: 'button', text: '감독관에게 제출' });
-      submit.addEventListener('click', function () { DR.Sfx.play('ui'); DR.UI.clearToast(); done(bag); });
+      submit.addEventListener('click', function () { DR.Sfx.play('ui'); DR.UI.clearToast(); zoom.close(); done(bag); });
       var helpBtn = el('button', { id: 'btn-help-inspect', class: 'btn btn-ghost btn-help', type: 'button', text: '?', 'aria-label': '도움말' });
       helpBtn.addEventListener('click', function () { DR.Sfx.play('ui'); DR.UI.help(mission); });
       screen.appendChild(helpBtn);
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: '검수 · ' + mission.title }),
         el('h2', { text: '가방 확인 (' + bag.length + '/' + mission.bag + '칸)' }),
-        el('p', { class: 'note', text: '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
+        el('p', { class: 'note', text: mission.labels ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
         notice,
         bagGrid(mission, bag, 'inspect-grid', {
-          onOpen: openZoom, newIds: opts.newIds,
+          onOpen: zoom.open, newIds: opts.newIds,
           onRemove: function (card) { removeWithUndo(mission, bag, card, render); }
         }),
         el('h2', { text: '장면별로 모아 보기' }),
         scenes,
         el('div', { class: 'actions' }, [submit])
       ]));
-      if (zoomed) openZoom(zoomed);
+      zoom.reopen();
     }
 
-    function openZoom(card) {
+    DR.App.go('inspect');
+    render();
+  }
+
+  /* ---------- 카드 크게 보기(검수·보충 준비 공용) ----------
+   * "?" 카드: 단서 + 설명표 붙이기(1 임무). 2 임무(mission.labels): 모든 카드에 이름표 7종 버튼 — 가짜만 버튼이 있으면 그 자체가 정답 단서라서.
+   * 이름표를 원래 것으로 되돌리면 card.label을 지운다("고침" 표시도 사라진다). 고친 이름표가 맞는지는 어디에도 표시하지 않는다.
+   * rerender()가 화면을 다시 그리면 reopen()으로 같은 카드 창을 다시 연다. keydown 정리 함수는 하나만(다시 그릴 때 쌓이지 않게). */
+  function zoomer(mission, host, zoomId, rerender) {
+    var zoomed = null, zoomCleanup = null;
+
+    function open(card) {
       if (zoomCleanup) zoomCleanup();
       zoomed = card;
       var A = DR.CardArt, amb = !!card.ambiguousId, label = cardLabel(mission, card);
@@ -149,15 +162,29 @@
         mission.labelOptions.concat([{ id: 'none', text: '넣지 않기' }]).forEach(function (o) {
           var val = o.id === 'none' ? null : o.id;
           var b = el('button', { class: 'btn btn-label', type: 'button', 'data-label': o.id, text: o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' });
-          b.addEventListener('click', function () { DR.Sfx.play('ui'); card.assigned = val; render(); });
+          b.addEventListener('click', function () { DR.Sfx.play('ui'); card.assigned = val; rerender(); });
           labels.appendChild(b);
         });
         inner.push(el('h3', { text: '추가 단서' }), clues, el('h3', { text: '설명표' }), labels);
+      } else if (mission.labels) {
+        var cur = DR.Cards.currentLabel(mission, card), orig = DR.Cards.originalLabel(mission, card);
+        var relabel = el('div', { class: 'labels relabel', role: 'group', 'aria-label': '이름표 고치기' });
+        mission.labels.forEach(function (l) {
+          var b = el('button', { class: 'btn btn-label', type: 'button', 'data-relabel': l.id, 'aria-pressed': cur === l.id ? 'true' : 'false' },
+            [DR.UI.iconStrip(mission, [l.id], 18), el('span', { text: l.text })]);
+          b.addEventListener('click', function () {
+            DR.Sfx.play('ui');
+            if (l.id === orig) delete card.label; else card.label = l.id;
+            rerender();
+          });
+          relabel.appendChild(b);
+        });
+        inner.push(el('h3', { text: '이름표' }),
+          el('p', { class: 'note', text: '그림과 맞지 않으면 맞는 이름표로 고친다. 맞는 이름표가 없으면 빼자.' }), relabel);
       }
       var close = el('button', { class: 'btn btn-ghost', type: 'button', text: '닫기' });
       var panel = el('div', { class: 'zoom-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': '카드 크게 보기: ' + label }, inner.concat([el('div', { class: 'actions' }, [close])]));
-      var overlay = el('div', { id: 'inspect-zoom', class: 'zoom' }, [panel]);
-      // 다시 그릴 때 keydown 리스너가 쌓이지 않게 정리 함수를 하나만 둔다
+      var overlay = el('div', { id: zoomId, class: 'zoom' }, [panel]);
       function cleanup() { overlay.remove(); root.removeEventListener('keydown', onKey); zoomCleanup = null; }
       function shut() { zoomed = null; cleanup(); }
       function onKey(e) { if (e.key === 'Escape') shut(); }
@@ -165,12 +192,12 @@
       overlay.addEventListener('click', function (e) { if (e.target === overlay) shut(); });
       root.addEventListener('keydown', onKey);
       zoomCleanup = cleanup;
-      screen.appendChild(overlay);
+      host.appendChild(overlay);
       close.focus();
     }
-
-    DR.App.go('inspect');
-    render();
+    function reopen() { if (zoomed && document.contains(host)) open(zoomed); }
+    function shutAll() { zoomed = null; if (zoomCleanup) zoomCleanup(); }
+    return { open: open, reopen: reopen, close: shutAll };
   }
 
   /* ---------- 감독관 ---------- */
@@ -199,6 +226,8 @@
     // 종류(key)마다 필요한 최대 장수 — 여유 계산용
     var needByKey = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { c.keys.forEach(function (k) { needByKey[k] = Math.max(needByKey[k] || 0, c.need); }); }); });
+
+    var zoom = zoomer(mission, screen, 'prep-zoom', function () { render(); });
 
     function removeOneOf(key) {
       for (var i = bag.length - 1; i >= 0; i--) if (DR.Cards.displayKey(mission, bag[i]) === key) { removeWithUndo(mission, bag, bag[i], render); return; }
@@ -240,7 +269,7 @@
 
       var go = el('button', { id: 'btn-supplement', class: 'btn btn-primary', type: 'button', text: resubmit ? '다시 제출' : '보충 달리기 출발' });
       go.disabled = lack > 0;
-      go.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); DR.UI.clearToast(); done(bag, { resubmit: resubmit }); });
+      go.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); DR.UI.clearToast(); zoom.close(); done(bag, { resubmit: resubmit }); });
       var note = resubmit ? '모자란 카드는 없다. 가방을 정리했으면 다시 제출하자.'
         : '이번엔 그 장면에 필요한 카드가 더 자주 나온다. 가방 칸은 그대로라서, 출발하려면 ' + need + '칸 이상 비어 있어야 한다.';
       var helpBtn = el('button', { id: 'btn-help-prep', class: 'btn btn-ghost btn-help', type: 'button', text: '?', 'aria-label': '도움말' });
@@ -254,9 +283,10 @@
         resubmit ? null : el('p', { id: 'prep-need', class: 'notice', text: lack > 0 ? lack + '칸 더 비워야 해요.' : '출발할 수 있어요.' }),
         el('h3', { text: '가방 속 종류별 개수' }),
         summary,
-        bagGrid(mission, bag, 'prep-grid', { onRemove: function (card) { removeWithUndo(mission, bag, card, render); } }),
+        bagGrid(mission, bag, 'prep-grid', { onOpen: zoom.open, onRemove: function (card) { removeWithUndo(mission, bag, card, render); } }),
         el('div', { class: 'actions' }, [go])
       ]));
+      zoom.reopen();
     }
     DR.App.go('prep');
     render();

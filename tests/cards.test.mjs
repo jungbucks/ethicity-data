@@ -68,7 +68,9 @@ test('harm: hazard truth is danger, else inconvenience', () => {
 });
 
 test('sourceId', () => {
-  assert.equal(C.sourceId(mB, { fakeId: 'f_cat', label: 'can' }), 'f_cat');
+  assert.equal(C.sourceId(mB, { fakeId: 'f_cat' }), 'f_cat');
+  assert.equal(C.sourceId(mB, { fakeId: 'f_cat', label: 'trash' }), 'f_cat');
+  assert.equal(C.sourceId(mB, { fakeId: 'f_cat', label: 'can' }), 'mis:f_cat:can'); // 다른 틀린 이름표로 바꾸면 지금 이름표로 말한다
   assert.equal(C.sourceId(mB, { key: 'can_drink', label: 'trash' }), 'mis:can_drink:trash');
 });
 
@@ -112,4 +114,36 @@ test('displayKey·labelCounts: 붙은 설명표 기준, "?"는 붙인 설명표�
   const bag = [{ key: 'night_wet' }, { fakeId: 'f_fridge' }, { ambiguousId: 'q_neon', assigned: 'wet' }, { key: 'night_neon' }, { ambiguousId: 'q_muddy', assigned: null }];
   assert.deepEqual(C.labelCounts(m1, bag), { night_wet: 3, night_neon: 1 });
   assert.equal(C.keyLabel(m1, 'night_muddy'), '밤 · 침수(얕음) · 흙탕물');
+});
+
+// 2 임무(이름표 = 분류함, 한 이름표가 여러 종류를 덮는다) — 화면 개수·라벨도 붙은 이름표 기준, 가짜 정체는 드러내지 않는다
+const m2 = require('../missions/m2.js');
+test('m2 displayKey: right label = its own kind, wrong label = the common kind of that label', () => {
+  assert.equal(C.displayKey(m2, { key: 'can_tin' }), 'can_tin');
+  assert.equal(C.displayKey(m2, { fakeId: 'f_battery' }), 'can_drink');
+  assert.equal(C.displayKey(m2, { fakeId: 'f_receipt' }), 'paper_news');
+  assert.equal(C.displayKey(m2, { fakeId: 'f_receipt', label: 'trash' }), 'trash_misc');
+  assert.equal(C.displayKey(m2, { key: 'can_drink', label: 'paper' }), 'paper_news');
+  assert.equal(C.displayKey(m2, { fakeId: 'f_cat', label: 'battery' }), 'battery_aa');
+});
+test('m2 labels on screen: card = attached label only, combo rows = kind name', () => {
+  assert.equal(C.cardLabel(m2, { fakeId: 'f_battery' }), '캔');
+  assert.equal(C.cardLabel(m2, { key: 'can_tin' }), '캔');
+  assert.equal(C.cardLabel(m2, { fakeId: 'f_receipt', label: 'trash' }), '일반쓰레기');
+  assert.equal(C.keyLabel(m2, 'can_tin'), '통조림 캔');
+  assert.equal(C.keyLabel(m2, 'trash_misc'), '일반쓰레기');
+});
+test('m2 originalLabel ignores a fix', () => {
+  assert.equal(C.originalLabel(m2, { fakeId: 'f_receipt', label: 'trash' }), 'paper');
+  assert.equal(C.originalLabel(m2, { key: 'can_drink', label: 'paper' }), 'can');
+});
+test('a fake fixed to another wrong label is told as what it now says', () => {
+  const card = { fakeId: 'f_receipt', label: 'pack' };
+  assert.equal(C.sourceId(m2, card), 'mis:f_receipt:pack');
+  assert.equal(C.sourceId(m2, { fakeId: 'f_receipt' }), 'f_receipt');
+  assert.equal(C.sourceId(m2, { fakeId: 'f_receipt', label: 'paper' }), 'f_receipt');
+  const J = require('../js/judge.js');
+  assert.equal(J.contaminationLine(m2, 'mis:f_receipt:pack'), "우리가 넣은 데이터에 영수증 사진이 '종이팩'으로 들어갔다.");
+  assert.equal(J.contaminationLine(m2, 'mis:can_drink:paper'), "우리가 넣은 데이터에 음료 캔 사진이 '종이'로 들어갔다.");
+  assert.equal(J.contaminationLine(m2, 'mis:pet_clear:vinyl'), "우리가 넣은 데이터에 투명 페트병 사진이 '비닐'로 들어갔다.");
 });

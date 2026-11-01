@@ -32,6 +32,14 @@
     return f ? f.label : null;
   }
 
+  // 고치기 전 이름표(2 임무 이름표 고치기에서 '원래대로'를 알아보는 데 쓴다)
+  function originalLabel(mission, card) {
+    if (card.ambiguousId) return null;
+    if (card.key) return labelOfKey(mission, card.key);
+    var f = fakeDef(mission, card.fakeId);
+    return f ? f.label : null;
+  }
+
   function truthKey(mission, card) {
     if (card.key) return card.key;
     if (card.fakeId) { var f = fakeDef(mission, card.fakeId); return (f && f.truth) || null; }
@@ -49,8 +57,12 @@
     return t && mission.cardTypes[t] && mission.cardTypes[t].hazard ? 'danger' : 'inconvenience';
   }
 
+  // 가짜는 그 가짜 문구로. 단, 2 임무에서 다른 틀린 이름표로 바꿨으면 지금 붙은 이름표로 말한다(mis:가짜id:이름표)
   function sourceId(mission, card) {
-    if (card.fakeId) return card.fakeId;
+    if (card.fakeId) {
+      var f = fakeDef(mission, card.fakeId);
+      return card.label && f && card.label !== f.label ? 'mis:' + card.fakeId + ':' + card.label : card.fakeId;
+    }
     return 'mis:' + card.key + ':' + currentLabel(mission, card);
   }
 
@@ -95,6 +107,7 @@
   function keyLabel(mission, key) {
     var t = mission.cardTypes[key];
     if (!t) return labelText(mission, key);
+    if (mission.labels && t.name) return t.name; // 2 임무: 종류 이름(음료 캔·통조림 캔 …), 아이콘이 이름표를 보여 준다
     var parts = t.icons.map(function (ic) { return TIME_TEXT[ic] || iconText(mission, ic); });
     if (t.variantText) parts.push(t.variantText);
     return parts.join(' · ');
@@ -111,7 +124,18 @@
   }
 
   // 화면에 세는 종류: 보통·가짜 카드는 붙은 설명표, "?" 카드는 붙인 설명표의 보통(드물지 않은) 종류. 미결정·넣지 않기는 null
+  // 2 임무(labels): 이름표가 맞는 카드는 그 종류, 틀린 카드는 붙은 이름표의 보통 종류("?" 카드와 같은 규칙)
+  function commonKeyOfLabel(mission, label) {
+    var keys = Object.keys(mission.cardTypes), any = null;
+    for (var i = 0; i < keys.length; i++) {
+      if (labelOfKey(mission, keys[i]) !== label) continue;
+      if (!mission.cardTypes[keys[i]].rare) return keys[i];
+      if (!any) any = keys[i];
+    }
+    return any;
+  }
   function displayKey(mission, card) {
+    if (!card.ambiguousId && mission.labels) return isMislabeled(mission, card) ? commonKeyOfLabel(mission, currentLabel(mission, card)) : truthKey(mission, card);
     if (!card.ambiguousId) return currentLabel(mission, card);
     if (!card.assigned) return null;
     var q = ambDef(mission, card.ambiguousId), keys = Object.keys(mission.cardTypes);
@@ -128,13 +152,15 @@
     return out;
   }
 
-  var labelColors = { flood_deep: '#527de0', flood_shallow: '#25bdb0', wet: '#d8af32', dry: '#9dc77b', unknown: '#b49ae3' };
+  var labelColors = { flood_deep: '#527de0', flood_shallow: '#25bdb0', wet: '#d8af32', dry: '#9dc77b', unknown: '#b49ae3',
+    // 2 임무 분류함(컨베이어 함 색과 같음)
+    can: '#d9534f', pet: '#3a8fd9', pack: '#25bdb0', paper: '#c9a227', vinyl: '#d977a8', battery: '#2fae6b', trash: '#7d8290' };
   function runColor(mission, card) {
     var icons = card.ambiguousId ? ['unknown'] : iconsOf(mission, card);
     return labelColors[icons[icons.length - 1]] || '#8ab5ce';
   }
   var api = { labelColors: labelColors, runColor: runColor,
-    fakeDef: fakeDef, labelOfKey: labelOfKey, currentLabel: currentLabel, truthKey: truthKey,
+    fakeDef: fakeDef, labelOfKey: labelOfKey, originalLabel: originalLabel, currentLabel: currentLabel, truthKey: truthKey,
     isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel,
     iconsOf: iconsOf, artId: artId, labelText: labelText,
     keyLabel: keyLabel, cardLabel: cardLabel, displayKey: displayKey, labelCounts: labelCounts

@@ -20,6 +20,8 @@
     var byCombo = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { byCombo[c.id] = c; }); });
     var i = 0;
+    // 2 임무: 컨베이어에서 그 장면의 잘못 간 물건(같은 판정 = 같은 결과)
+    var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : [];
 
     function show() {
       var r = judged.scenes[i], s = mission.scenes[i];
@@ -42,6 +44,15 @@
       (r.contaminated || []).forEach(function (src) {
         parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src) }));
       });
+      var wrong = sorted.filter(function (it) { return it.scene === s.id && !it.correct; });
+      if (wrong.length) {
+        var row = el('div', { class: 'result-wrong-row' });
+        wrong.forEach(function (it) {
+          var name = DR.Cards.fakeDef(mission, it.art) ? DR.Cards.fakeDef(mission, it.art).name : mission.cardTypes[it.art].name;
+          row.appendChild(el('figure', null, [el('img', { src: DR.CardArt.card(mission, it.art, it.variant, 160).toDataURL(), alt: name }), el('figcaption', { text: name + ' → ' + DR.Cards.labelText(mission, it.bin) + ' 함' })]));
+        });
+        parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '컨베이어에서 잘못 간 물건' }), row]));
+      }
       if (outcome === 'danger') parts.push(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
       if (last) {
         if (judged.mislabeled.length) parts.push(el('p', { class: 'missing', text: '설명표를 다르게 붙인 "?" 카드 ' + judged.mislabeled.length + '장은 어느 장면의 데이터도 되지 못했다.' }));

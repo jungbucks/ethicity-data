@@ -1,0 +1,236 @@
+[
+  {
+    "name": "common",
+    "counts": {
+      "day_deep": 11,
+      "day_shallow": 9
+    },
+    "result": {
+      "scenes": [
+        {
+          "id": "S1",
+          "pass": true,
+          "failKind": null,
+          "failLine": null,
+          "missing": [],
+          "contaminated": []
+        },
+        {
+          "id": "S2",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": null,
+          "missing": [
+            "S2_day_wet",
+            "S2_day_dry"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S3",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": "네온 반사를 깊은 물로 착각해 교차로를 막았다. 밤에 정말 잠긴 도로를 본 적이 없으니 빛과 물을 구분할 기준이 없었다.",
+          "missing": [
+            "S3_night_wet",
+            "S3_night_neon",
+            "S3_night_deep"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S4",
+          "pass": false,
+          "failKind": "danger",
+          "failLine": null,
+          "missing": [
+            "S4_night_shallow",
+            "S4_night_muddy",
+            "S4_night_wet"
+          ],
+          "contaminated": []
+        }
+      ],
+      "mislabeled": [],
+      "allPass": false
+    }
+  },
+  {
+    "name": "balanced",
+    "counts": {
+      "day_deep": 2,
+      "day_shallow": 2,
+      "day_wet": 2,
+      "day_dry": 2,
+      "night_wet": 2,
+      "night_neon": 2,
+      "night_deep": 2,
+      "night_shallow": 2,
+      "night_muddy": 2
+    },
+    "result": {
+      "scenes": [
+        {
+          "id": "S1",
+          "pass": true,
+          "failKind": null,
+          "failLine": null,
+          "missing": [],
+          "contaminated": []
+        },
+        {
+          "id": "S2",
+          "pass": true,
+          "failKind": null,
+          "failLine": null,
+          "missing": [],
+          "contaminated": []
+        },
+        {
+          "id": "S3",
+          "pass": true,
+          "failKind": null,
+          "failLine": null,
+          "missing": [],
+          "contaminated": []
+        },
+        {
+          "id": "S4",
+          "pass": true,
+          "failKind": null,
+          "failLine": null,
+          "missing": [],
+          "contaminated": []
+        }
+      ],
+      "mislabeled": [],
+      "allPass": true
+    }
+  },
+  {
+    "name": "fakes",
+    "counts": {
+      "day_deep": 2,
+      "day_shallow": 2,
+      "f_pool": 2,
+      "f_fridge": 2
+    },
+    "result": {
+      "scenes": [
+        {
+          "id": "S1",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": null,
+          "missing": [],
+          "contaminated": [
+            "f_pool"
+          ]
+        },
+        {
+          "id": "S2",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": null,
+          "missing": [
+            "S2_day_wet",
+            "S2_day_dry"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S3",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": "네온 반사를 깊은 물로 착각해 교차로를 막았다. 밤에 정말 잠긴 도로를 본 적이 없으니 빛과 물을 구분할 기준이 없었다.",
+          "missing": [
+            "S3_night_wet",
+            "S3_night_neon",
+            "S3_night_deep"
+          ],
+          "contaminated": [
+            "f_fridge"
+          ]
+        },
+        {
+          "id": "S4",
+          "pass": false,
+          "failKind": "danger",
+          "failLine": null,
+          "missing": [
+            "S4_night_shallow",
+            "S4_night_muddy",
+            "S4_night_wet"
+          ],
+          "contaminated": [
+            "f_fridge"
+          ]
+        }
+      ],
+      "mislabeled": [],
+      "allPass": false
+    }
+  },
+  {
+    "name": "ambiguous",
+    "counts": {
+      "q_neon": 1,
+      "q_muddy": 1,
+      "q_clean": 1
+    },
+    "assigned": {
+      "q_neon": "wet",
+      "q_muddy": "flood_shallow",
+      "q_clean": "wet"
+    },
+    "result": {
+      "scenes": [
+        {
+          "id": "S1",
+          "pass": false,
+          "failKind": "danger",
+          "failLine": null,
+          "missing": [
+            "S1_day_deep",
+            "S1_day_shallow"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S2",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": null,
+          "missing": [
+            "S2_day_dry"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S3",
+          "pass": false,
+          "failKind": "inconvenience",
+          "failLine": "네온 반사를 깊은 물로 착각해 교차로를 막았다. 밤에 정말 잠긴 도로를 본 적이 없으니 빛과 물을 구분할 기준이 없었다.",
+          "missing": [
+            "S3_night_wet",
+            "S3_night_deep"
+          ],
+          "contaminated": []
+        },
+        {
+          "id": "S4",
+          "pass": false,
+          "failKind": "danger",
+          "failLine": null,
+          "missing": [
+            "S4_night_shallow",
+            "S4_night_wet"
+          ],
+          "contaminated": []
+        }
+      ],
+      "mislabeled": [],
+      "allPass": false
+    }
+  }
+]

@@ -1,9 +1,3 @@
-.env
-.env.*
-*.bak
-**/tests/_*
-**/tests/*results.json
-**/tests/*.png
 tests/_shot-*.png
 tests/_*.json
 tools/_hero/

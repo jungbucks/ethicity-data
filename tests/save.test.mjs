@@ -61,3 +61,24 @@ test('주인공: 없으면 온유, 온유·다온만 저장(ethicity.data.hero)'
   st.setItem('ethicity.data.hero', 'zzz');
   assert.equal(Save.hero(st), 'onyu');
 });
+
+// 임무 완료 기록(2 임무 Task 10) — 다음 임무 대사·3 임무 정체 공개·도시 복구 화면이 읽는 한 곳
+test('임무 기록: 남기고 읽기, 체크포인트·임무 끝·튜토리얼 완료가 지우지 않음', () => {
+  const st = mem();
+  assert.deepEqual(Save.records(st), {});
+  const rec = { cleared: true, firstTry: false, supplements: 1, firstFails: [{ scene: 'S4', title: '고가도로 아래 저지대 교차로', kind: 'danger' }] };
+  assert.equal(Save.setRecord('m1', rec, st), true);
+  assert.deepEqual(Save.records(st), { m1: rec });
+  Save.checkpoint('briefing', { mission: 'm2', bag: [], supplements: 0, firstTry: null, seed: 1 }, {}, st);
+  Save.markTutorialDone(st);
+  Save.finish(st);
+  assert.deepEqual(Save.records(st).m1, rec);
+  assert.equal(Save.load(st).mission, null);
+});
+test('임무 기록: 처음부터(clear)는 기록도 지운다, 깨진 저장은 빈 기록', () => {
+  const st = mem();
+  Save.setRecord('m1', { cleared: true, firstTry: true, supplements: 0, firstFails: [] }, st);
+  Save.clear(st);
+  assert.deepEqual(Save.records(st), {});
+  assert.deepEqual(Save.records({ getItem: () => '{oops' }), {});
+});

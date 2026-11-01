@@ -11,7 +11,7 @@
 
   var DR = root.DR;
   function el() { return DR.UI.el.apply(null, arguments); }
-  var KNOWN = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat'];
+  var KNOWN = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat', 'can', 'pet', 'pack', 'paper', 'vinyl', 'battery', 'trash'];
 
   function iconStrip(mission, keyOrIcons, size) {
     var icons = Array.isArray(keyOrIcons) ? keyOrIcons : ((mission.cardTypes[keyOrIcons] || {}).icons || []);
@@ -26,6 +26,7 @@
 
   // 범례 한 줄 데이터: 미션의 labelOptions(+ 시간대, "?") 기준. 튜토리얼은 동물 두 종류
   function legendItems(mission) {
+    if (mission.labels) return mission.labels.map(function (l) { return { icon: l.id, text: l.text }; }); // 2 임무: 분류함 7종
     if (!mission.labelOptions || !mission.labelOptions.length) {
       return Object.keys(mission.cardTypes).map(function (k) { return { icon: mission.cardTypes[k].icons[0], text: DR.Cards.keyLabel(mission, k) }; });
     }

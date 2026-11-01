@@ -93,11 +93,19 @@
   function contaminationLine(mission, source) {
     var C = cardsApi();
     if (source.indexOf('mis:') === 0) {
-      var parts = source.split(':'), t = mission.cardTypes[parts[1]];
-      return '우리가 넣은 데이터에 ' + ((t && t.name) || parts[1]) + ' 사진이 \'' + C.labelText(mission, parts[2]) + '\'로 들어갔다.';
+      var parts = source.split(':'), t = mission.cardTypes[parts[1]] || C.fakeDef(mission, parts[1]), label = C.labelText(mission, parts[2]);
+      return '우리가 넣은 데이터에 ' + ((t && t.name) || parts[1]) + ' 사진이 \'' + label + '\'' + roJosa(label) + ' 들어갔다.';
     }
     var f = C.fakeDef(mission, source);
     return (f && f.line) || '';
+  }
+
+  // '…로/으로': 받침이 없거나 ㄹ이면 '로', 그 밖의 받침이면 '으로'
+  function roJosa(word) {
+    var c = word.charCodeAt(word.length - 1) - 0xAC00;
+    if (c < 0 || c > 11171) return '로';
+    var jong = c % 28;
+    return jong === 0 || jong === 8 ? '로' : '으로';
   }
 
   function contaminationLines(mission, result) {
