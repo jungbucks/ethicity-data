@@ -2,6 +2,7 @@
  * 1 임무 — 침수 판별 AI(기획서 §7). 장면·조합·카드 수·대사는 모두 여기서 고친다.
  * danger:true = 침수 조합(빠지면 침수를 '안전'으로 통과시키는 위험 실패),
  * danger:false = 정상 조합(빠지면 멀쩡한 길을 막는 불편 실패).
+ * what = 빠진 것 이름 — 결과 문구는 가진 개수로 만든다(0장 '…없었다', 모자라면 '…부족했다', DR.Judge.missingLine).
  * boundary:true = 경계 조합 — 일반 드문 카드로도, 올바르게 분류한 "?" 카드(2장 몫)로도 채워진다.
  * fakes = 그림과 이름표가 안 맞는 가짜(도로 사진이 아닌 것, spec §4). label = 붙은 이름표(카드 종류 key),
  * truth = 진짜 종류(없으면 null). 한 장면에 2장 이상 쌓이면 그 장면이 오염된다(config.fakeLimit).
@@ -11,6 +12,13 @@
 
   var m1 = {
     id: 'm1', title: '침수 판별 AI', next: 'm2', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 6,
+    // 달리기 구역(코스 순서 — 사용자 승인: 물청소 → 고가 아래 → 밤 번화가 → 주택가 골목)
+    zones: [
+      { id: 'S2', title: '물청소 직후의 낮 도로', short: '물청소 도로' },
+      { id: 'S4', title: '고가도로 아래 저지대', short: '고가도로 아래' },
+      { id: 'S3', title: '비 오는 밤 번화가 교차로', short: '밤 번화가' },
+      { id: 'S1', title: '낮 주택가 골목', short: '주택가 골목' }
+    ],
     labelOptions: [
       { id: 'flood_deep', text: '침수(깊음)' },
       { id: 'flood_shallow', text: '침수(얕음)' },
@@ -62,20 +70,20 @@
       night_neon: 3, night_deep: 3, night_shallow: 3, night_muddy: 3
     },
     scenes: [
-      { id: 'S1', title: '낮 주택가 골목 침수', emphasis: 'normal', art: { place: 'alley', time: 'day', water: 'deep' },
+      { id: 'S1', title: '낮 주택가 골목 침수', emphasis: 'normal', art: { place: 'alley', time: 'day', water: 'deep', inconvenience: { water: 'dry' } },
         combos: [
-          { id: 'S1_day_deep', keys: ['day_deep'], need: 2, danger: true, missingLine: '우리가 넣은 데이터에는 낮에 깊게 잠긴 도로가 부족했다.' },
-          { id: 'S1_day_shallow', keys: ['day_shallow'], need: 2, danger: true, missingLine: '우리가 넣은 데이터에는 낮에 얕게 잠긴 도로가 부족했다.' }
+          { id: 'S1_day_deep', keys: ['day_deep'], need: 2, danger: true, what: '낮에 깊게 잠긴 도로' },
+          { id: 'S1_day_shallow', keys: ['day_shallow'], need: 2, danger: true, what: '낮에 얕게 잠긴 도로' }
         ],
         passLine: '물에 잠긴 낮 골목. 통행을 제대로 막았다.',
         cuts: {
           danger: '잠긴 골목이 \'안전\'으로 표시됐다. 들어서려던 차를 감독관이 세웠다.',
-          inconvenience: '멀쩡한 골목까지 막혔다.'
+          inconvenience: '물에 잠긴 골목만이 아니라, 물이 없는 옆 골목까지 막혔다. 차들이 빙 돌아간다.'
         } },
       { id: 'S2', title: '물청소 직후의 낮 도로', emphasis: 'normal', art: { place: 'street', time: 'day', water: 'wet', variant: 'clean' },
         combos: [
-          { id: 'S2_day_wet', keys: ['day_wet'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 물에 젖었을 뿐인 낮 도로가 거의 없었다.' },
-          { id: 'S2_day_dry', keys: ['day_dry'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 마른 낮 도로가 부족했다.' }
+          { id: 'S2_day_wet', keys: ['day_wet'], need: 2, danger: false, what: '물에 젖었을 뿐인 낮 도로' },
+          { id: 'S2_day_dry', keys: ['day_dry'], need: 2, danger: false, what: '마른 낮 도로' }
         ],
         passLine: '물청소가 막 끝난 길. 젖었을 뿐이라고 알아보고 그대로 열어 두었다.',
         cuts: {
@@ -84,9 +92,9 @@
         } },
       { id: 'S3', title: '비 오는 밤 번화가 교차로', emphasis: 'normal', art: { place: 'crossing', time: 'night', water: 'wet', variant: 'neon' },
         combos: [
-          { id: 'S3_night_wet', keys: ['night_wet'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 비에 젖은 밤 도로가 거의 없었다.' },
-          { id: 'S3_night_neon', keys: ['night_neon'], need: 2, danger: false, boundary: true, missingLine: '우리가 넣은 데이터에는 네온 불빛이 비친 밤 도로가 없었다.' },
-          { id: 'S3_night_deep', keys: ['night_deep'], need: 2, danger: true, missingLine: '우리가 넣은 데이터에는 밤에 깊게 잠긴 도로가 부족했다.',
+          { id: 'S3_night_wet', keys: ['night_wet'], need: 2, danger: false, what: '비에 젖은 밤 도로' },
+          { id: 'S3_night_neon', keys: ['night_neon'], need: 2, danger: false, boundary: true, what: '네온 불빛이 비친 밤 도로' },
+          { id: 'S3_night_deep', keys: ['night_deep'], need: 2, danger: true, what: '밤에 깊게 잠긴 도로',
             // 이 장면의 정답은 '젖었을 뿐'이라, 깊은 침수 예시가 없으면 길을 막는 불편으로 나타난다
             fail: { kind: 'inconvenience', line: '네온 반사를 깊은 물로 착각해 교차로를 막았다. 밤에 정말 잠긴 도로를 본 적이 없으니 빛과 물을 구분할 기준이 없었다.' } }
         ],
@@ -97,9 +105,9 @@
         } },
       { id: 'S4', title: '고가도로 아래 저지대 교차로', emphasis: 'low', art: { place: 'overpass', time: 'night', water: 'shallow' },
         combos: [
-          { id: 'S4_night_shallow', keys: ['night_shallow'], need: 2, danger: true, missingLine: '우리가 넣은 데이터에는 물에 살짝 잠긴 밤 도로가 거의 없었다.' },
-          { id: 'S4_night_muddy', keys: ['night_muddy'], need: 2, danger: true, boundary: true, missingLine: '우리가 넣은 데이터에는 흙탕물에 얕게 잠긴 밤 도로가 없었다.' },
-          { id: 'S4_night_wet', keys: ['night_wet'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 비에 젖은 밤 도로가 거의 없었다.',
+          { id: 'S4_night_shallow', keys: ['night_shallow'], need: 2, danger: true, what: '물에 살짝 잠긴 밤 도로' },
+          { id: 'S4_night_muddy', keys: ['night_muddy'], need: 2, danger: true, boundary: true, what: '흙탕물에 얕게 잠긴 밤 도로' },
+          { id: 'S4_night_wet', keys: ['night_wet'], need: 2, danger: false, what: '비에 젖은 밤 도로',
             // 이 장면의 정답은 '얕은 침수(막기)'라, 젖은 예시가 없으면 주변 멀쩡한 길까지 막는 불편으로 나타난다
             fail: { kind: 'inconvenience', line: '얕게 잠긴 길은 막았지만, 옆의 젖기만 한 밤길까지 같이 막았다. 젖은 밤 도로를 본 적이 없으니 어디까지가 잠긴 건지 선을 긋지 못했다.' } }
         ],

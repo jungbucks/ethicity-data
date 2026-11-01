@@ -1,7 +1,13 @@
-/* 구역별 무대 소품. 코스와 판정에 관여하지 않는다. */
+/* 구역별 무대 소품. 코스와 판정에 관여하지 않는다.
+ * 임무의 scenery가 'sorting'이면 선별장(옆 컨베이어 벨트·분류함·조명, 구역마다 하늘색·분류함 색), 아니면 1 임무 거리(그대로). */
 (function (root) {
   'use strict';
-  function create(view) {
+  function create(view, mission) {
+    if (mission && mission.scenery === 'sorting') return sorting(view, mission);
+    return street(view);
+  }
+
+  function street(view) {
     var scene = view.scene, roofs = [], bridge = new THREE.Group(), puddles = new THREE.Group();
     scene.add(bridge); scene.add(puddles);
     view.buildings.forEach(function (b) {
@@ -49,7 +55,66 @@
         geo.attributes.position.needsUpdate = true;
       }
     }
-    return { update: update };
+    return { update: update, state: function () { return { zone: current, theme: 'street' }; } };
+  }
+
+  // 2 임무 선별장: 구역(장면)마다 그 장면에 나오는 물건의 분류함 색으로 바뀐다
+  var SORT_SKY = { S1: 0x2c2f4a, S2: 0x203a4a, S3: 0x3d3446, S4: 0x3e2430 };
+  function sorting(view, mission) {
+    var scene = view.scene, binColors = (root.DR.CardArt && root.DR.CardArt.binColors) || {};
+    var line = new THREE.Group(), bins = [], lamps = [];
+    scene.add(line);
+    for (var i = 0; i < 10; i++) {
+      var frame = new THREE.Group(); frame.position.z = -i * 20;
+      [-1, 1].forEach(function (side) {
+        var belt = new THREE.Mesh(new THREE.BoxGeometry(2, 0.45, 20), new THREE.MeshBasicMaterial({ color: 0x23262f }));
+        belt.position.set(side * 5.6, 1.1, 0);
+        belt.add(new THREE.LineSegments(new THREE.EdgesGeometry(belt.geometry), new THREE.LineBasicMaterial({ color: 0x5a6070 })));
+        frame.add(belt);
+        for (var k = 0; k < 5; k++) {
+          var roller = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.1, 8), new THREE.MeshBasicMaterial({ color: 0x9aa0ad }));
+          roller.rotation.z = Math.PI / 2; roller.position.set(side * 5.6, 0.82, -8 + k * 4); frame.add(roller);
+        }
+        [-4, -14].forEach(function (bz) {
+          var bin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.5, 1.7), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+          bin.position.set(side * 7.7, 0.75, bz);
+          bin.add(new THREE.LineSegments(new THREE.EdgesGeometry(bin.geometry), new THREE.LineBasicMaterial({ color: 0x10093a })));
+          frame.add(bin); bins.push(bin);
+        });
+      });
+      var lamp = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 0.7), new THREE.MeshBasicMaterial({ color: 0xffe9a8 }));
+      lamp.position.set(0, 11, -10); frame.add(lamp); lamps.push(lamp);
+      line.add(frame);
+    }
+    function labelOf(id) {
+      if (mission.cardTypes[id]) return mission.cardTypes[id].label;
+      var f = (mission.fakes || []).filter(function (x) { return x.id === id; })[0];
+      return f && f.truth ? mission.cardTypes[f.truth].label : 'trash';
+    }
+    function zoneColors(id) {
+      var sc = mission.scenes.filter(function (x) { return x.id === id; })[0], labels = [];
+      ((sc && sc.art && sc.art.focus) || []).forEach(function (fid) { var l = labelOf(fid); if (labels.indexOf(l) < 0) labels.push(l); });
+      if (sc && sc.art && sc.art.wrongBin && labels.indexOf(sc.art.wrongBin) < 0) labels.push(sc.art.wrongBin);
+      if (!labels.length) labels.push('trash');
+      return labels.map(function (l) { return binColors[l] || '#888888'; });
+    }
+    var current = null, sky = null;
+    function update(id, z) {
+      if (id !== current) {
+        current = id;
+        sky = SORT_SKY[id] || 0x2c2f4a;
+        scene.background = new THREE.Color(sky); scene.fog.color.setHex(sky);
+        var cols = zoneColors(id);
+        bins.forEach(function (b, i) { b.material.color.set(cols[i % cols.length]); });
+        view.buildings.forEach(function (b, i) {
+          b.scale.y = 0.6; b.position.y = b.geometry.parameters.height * b.scale.y / 2;
+          b.material.color.setHex(0x2a2e44);
+          b.children[0].material.color.set(cols[i % cols.length]);
+        });
+      }
+      line.position.z = -Math.floor(z / 20) * 20 + 20;
+    }
+    return { update: update, state: function () { return { zone: current, theme: 'sorting', sky: sky }; } };
   }
   root.DR.RunScenery = { create: create };
 })(window);

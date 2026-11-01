@@ -6,12 +6,20 @@
  * 보충: 짧은 코스. focusCounts(부족한 장 수)가 있으면 key마다 부족분 × 1.5장 + 흔한 카드 4장,
  * focusKeys만 있으면 카드 12장 중 8장을 그 key로 고르게 채운다.
  * 가짜 카드(mission.fakes, spec §3.4): 종류마다 count장, 코스 앞 15%에는 두지 않는다(벽도 없음). 보충에는 1장.
+ * 구역(장면 2개 이상인 임무): 코스를 장면별 구역으로 나눈다. 순서·짧은 이름은 mission.zones(없으면 장면 순서).
+ *   카드 → 그 종류를 조합에 쓰는 장면(여러 장면이면 번갈아) · "?" 카드 → 진짜 종류 · 가짜 → 붙은 이름표를 쓰는 장면 중 가장 늦은 구역.
+ *   가짜는 mission.fakeLate가 'zone'이면 자기 구역의 뒤쪽 절반(그리고 앞 15% 밖), 아니면 코스 50% 뒤(1 임무, 사용자 승인).
  */
 (function (root) {
   'use strict';
 
   var START_SECONDS = 3, END_SECONDS = 1.5;
   var SUPPLEMENT_CARDS = 12, SUPPLEMENT_FOCUS = 8, SUPPLEMENT_SPARE = 1.5, SUPPLEMENT_COMMON = 4, SUPPLEMENT_FIRES = 1, EXTRA_WALL_RATE = 0.15, FIRE_CLEAR = 4, FAKE_FROM = 0.15;
+
+  function cardsApi() {
+    if (root.DR && root.DR.Cards) return root.DR.Cards;
+    return require('./cards.js');
+  }
 
   function rngApi() {
     if (root.DR && root.DR.Rng) return root.DR.Rng;
@@ -40,39 +48,49 @@
     return deck;
   }
 
-  // 코스 순서는 사용자 승인: S2 → S4 → S3 → S1. 장면 자체의 순서/정답은 그대로 둔다.
-  var ZONES = [
-    { id: 'S2', title: '물청소 직후의 낮 도로', short: '물청소 도로' },
-    { id: 'S4', title: '고가도로 아래 저지대', short: '고가도로 아래' },
-    { id: 'S3', title: '비 오는 밤 번화가 교차로', short: '밤 번화가' },
-    { id: 'S1', title: '낮 주택가 골목', short: '주택가 골목' }
-  ];
-  function splitZones(deck, mission) {
-    var groups = [[], [], [], []], wet = 0;
-    deck.forEach(function (c) {
-      var key = c.key || c.ambiguousId;
-      if (c.fakeId) key = (mission.fakes.find(function (f) { return f.id === c.fakeId; }) || {}).label;
-      var n = /^(day_deep|day_shallow)$/.test(key) ? 3 : /^(day_wet|day_dry|q_clean)$/.test(key) ? 0 : /^(night_shallow|night_muddy|q_muddy)$/.test(key) ? 1 : 2;
-      if (key === 'night_wet' && !c.fakeId) n = wet++ % 2 ? 1 : 2;
-      groups[n].push(c);
-    });
+  // 구역 정의: mission.zones(1 임무 순서 S2 → S4 → S3 → S1은 사용자 승인) 또는 장면 순서. 장면이 하나뿐이면(튜토리얼) 구역 없음
+  function zonesOf(mission) {
+    if (mission.zones && mission.zones.length) return mission.zones;
+    if (!mission.scenes || mission.scenes.length < 2) return null;
+    return mission.scenes.map(function (sc) { return { id: sc.id, title: sc.title, short: sc.title }; });
+  }
+  function zoneIndex(mission, zones, c, alt) {
+    var ids = zones.map(function (z) { return z.id; });
+    if (c.fakeId) {
+      var f = (mission.fakes || []).filter(function (x) { return x.id === c.fakeId; })[0];
+      var best = -1;
+      (f ? cardsApi().scenesForLabel(mission, f.label) : []).forEach(function (id) { best = Math.max(best, ids.indexOf(id)); });
+      return best >= 0 ? best : ids.length - 1;
+    }
+    var key = c.key;
+    if (c.ambiguousId) { var q = (mission.ambiguous || []).filter(function (x) { return x.id === c.ambiguousId; })[0]; key = q && q.truthKey; }
+    var list = mission.scenes.filter(function (sc) { return sc.combos.some(function (cb) { return cb.keys.indexOf(key) >= 0; }); })
+      .map(function (sc) { return sc.id; }).filter(function (id) { return ids.indexOf(id) >= 0; });
+    if (!list.length) return ids.length - 1;
+    var n = alt[key] || 0; alt[key] = n + 1;
+    return ids.indexOf(list[n % list.length]);
+  }
+  function splitZones(deck, mission, zones) {
+    var groups = zones.map(function () { return []; }), alt = {};
+    deck.forEach(function (c) { groups[zoneIndex(mission, zones, c, alt)].push(c); });
     return groups;
   }
-  function zonedRows(deck, mission, length, cfg, rng) {
-    var groups = splitZones(deck, mission), weights = splitZones(mainDeck(mission), mission).map(function (g) { return g.length; });
+  function zonedRows(deck, mission, length, cfg, rng, zdefs) {
+    var groups = splitZones(deck, mission, zdefs), weights = splitZones(mainDeck(mission), mission, zdefs).map(function (g) { return g.length; });
     var total = weights.reduce(function (a, b) { return a + b; }, 0), start = 0, zones = [], rows = [];
     groups.forEach(function (group, i) {
-      var end = i === 3 ? length : start + length * weights[i] / total;
-      var zone = { id: ZONES[i].id, title: ZONES[i].title, short: ZONES[i].short, start: start, end: end };
+      var lastZone = i === zdefs.length - 1;
+      var end = lastZone ? length : start + length * weights[i] / total;
+      var zone = { id: zdefs[i].id, title: zdefs[i].title, short: zdefs[i].short, start: start, end: end };
       zones.push(zone);
       var count = group.length ? Math.ceil(group.length / 1.35) : 0;
       var first = i === 0 ? cfg.baseSpeed * START_SECONDS : start + 8;
-      var last = end - (i === 3 ? cfg.baseSpeed * END_SECONDS : 8);
+      var last = end - (lastZone ? cfg.baseSpeed * END_SECONDS : 8);
       var local = [], di = 0;
       for (var j = 0; j < count; j++) local.push({ z: count === 1 ? last : first + (last - first) * j / (count - 1), cards: [group[di++]] });
       var singles = shuffle(local.slice(), rng);
       for (var k = 0; di < group.length; k++) singles[k].cards.push(group[di++]);
-      keepFakesLate(local, length * 0.5, rng);
+      keepFakesLate(local, mission.fakeLate === 'zone' ? Math.max((start + end) / 2, length * FAKE_FROM) : length * 0.5, rng);
       local.forEach(function (r) { r.cards.forEach(function (c) { c.zoneId = zone.id; }); rows.push(r); });
       start = end;
     });
@@ -140,8 +158,9 @@
     var singles = shuffle(rows.slice(), rng);
     for (var s = 0; di < deck.length; s++) singles[s].cards.push(deck[di++]);
     var zones = null;
-    if (mission.id === 'm1') {
-      var layout = zonedRows(deck, mission, length, cfg, rng);
+    var zdefs = zonesOf(mission);
+    if (zdefs) {
+      var layout = zonedRows(deck, mission, length, cfg, rng, zdefs);
       rows = layout.rows; zones = layout.zones; rowCount = rows.length;
     } else keepFakesLate(rows, length * FAKE_FROM, rng);
 
@@ -198,7 +217,7 @@
     return course;
   }
 
-  var api = { build: build };
+  var api = { build: build, zonesOf: zonesOf };
   root.DR = root.DR || {};
   root.DR.Stream = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -290,3 +290,14 @@ body { overflow: hidden; word-break: keep-all; }
 /* ---------- 타이틀: 임무 고르기 ---------- */
 .title-missions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
 .title-missions-label { font-size: 14px; color: var(--ink-2); margin-right: 4px; }
+
+/* ---------- 보충 준비: 오염 안내·종류별 사진 고르기 ---------- */
+.prep-contam { margin: 4px 0 0; font-size: 14px; color: var(--pink); }
+.kind-pick { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 4px 28px; }
+.kind-pick-card { padding: 0; border: 2px solid var(--line); border-radius: 8px; background: none; cursor: pointer; width: 56px; height: 56px; }
+.kind-pick-card:hover, .kind-pick-card:focus-visible { border-color: var(--pink); }
+.kind-pick-card img { display: block; width: 100%; height: 100%; image-rendering: pixelated; border-radius: 6px; }
+
+/* ---------- 결과·컨베이어: 이름표는 맞게 고쳤지만 개수 부족 ---------- */
+.fixed-note, .cv-note { color: var(--yellow); }
+.cv-note { margin: 4px 0; font-size: 15px; }

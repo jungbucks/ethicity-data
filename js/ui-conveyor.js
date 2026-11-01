@@ -2,7 +2,8 @@
  * 2 임무 결과 — 컨베이어 "실제 분류"(spec §5.5, code.org AI for Oceans의 그 순간).
  * 처음 보는 물건(임무 데이터, 지금 14개)이 하나씩 벨트에 올라오고, 우리 AI의 집게가 분류함 7개 중 하나에 넣는다. 맞으면 초록, 틀리면 빨강 테두리.
  * 어느 함으로 갈지는 DR.Conveyor.sort(규칙 기반, 같은 가방 = 늘 같은 결과)가 정한다. 숫자(맞힌 개수·%)는 보여 주지 않는다.
- * 위험물(건전지)이 틀린 함으로 가면 진행을 멈추고 비상 정지 창(감독관 대사 + 책임 대사) → [다시 돌리기]. 한 번만 멈춘다.
+ * 위험물(건전지)이 틀린 함으로 가면 진행을 멈추고 비상 정지 창(감독관 대사 + 책임 대사) → [계속 돌리기]. 한 번만 멈춘다.
+ * 이름표를 맞게 고쳤는데 개수가 모자라 실패한 장면이면 정지 창·끝 화면에 그 원인 줄(DR.Judge.fixedNotes).
  * [2배속]·[건너뛰기]. prefers-reduced-motion이면 움직이지 않고 다 분류된 함을 바로 보여 준다.
  * done()은 끝난 뒤 [결과 보기]에서만, 한 번만 부른다.
  */
@@ -25,6 +26,8 @@
   function conveyor(mission, judged, done) {
     var screen = document.getElementById('screen-conveyor');
     var items = DR.Conveyor.sort(mission, judged);
+    var notes = DR.Judge.fixedNotes(mission, (DR.App.state && DR.App.state.bag) || [], judged);
+    function noteEls(sceneId) { return (notes[sceneId] || []).map(function (t) { return el('p', { class: 'cv-note', text: t }); }); }
     var A = DR.CardArt, colors = A.binColors || {};
     var i = 0, timers = [], fast = false, stopped = false, finished = false, called = false, stopShown = false;
     var placed = {};
@@ -111,15 +114,14 @@
       belt.classList.remove('run');
       DR.Sfx.play('burn');
       stop.innerHTML = '';
-      var resume = el('button', { id: 'btn-cv-resume', class: 'btn btn-primary', type: 'button', text: '다시 돌리기' });
+      var resume = el('button', { id: 'btn-cv-resume', class: 'btn btn-primary', type: 'button', text: '계속 돌리기' });
       resume.addEventListener('click', function () { DR.Sfx.play('ui'); stop.hidden = true; stopped = false; next(); });
       stop.appendChild(el('div', { class: 'cv-stop-panel' }, [
         el('img', { class: 'cv-stop-art', src: A.scene(mission, it.scene, 'danger', 320).toDataURL(), alt: '압착기 불꽃, 비상 정지' }),
         el('div', { class: 'cv-stop-body' }, [
           DR.UI.line(emergencyLine(mission, it)),
-          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }),
-          el('div', { class: 'actions' }, [resume])
-        ])
+          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility })
+        ].concat(noteEls(it.scene)).concat([el('div', { class: 'actions' }, [resume])]))
       ]));
       stop.hidden = false;
     }
@@ -150,6 +152,7 @@
         // 건너뛰기·움직임 줄이기로 정지 창을 못 봤어도 그 순간은 남긴다
         endBox.appendChild(DR.UI.line(emergencyLine(mission, emergency)));
         endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
+        noteEls(emergency.scene).forEach(function (n) { endBox.appendChild(n); });
       } else if (emergency) {
         endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
       }

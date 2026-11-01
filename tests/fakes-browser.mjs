@@ -1,6 +1,6 @@
 // 가짜 카드(spec §3): 달리기 — 같은 연출·첫 가짜에만 안내 한 줄·잡으면 가방에 / 검수·결과·보충 — 오염 문구·다시 제출
 import assert from 'node:assert/strict';
-import { openGame } from './browser.mjs';
+import { openGame, shotPath } from './browser.mjs';
 
 const HINT = '그림이랑 이름표가 맞는지 봐!';
 const stepUntil = (page, src, max = 8000) => page.evaluate(([src, max]) => {
@@ -161,6 +161,52 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     assert.equal(res[0].outcome, 'danger');
     assert.deepEqual(res[0].contam, [POOL]);
     assert.equal((await page.locator('#btn-supplement').innerText()).trim(), '보충 달리기 출발');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+}
+
+// [1] 가짜 정리가 운에 달리지 않게: 오염 장면 안내 한 줄(어느 카드인지 말하지 않음) · "1장 빼기" = 사진 펼쳐 직접 고르기 ·
+//     결과에서 이름이 나온 가짜가 남아 있으면 그 장면은 통과하지 않음 → 둘 다 빼면 통과
+for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+  const { browser, page, errors } = await openGame({ viewport, query: '?start=m1' });
+  try {
+    await toInspect(page, FULL);
+    await page.locator('#btn-submit').click();
+    await page.locator('#btn-confirm').click();
+    const res = await readResults(page);
+    assert.deepEqual(res[0].contam, [POOL, FOUNTAIN]);
+    await page.locator('#screen-prep').waitFor({ state: 'visible' });
+    const hint = page.locator('#prep-failed li[data-scene="S1"] .prep-contam');
+    assert.equal((await hint.innerText()).trim(), '엉뚱한 사진이 섞여 있다. 사진을 보고 찾아서 빼자.');
+    assert.doesNotMatch(await page.locator('#prep-failed').innerText(), /수영장|분수/, 'does not name the card');
+    // "1장 빼기"는 바로 빼지 않고 그 라벨 사진을 펼친다
+    const n0 = await page.evaluate(() => DR.App.state.bag.length);
+    const row = page.locator('#prep-summary .kind[data-key="day_deep"]');
+    await row.locator('button', { hasText: '1장 빼기' }).click();
+    assert.equal(await page.evaluate(() => DR.App.state.bag.length), n0, 'nothing removed by the button itself');
+    const ids = await page.evaluate(() => DR.App.state.bag.filter((c) => DR.Cards.displayKey(DR.Missions.m1, c) === 'day_deep').map((c) => c.id));
+    assert.equal(await page.locator('#prep-summary .kind[data-key="day_deep"] .kind-pick-card').count(), ids.length, 'every day_deep-labelled photo shown (pool included)');
+    const pool = await page.evaluate(() => DR.App.state.bag.find((c) => c.fakeId === 'f_pool').id);
+    if (viewport.width === 390) await page.screenshot({ path: shotPath('prep-pick-390'), fullPage: true });
+    else await page.screenshot({ path: shotPath('prep-pick-1280'), fullPage: true });
+    await page.locator(`#prep-summary .kind-pick-card[data-id="${pool}"]`).click();
+    const left = await page.evaluate(() => DR.App.state.bag.map((c) => c.fakeId || c.key));
+    assert.equal(left.length, n0 - 1);
+    assert.ok(!left.includes('f_pool') && left.includes('f_fountain'), 'removed exactly the picked photo');
+    assert.equal(left.filter((k) => k === 'day_deep').length, 5, 'no real card removed');
+    // 분수만 남기고 다시 제출 → S1 실패, 남은 사진 이름
+    await page.locator('#btn-supplement').click();
+    await page.locator('#btn-confirm').click();
+    const res2 = await readResults(page);
+    assert.equal(res2[0].outcome, 'inconvenience', 'S1 still fails with the named fountain left');
+    assert.deepEqual(res2[0].contam, ['우리가 넣은 데이터에 분수 광장 사진이 아직 남아 있다.']);
+    assert.ok(res2.slice(1).every((r) => r.outcome === 'pass'));
+    // 분수도 빼고 다시 제출 → 통과
+    await page.locator('#screen-prep').waitFor({ state: 'visible' });
+    await page.locator('#prep-grid .bag-card[data-key="f_fountain"] .btn-remove').click();
+    await page.locator('#btn-supplement').click();
+    await page.locator('#btn-confirm').click();
+    assert.ok((await readResults(page)).every((r) => r.outcome === 'pass'), 'both removed → pass');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }

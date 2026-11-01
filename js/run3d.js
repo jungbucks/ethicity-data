@@ -486,7 +486,7 @@
     S.camera = new THREE.PerspectiveCamera(56, 1, 0.1, 400);
     S.heroId = DR.Save ? DR.Save.hero() : 'onyu';
     S.view = buildScene();
-    if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view);
+    if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view, S.mission);
     S.feedback = root.DR.RunFeedback.create(container, S.mission, S.course);
     // 조작을 막는 건 일시정지 메뉴·도움말 같은 열린 다이얼로그다. S.paused(setPaused)는 시계만 멈춘다 —
     // 테스트가 시계를 멈춘 채 step()으로 한 칸씩 굴리며 키를 누르기 때문(메뉴는 언제나 다이얼로그로 뜬다).
@@ -552,7 +552,7 @@
     },
     peek: function () {
       if (!S) return { running: false };
-      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown };
+      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
     }
   };
 

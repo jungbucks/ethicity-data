@@ -16,6 +16,14 @@
 
   var m2 = {
     id: 'm2', title: '분리배출 분류 AI', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 2201, fires: 6,
+    // 달리기 구역(장면 순서) · 가짜는 자기 구역 뒤쪽 절반 · 배경은 선별장(js/run-scenery.js)
+    zones: [
+      { id: 'S1', title: '음료 캔과 통조림 캔', short: '캔' },
+      { id: 'S2', title: '찌그러진 페트병과 비닐', short: '페트·비닐' },
+      { id: 'S3', title: '우유팩·신문지·영수증', short: '종이·영수증' },
+      { id: 'S4', title: '캔 사이에 섞인 건전지', short: '건전지' }
+    ],
+    fakeLate: 'zone', scenery: 'sorting',
     labels: [
       { id: 'can', text: '캔' },
       { id: 'pet', text: '투명 페트' },
@@ -56,8 +64,8 @@
     scenes: [
       { id: 'S1', title: '음료 캔과 통조림 캔', emphasis: 'normal', art: { place: 'sorting', focus: ['can_drink', 'can_tin'], wrongBin: 'vinyl' },
         combos: [
-          { id: 'S1_can_drink', keys: ['can_drink'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 음료 캔이 부족했다.' },
-          { id: 'S1_can_tin', keys: ['can_tin'], need: 2, danger: false, boundary: true, missingLine: '우리가 넣은 데이터에는 통조림 캔이 없었다.' }
+          { id: 'S1_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔' },
+          { id: 'S1_can_tin', keys: ['can_tin'], need: 2, danger: false, boundary: true, what: '통조림 캔' }
         ],
         passLine: '납작한 음료 캔도, 뚱뚱한 통조림 캔도 캔 함으로 들어갔다.',
         cuts: {
@@ -66,9 +74,9 @@
         } },
       { id: 'S2', title: '찌그러진 페트병과 비닐', emphasis: 'normal', art: { place: 'sorting', focus: ['pet_crushed', 'vinyl_bag'], wrongBin: 'trash' },
         combos: [
-          { id: 'S2_pet_clear', keys: ['pet_clear'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 투명 페트병이 부족했다.' },
-          { id: 'S2_pet_crushed', keys: ['pet_crushed'], need: 2, danger: false, boundary: true, missingLine: '우리가 넣은 데이터에는 찌그러진 페트병이 없었다.' },
-          { id: 'S2_vinyl_bag', keys: ['vinyl_bag'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 비닐봉지가 부족했다.' }
+          { id: 'S2_pet_clear', keys: ['pet_clear'], need: 2, danger: false, what: '투명 페트병' },
+          { id: 'S2_pet_crushed', keys: ['pet_crushed'], need: 2, danger: false, boundary: true, what: '찌그러진 페트병' },
+          { id: 'S2_vinyl_bag', keys: ['vinyl_bag'], need: 2, danger: false, what: '비닐봉지' }
         ],
         passLine: '찌그러진 페트병도 투명 페트 함으로, 구겨진 비닐은 비닐 함으로.',
         cuts: {
@@ -77,9 +85,9 @@
         } },
       { id: 'S3', title: '우유팩·신문지·영수증', emphasis: 'normal', art: { place: 'sorting', focus: ['pack_milk', 'f_receipt'], wrongBin: 'paper' },
         combos: [
-          { id: 'S3_pack_milk', keys: ['pack_milk'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 우유팩이 부족했다.' },
-          { id: 'S3_paper_news', keys: ['paper_news'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 신문지와 종이 상자가 부족했다.' },
-          { id: 'S3_trash_misc', keys: ['trash_misc'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 재활용이 안 되는 일반쓰레기가 없었다.' }
+          { id: 'S3_pack_milk', keys: ['pack_milk'], need: 2, danger: false, what: '우유팩' },
+          { id: 'S3_paper_news', keys: ['paper_news'], need: 2, danger: false, what: '신문지와 종이 상자' },
+          { id: 'S3_trash_misc', keys: ['trash_misc'], need: 2, danger: false, what: '재활용이 안 되는 일반쓰레기' }
         ],
         passLine: '우유팩은 종이팩 함으로, 신문지는 종이 함으로, 영수증은 일반쓰레기로.',
         cuts: {
@@ -88,8 +96,8 @@
         } },
       { id: 'S4', title: '캔 사이에 섞인 건전지', emphasis: 'low', art: { place: 'sorting', focus: ['can_drink', 'battery_aa'], wrongBin: 'trash' },
         combos: [
-          { id: 'S4_battery_aa', keys: ['battery_aa'], need: 2, danger: true, missingLine: '우리가 넣은 데이터에는 건전지가 없었다.' },
-          { id: 'S4_can_drink', keys: ['can_drink'], need: 2, danger: false, missingLine: '우리가 넣은 데이터에는 음료 캔이 부족했다.' }
+          { id: 'S4_battery_aa', keys: ['battery_aa'], need: 2, danger: true, what: '건전지' },
+          { id: 'S4_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔' }
         ],
         passLine: '캔 더미 속 작은 건전지를 골라내 건전지 함으로 보냈다. 압착기는 조용하다.',
         cuts: {

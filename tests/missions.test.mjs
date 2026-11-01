@@ -41,9 +41,6 @@ test('no forbidden copy', () => {
   assert.ok(!/지하차도|%|AI가 틀렸|당신이 실패/.test(txt));
 });
 
-test('missingLine format', () => {
-  for (const c of combos(m1)) assert.match(c.missingLine, /^우리가 넣은 데이터에는 .+(없었다|부족했다)\.$/, c.id);
-});
 
 test('tutorial needs 3 dogs and 3 cats in a 10-card bag', () => {
   assert.equal(tutorial.bag, 10);
@@ -199,7 +196,6 @@ test('m2 fake cat cannot be fixed', () => {
 
 test('no forbidden copy (m2)', () => {
   assert.ok(!/지하차도|%|AI가 틀렸|당신이 실패/.test(JSON.stringify(m2)));
-  for (const c of combos(m2)) assert.match(c.missingLine, /^우리가 넣은 데이터에는 .+(없었다|부족했다)\.$/, c.id);
 });
 
 test('cast covers every speaker (m2)', () => {
@@ -214,4 +210,14 @@ test('cast covers every speaker (m2)', () => {
 
 test('config has conveyor step', () => {
   assert.ok(cfg.conveyor && cfg.conveyor.step > 0);
+});
+
+// [2] 1 임무 S1이 오염으로 '불편' 실패할 때: 그림과 문구가 같은 말("물이 없는 옆 골목까지 막혔다")
+test('m1 S1 inconvenience says the dry side alley was closed', () => {
+  const s1 = m1.scenes[0];
+  assert.match(s1.cuts.inconvenience, /물이 없는 옆 골목/);
+  assert.equal(s1.art.inconvenience.water, 'dry');
+});
+test('every combo names what was missing (what), no fixed sentence', () => {
+  for (const m of [m1, m2, tutorial]) for (const c of combos(m)) { assert.ok(c.what, c.id); assert.equal(c.missingLine, undefined, c.id); }
 });

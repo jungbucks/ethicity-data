@@ -17,8 +17,8 @@
     scenes: [
       { id: 'T1', title: '보호소 입양 안내', art: { place: 'shelter', time: 'day' },
         combos: [
-          { id: 'T1_dog', keys: ['dog'], need: 3, danger: false, missingLine: '우리가 넣은 데이터에는 강아지 사진이 부족했다.' },
-          { id: 'T1_cat', keys: ['cat'], need: 3, danger: false, missingLine: '우리가 넣은 데이터에는 고양이 사진이 부족했다.' }
+          { id: 'T1_dog', keys: ['dog'], need: 3, danger: false, what: '강아지 사진' },
+          { id: 'T1_cat', keys: ['cat'], need: 3, danger: false, what: '고양이 사진' }
         ],
         passLine: '강아지는 강아지로, 고양이는 고양이로. 입양 안내가 다시 돌아간다.',
         cuts: { danger: '', inconvenience: '' } }

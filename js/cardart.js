@@ -472,7 +472,9 @@
   }
 
   // AA 건전지: 가늘고 긴 원통 + 두 색 띠 + 위 볼록(+극)
-  function drawBattery(g, S, r) {
+  function drawBattery(g, S, r, v) {
+    // 컨베이어 물건(변형 3 이상)은 학습 카드와 다른 모양 — 학생이 고친 카드와 같은 그림이 잘못 가는 것처럼 보이지 않게
+    if (v >= 3) { if (v % 2) drawBatteryPair(g, S, r); else drawBattery9v(g, S, r); return; }
     var tone = pick(r, [['#2b2b2b', '#d98a2b'], ['#1f4fa0', '#c9ced6'], ['#1e7a46', '#c9ced6'], ['#7a1f2b', '#e8c547']]);
     var w = S * 0.2, h = S * 0.6, x = -w / 2, y = -h / 2 + S * 0.03;
     g.fillStyle = '#b8c0c9'; rr(g, -S * 0.035, y - S * 0.035, S * 0.07, S * 0.045, S * 0.01); g.fill(); outline(g, S);
@@ -482,6 +484,34 @@
     g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(x + w * 0.16, y + h * 0.05, w * 0.12, h * 0.9);
     g.strokeStyle = '#ffffff'; g.lineWidth = S * 0.018;
     g.beginPath(); g.moveTo(-S * 0.035, y + h * 0.5); g.lineTo(S * 0.035, y + h * 0.5); g.moveTo(0, y + h * 0.5 - S * 0.035); g.lineTo(0, y + h * 0.5 + S * 0.035); g.stroke();
+  }
+
+  // 건전지 두 개 묶음(짧고 굵은 C형 두 개가 나란히)
+  function drawBatteryPair(g, S, r) {
+    var tone = pick(r, [['#e0a020', '#2b2b2b'], ['#c0392b', '#c9ced6'], ['#6c3fb5', '#c9ced6']]);
+    [-1, 1].forEach(function (side) {
+      g.save(); g.translate(side * S * 0.13, 0);
+      var w = S * 0.2, h = S * 0.42, x = -w / 2, y = -h / 2;
+      g.fillStyle = '#b8c0c9'; rr(g, -S * 0.035, y - S * 0.035, S * 0.07, S * 0.045, S * 0.01); g.fill(); outline(g, S);
+      rr(g, x, y, w, h, S * 0.03); g.fillStyle = tone[1]; g.fill();
+      g.save(); rr(g, x, y, w, h, S * 0.03); g.clip(); g.fillStyle = tone[0]; g.fillRect(x, y + h * 0.4, w, h * 0.6); g.restore();
+      rr(g, x, y, w, h, S * 0.03); outline(g, S);
+      g.strokeStyle = '#ffffff'; g.lineWidth = S * 0.016;
+      g.beginPath(); g.moveTo(-S * 0.03, y + h * 0.2); g.lineTo(S * 0.03, y + h * 0.2); g.moveTo(0, y + h * 0.2 - S * 0.03); g.lineTo(0, y + h * 0.2 + S * 0.03); g.stroke();
+      g.restore();
+    });
+  }
+  // 네모난 9V 건전지(위에 단자 두 개)
+  function drawBattery9v(g, S, r) {
+    var col = pick(r, ['#2b2b2b', '#1f4fa0', '#7a1f2b']);
+    var w = S * 0.34, h = S * 0.48, x = -w / 2, y = -h / 2 + S * 0.04;
+    g.fillStyle = '#c9ced6';
+    g.beginPath(); g.arc(-w * 0.22, y - S * 0.03, S * 0.035, 0, 7); g.fill(); outline(g, S);
+    rr(g, w * 0.12, y - S * 0.065, S * 0.08, S * 0.065, S * 0.01); g.fill(); outline(g, S);
+    rr(g, x, y, w, h, S * 0.03); g.fillStyle = col; g.fill(); outline(g, S);
+    g.fillStyle = '#e8c547'; g.fillRect(x, y + h * 0.18, w, h * 0.2);
+    g.fillStyle = '#ffffff'; g.font = 'bold ' + Math.round(S * 0.11) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('9V', 0, y + h * 0.66);
   }
 
   // 영수증(감열지): 길고 좁은 흰 띠 + 회색 글줄 + 바코드 + 톱니 아래끝
@@ -739,7 +769,7 @@
         var half = canvas(Math.round(S * 0.55)); drawAnimal(half, { animal: 'cat', noBg: true }, seed + 1);
         g.drawImage(half, S * 0.45, S * 0.45);
       } else {
-        drawRoad(c, Object.assign({ car: false }, s.art), seed);
+        drawRoad(c, Object.assign({ car: false }, s.art, outcome === 'inconvenience' ? s.art.inconvenience : null), seed);
       }
       var flood = s.art.water === 'deep' || s.art.water === 'shallow';
       if (outcome === 'pass') {

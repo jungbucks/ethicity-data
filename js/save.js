@@ -40,7 +40,7 @@
       v: 1, screen: screen, mission: state.mission,
       bag: (state.bag || []).map(function (c) { var o = {}; Object.keys(c).forEach(function (k) { if (c[k] !== undefined) o[k] = c[k]; }); return o; }),
       supplements: state.supplements || 0, firstTry: state.firstTry === undefined ? null : state.firstTry,
-      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [],
+      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [], named: state.named || [],
       tutorialDone: !!((flags && flags.tutorialDone) || prev.tutorialDone),
       records: prev.records || {},
       savedAt: Date.now()
@@ -56,7 +56,7 @@
     return {
       mission: o.mission || null, screen: o.screen || null, bag: o.bag || [],
       supplements: o.supplements || 0, firstTry: o.firstTry === undefined ? null : o.firstTry,
-      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], tutorialDone: !!o.tutorialDone
+      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], named: o.named || [], tutorialDone: !!o.tutorialDone
     };
   }
 

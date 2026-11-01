@@ -23,5 +23,8 @@ for (const example of before) test('seed 1101 same selected cards, unchanged res
     else { v.ambiguousId = it.ambiguousId; v.assigned = example.assigned?.[k]; }
     return v;
   });
-  assert.deepEqual(JSON.parse(JSON.stringify(Judge.judge(m,bag,cfg))), example.result);
+  // 판정 결과에 나중에 더한 필드(missingHave·lingering)는 빼고, 이 fixture가 가진 필드만 비교한다
+  const got = JSON.parse(JSON.stringify(Judge.judge(m,bag,cfg)));
+  got.scenes = got.scenes.map((sc, i) => Object.fromEntries(Object.keys(example.result.scenes[i]).map((k) => [k, sc[k]])));
+  assert.deepEqual(got, example.result);
 });

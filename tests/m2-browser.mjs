@@ -180,6 +180,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     const stopText = await page.locator('#cv-stop').innerText();
     assert.ok(stopText.includes('비상 정지') && stopText.includes('나도 같이 책임질게'), stopText);
     await page.screenshot({ path: shotPath('conveyor-stop-1280') });
+    assert.equal((await page.locator('#btn-cv-resume').innerText()).trim(), '계속 돌리기');
     await page.locator('#btn-cv-resume').click();
     await page.locator('#btn-cv-next').waitFor({ state: 'visible', timeout: 6000 });
     assert.equal(await page.locator('#screen-conveyor .cv-bin .cv-item').count(), CV_N);
@@ -290,6 +291,43 @@ async function finishFromSenior(page) {
     await page.locator('#btn-m2').click();
     await page.locator('#screen-story').waitFor({ state: 'visible' });
     assert.deepEqual(await page.evaluate(() => ({ bag: DR.App.state.bag.length, s: DR.App.state.supplements, m: DR.App.state.mission })), { bag: 0, s: 0, m: 'm2' });
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+}
+
+// [2] 건전지 이름표만 맞게 고치고 1장뿐 → 비상 정지·결과가 원인을 개수 부족으로 설명, '없었다'와 '1장'이 같이 나오지 않음
+{
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m2' });
+  try {
+    await toInspect(page, { ...M2_ALL2, battery_aa: 0, f_battery: 1 });
+    await page.locator('#inspect-grid .bag-card[data-key="f_battery"] .bag-open').click();
+    await page.locator('#inspect-zoom [data-relabel="battery"]').click();
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { DR.config.conveyor.step = 0.05; });
+    await submitAndConfirm(page);
+    await page.locator('#screen-conveyor').waitFor({ state: 'visible' });
+    await page.locator('#cv-stop').waitFor({ state: 'visible', timeout: 8000 });
+    const NOTE = '이름표는 맞게 고쳤지만, 건전지 사진이 1장뿐이라 AI가 건전지를 배우지 못했다.';
+    assert.ok((await page.locator('#cv-stop').innerText()).includes(NOTE), 'stop explains the count');
+    await page.screenshot({ path: shotPath('m2-fixed-short-stop-1280') });
+    // 잘못 가는 건전지 물건은 학생이 고친 카드와 다른 그림
+    const same = await page.evaluate(() => {
+      const fixed = DR.App.state.bag.find((c) => c.fakeId === 'f_battery');
+      const v = parseInt(String(fixed.id).replace(/\D/g, ''), 10) % 3 || 0;
+      const mine = DR.CardArt.card(DR.Missions.m2, 'f_battery', v, 160).toDataURL();
+      return [...document.querySelectorAll('#screen-conveyor .cv-item[data-correct="false"] img')].some((i) => i.src === mine);
+    });
+    assert.equal(same, false);
+    await page.locator('#btn-cv-resume').click();
+    await page.locator('#btn-cv-next').waitFor({ state: 'visible', timeout: 8000 });
+    await page.locator('#btn-cv-next').click();
+    const res = await throughResults(page);
+    const s4 = res.find((r) => r.scene === 'S4');
+    assert.equal(s4.outcome, 'danger');
+    assert.ok(s4.text.includes(NOTE), 'result explains the count');
+    assert.ok(s4.text.includes('우리가 넣은 데이터에는 건전지가 부족했다.'), s4.text);
+    assert.ok(s4.text.includes('이번 가방: 건전지 1장 / 필요 2장'));
+    for (const r of res) assert.ok(!(/없었다/.test(r.text) && /이번 가방: .* 1장 /.test(r.text)), 'no 없었다 with 1장: ' + r.scene);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }

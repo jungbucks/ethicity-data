@@ -229,9 +229,9 @@
 
     var zoom = zoomer(mission, screen, 'prep-zoom', function () { render(); });
 
-    function removeOneOf(key) {
-      for (var i = bag.length - 1; i >= 0; i--) if (DR.Cards.displayKey(mission, bag[i]) === key) { removeWithUndo(mission, bag, bag[i], render); return; }
-    }
+    // 종류별 "1장 빼기"는 바로 빼지 않는다 — 그 라벨의 카드 썸네일을 펼쳐 학생이 사진을 보고 직접 고른다
+    // (가장 최근 카드를 몰래 빼면 가짜가 남고 진짜가 빠질 수 있다)
+    var openKinds = {};
 
     function render() {
       var resubmit = Object.keys(DR.Judge.shortfall(mission, bag, DR.config)).length === 0;
@@ -249,21 +249,39 @@
           var c = comboById[id], have = comboCount(mission, counts, c);
           shorts.appendChild(el('li', { class: 'combo short', 'data-combo': id }, [
             DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: DR.Cards.keyLabel(mission, c.keys[0]) }),
-            el('b', { class: 'combo-count', text: have < c.need ? '부족 ' + (c.need - have) + '장' : '설명표를 다시 살펴봐요' })
+            el('b', { class: 'combo-count', text: have < c.need ? '부족 ' + (c.need - have) + '장' : (mission.labels ? '이름표를 다시 살펴봐요' : '설명표를 다시 살펴봐요') })
           ]));
         });
-        failed.appendChild(el('li', null, [el('span', { text: sc.title }), s.missing.length ? shorts : null]));
+        // 오염으로 실패한 장면: 어느 카드인지는 말하지 않는다 — 사진을 보고 찾게
+        var contam = (s.contaminated || []).length ? el('p', { class: 'prep-contam', text: mission.labels
+          ? '엉뚱한 사진이 섞여 있다. 사진을 보고 찾아서 고치거나 빼자.'
+          : '엉뚱한 사진이 섞여 있다. 사진을 보고 찾아서 빼자.' }) : null;
+        failed.appendChild(el('li', { 'data-scene': s.id }, [el('span', { text: sc.title }), s.missing.length ? shorts : null, contam]));
       });
 
       // 종류별 요약: 개수 · 여유 n장 · 1장 빼기
       var summary = el('ul', { id: 'prep-summary', class: 'kind-list' });
       Object.keys(counts).forEach(function (k) {
         var extra = counts[k] - (needByKey[k] || 0);
-        var minus = el('button', { class: 'btn btn-small', type: 'button', text: '1장 빼기', 'aria-label': DR.Cards.keyLabel(mission, k) + ' 1장 빼기' });
-        minus.addEventListener('click', function () { DR.Sfx.play('ui'); removeOneOf(k); });
+        var open = !!openKinds[k];
+        var minus = el('button', { class: 'btn btn-small', type: 'button', text: open ? '접기' : '1장 빼기', 'aria-expanded': String(open),
+          'aria-label': DR.Cards.keyLabel(mission, k) + (open ? ' 사진 접기' : ' 사진 펼쳐서 1장 고르기') });
+        minus.addEventListener('click', function () { DR.Sfx.play('ui'); openKinds[k] = !openKinds[k]; render(); });
+        var pick = null;
+        if (open) {
+          pick = el('div', { class: 'kind-pick', role: 'group', 'aria-label': DR.Cards.keyLabel(mission, k) + ' — 뺄 사진 고르기' });
+          bag.forEach(function (card, n) {
+            if (DR.Cards.displayKey(mission, card) !== k) return;
+            var b = el('button', { class: 'kind-pick-card', type: 'button', 'data-id': card.id, 'aria-label': '빼기: ' + cardLabel(mission, card) + ' 사진 ' + (n + 1) }, [
+              el('img', { src: thumbUrl(mission, card), alt: '' })
+            ]);
+            b.addEventListener('click', function () { DR.Sfx.play('ui'); removeWithUndo(mission, bag, card, render); });
+            pick.appendChild(b);
+          });
+        }
         summary.appendChild(el('li', { class: 'kind', 'data-key': k }, [
           DR.UI.iconStrip(mission, k, 20), el('span', { class: 'combo-label', text: DR.Cards.keyLabel(mission, k) }),
-          el('b', { class: 'combo-count', text: counts[k] + '장' + (extra > 0 ? ' · 여유 ' + extra + '장' : '') }), minus
+          el('b', { class: 'combo-count', text: counts[k] + '장' + (extra > 0 ? ' · 여유 ' + extra + '장' : '') }), minus, pick
         ]));
       });
 

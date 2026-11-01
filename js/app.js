@@ -90,7 +90,7 @@
   /* ---------- 임무 ---------- */
   function startMission(id) {
     var m = DR.Missions[id];
-    App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [] };
+    App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [] };
     DR.UI.dialogue(m.story.intro, function () { missionBriefing(m); });
   }
   // 이전 임무(next가 이 임무인 것)의 기록에 따른 브리핑 한 줄. 기록이 없으면(임무 고르기로 바로 들어옴) null
@@ -118,11 +118,11 @@
     var m = DR.Missions[save.mission];
     if (!m) { go('title'); return; }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
-      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [] };
+      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [] };
     if (save.screen === 'briefing') { if (save.mission === 'tutorial') tutorialBriefing(); else missionBriefing(m); }
     else if (save.screen === 'inspect') review(m);
     else if (save.screen === 'result') judgeAndShow(m);
-    else prepSupplement(m, DR.Judge.judge(m, App.state.bag, DR.config));
+    else prepSupplement(m, DR.Judge.judge(m, App.state.bag, DR.config, { named: App.state.named }));
   }
 
   // 달리기 뒤: 검수 → 감독관 → 결과
@@ -137,8 +137,9 @@
     DR.UI.supervisor(m.story.supervisorQuestion, function () { review(m); }, function () { judgeAndShow(m); });
   }
 
+  // named = 앞선 결과에서 오염 원인으로 이름이 나온 것 — 아직 가방에 남아 있으면 그 장면은 통과하지 않는다(DR.Judge)
   function judgeAndShow(m) {
-    var r = DR.Judge.judge(m, App.state.bag, DR.config);
+    var r = DR.Judge.judge(m, App.state.bag, DR.config, { named: App.state.named || [] });
     App.lastJudge = r;
     if (App.state.firstTry === null) {
       App.state.firstTry = r.allPass;
@@ -149,6 +150,9 @@
     }
     App.state.needRevealed = true; // 첫 결과부터 필요 장수 공개(P3)
     checkpoint('result');
+    // 이 결과에서 이름이 나온 오염 원인을 기억(저장은 다음 체크포인트에서 — 'result'에서 이어 하면 같은 판정이 다시 나오게)
+    App.state.named = App.state.named || [];
+    r.scenes.forEach(function (s) { (s.contaminated || []).forEach(function (src) { if (App.state.named.indexOf(src) < 0) App.state.named.push(src); }); });
     function showResult() {
       DR.UI.result(m, r, function () {
         if (r.allPass || App.state.supplements >= DR.config.maxSupplements) finishMission(m);

@@ -65,6 +65,12 @@ try {
     out.iconStd = m2.labels.filter((l) => std(A.icon(l.id, 64)) > 10).length;
     for (const s of m2.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(m2, s.id, o, 320)) > 10) out.scenes++;
     out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m2, 'S4', o, 320).toDataURL())).size;
+    // [2] 1 임무 S1 불편 컷 = 물 없는 옆 골목(물에 잠긴 컷과 아래쪽 색이 다르다)
+    const low = (cv) => { const d = px(cv), w = cv.width, h = cv.height; let r = 0, g = 0, b = 0, n = 0; for (let y = Math.floor(h * 2 / 3); y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } return [r / n, g / n, b / n]; };
+    const wet = low(A.scene(M.m1, 'S1', 'danger', 320)), dry = low(A.scene(M.m1, 'S1', 'inconvenience', 320));
+    out.s1Dry = Math.abs(wet[0] - dry[0]) + Math.abs(wet[1] - dry[1]) + Math.abs(wet[2] - dry[2]);
+    // 컨베이어 건전지(변형 3·4)는 학습 카드(0~2)와 다른 모양
+    out.batteryDiff = [3, 4, 5, 6].every((v) => [0, 1, 2].every((w) => ['battery_aa', 'f_battery'].every((id) => A.card(m2, 'battery_aa', v, 256).toDataURL() !== A.card(m2, id, w, 256).toDataURL())));
 
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
@@ -73,6 +79,8 @@ try {
     for (const id of ['can_drink', 'pet_clear', 'paper_news', 'trash_misc', 'battery_aa']) add(A.card(m2, id, 1, 256), id + ' v1');
     for (const id of ['paper_news', 'trash_misc']) add(A.card(m2, id, 2, 256), id + ' v2');
     for (const it of m2.conveyor.slice(0, 6)) add(A.card(m2, it.art, it.variant, 256), it.id + ' ' + it.art);
+    for (const v of [3, 4]) add(A.card(m2, 'battery_aa', v, 256), 'conveyor battery v' + v);
+    add(A.scene(M.m1, 'S1', 'inconvenience', 320), 'm1 S1 inconvenience', 150);
     // 24칸 썸네일에서 헷갈리기 쉬운 짝: 영수증↔종이, 칫솔↔페트, 건전지↔캔
     for (const id of ['f_receipt', 'paper_news', 'f_toothbrush', 'pet_clear', 'battery_aa', 'can_drink', 'can_tin', 'pack_milk']) add(A.thumb(A.card(m2, id, 0, 256), 24), 'thumb ' + id, 80);
     for (const l of m2.labels) add(A.icon(l.id, 64), l.text, 56);
@@ -87,6 +95,8 @@ try {
   assert.equal(r2.iconStd, 7, 'm2 icons drawn');
   assert.equal(r2.scenes, 16, 'm2 scenes');
   assert.equal(r2.outcomesDiffer, 4, 'm2 outcomes differ');
+  assert.ok(r2.s1Dry > 10, 'm1 S1 inconvenience shows a dry alley ' + r2.s1Dry);
+  assert.ok(r2.batteryDiff, 'conveyor batteries differ from training cards');
 
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());

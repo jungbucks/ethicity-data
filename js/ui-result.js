@@ -1,6 +1,6 @@
 /*
  * 결과(기획서 §4.5) — 복구된 AI가 브리핑 장면을 하나씩 판정하는 모습을 그림 + 짧은 문구로.
- * 실패는 두 종류(불편/위험)로 구분하고, 문구는 "우리가 넣은 데이터에는 ○○가 없었다" 형식. 숫자 정확도 없음.
+ * 실패는 두 종류(불편/위험)로 구분하고, 문구는 "우리가 넣은 데이터에는 ○○가 없었다/부족했다"(가진 개수로) 형식. 숫자 정확도 없음.
  */
 (function (root) {
   'use strict';
@@ -22,6 +22,7 @@
     var i = 0;
     // 2 임무: 컨베이어에서 그 장면의 잘못 간 물건(같은 판정 = 같은 결과)
     var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : [];
+    var notes = DR.Judge.fixedNotes(mission, (DR.App.state && DR.App.state.bag) || [], judged);
 
     function show() {
       var r = judged.scenes[i], s = mission.scenes[i];
@@ -37,12 +38,14 @@
       // 빠진 조합: 문구 + 이번 가방의 숫자(붙은 설명표 기준)
       var counts = DR.Cards.labelCounts(mission, (DR.App.state && DR.App.state.bag) || []);
       r.missing.forEach(function (id) {
-        var c = byCombo[id];
-        parts.push(el('p', { class: 'missing', text: c.missingLine }));
-        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + DR.Cards.keyLabel(mission, c.keys[0]) + ' ' + DR.UI.comboCount(mission, counts, c) + '장 / 필요 ' + c.need + '장' }));
+        var c = byCombo[id], shown = DR.UI.comboCount(mission, counts, c);
+        // 문장은 바로 아래 보이는 개수로 고른다 — '없었다'와 '1장'이 같이 나오지 않게
+        parts.push(el('p', { class: 'missing', text: DR.Judge.missingLine(mission, id, shown) }));
+        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + DR.Cards.keyLabel(mission, c.keys[0]) + ' ' + shown + '장 / 필요 ' + c.need + '장' }));
       });
+      (notes[s.id] || []).forEach(function (t) { parts.push(el('p', { class: 'missing fixed-note', text: t })); });
       (r.contaminated || []).forEach(function (src) {
-        parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src) }));
+        parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src, (r.lingering || []).indexOf(src) >= 0) }));
       });
       var wrong = sorted.filter(function (it) { return it.scene === s.id && !it.correct; });
       if (wrong.length) {
