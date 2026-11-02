@@ -2,6 +2,7 @@
  * 저장·이어하기(P4) — 키 이름은 시리즈 규칙(ethicity.publicness.save / .sound)에 맞춘다.
  *   ethicity.data.save   체크포인트(화면 경계에서만: 브리핑·검수·결과·보충 준비 진입). 달리기 도중은 저장하지 않는다.
  *   ethicity.data.sound  효과음 켬/끔('1'/'0'). 없으면 켜짐. 옛 키 dr.muted는 읽기만 해서 이어받는다.
+ *   ethicity.data.bgm    달리기 배경음악 켬/끔('1'/'0', js/bgm.js). 없으면 켜짐. 효과음과 따로.
  *   (save.records = 임무 완료 기록, 체크포인트·임무 끝에도 남고 '처음부터'에서 지워진다)
  *   ethicity.data.hero   달릴 주인공(공통 팩 'onyu' 온유 / 'daon' 다온). 없거나 모르는 값이면 온유.
  * 저장소가 막혀 있으면(사생활 보호 창 등) 조용히 실패하고 게임은 그대로 진행한다.
@@ -12,6 +13,7 @@
   var KEY = 'ethicity.data.save';
   var SOUND_KEY = 'ethicity.data.sound';
   var OLD_MUTE = 'dr.muted';
+  var BGM_KEY = 'ethicity.data.bgm';
   var HERO_KEY = 'ethicity.data.hero', HEROES = ['onyu', 'daon'];
   var SCREENS = ['briefing', 'inspect', 'result', 'prep'];
 
@@ -107,6 +109,15 @@
     try { if (st) st.setItem(SOUND_KEY, on ? '1' : '0'); } catch (e) { /* 무시 */ }
   }
 
+  function bgmOn(st) {
+    st = storage(st);
+    try { return !(st && st.getItem(BGM_KEY) === '0'); } catch (e) { return true; }
+  }
+  function setBgm(on, st) {
+    st = storage(st);
+    try { if (st) st.setItem(BGM_KEY, on ? '1' : '0'); } catch (e) { /* 무시 */ }
+  }
+
   function hero(st) {
     st = storage(st);
     try { var v = st && st.getItem(HERO_KEY); return HEROES.indexOf(v) >= 0 ? v : HEROES[0]; } catch (e) { return HEROES[0]; }
@@ -117,7 +128,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

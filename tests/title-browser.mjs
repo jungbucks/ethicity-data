@@ -94,9 +94,12 @@ for (const viewport of SIZES) {
     await page.evaluate(() => {
       document.getElementById('btn-continue').addEventListener('click', () => { window.__t0 = performance.now(); }, true);
       const go = DR.App.go; DR.App.go = function (n) { if (n !== 'title' && !window.__t1) window.__t1 = performance.now(); return go.apply(this, arguments); };
+      // 전환 클래스가 붙었는지는 관찰자로 기록(헤드리스가 느리면 확인 전에 0.55초가 지나 클래스가 이미 빠져 있었다 — 테스트 쪽 경쟁)
+      const scr = document.getElementById('screen-title');
+      new MutationObserver(() => { if (scr.classList.contains('tl-leaving')) window.__leaving = true; }).observe(scr, { attributes: true, attributeFilter: ['class'] });
     });
     await page.locator('#btn-continue').click();
-    assert.ok(await page.locator('#screen-title').evaluate((e) => e.classList.contains('tl-leaving')), 'leave transition');
+    assert.ok(await page.evaluate(() => !!window.__leaving), 'leave transition');
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 3000 });
     // 설계 길이: 전환 타이머·CSS 전환 모두 0.6초 이내. 실제 걸린 시간은 소프트웨어 렌더링(헤드리스, GPU 없음)에서 타이머가 밀릴 수 있어 넉넉히 1.5초 이내만 본다
     const ms = await page.evaluate(() => window.__t1 - window.__t0);
@@ -123,6 +126,55 @@ for (const viewport of SIZES) {
     assert.deepEqual(a.offsets, b.offsets, 'no parallax under reduced motion');
     await page.evaluate(() => DR.TitleScene.testFallback());
     assert.ok(await page.locator('#title-scene').evaluate((e) => e.classList.contains('no-art')));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+}
+// 버그(사용자 2026-11-02 "다온 고르면 메인에서 걷던 캐릭터가 사라져"): 주인공을 바꾸거나 시작 화면을 떠났다 돌아오면
+// 3D를 다시 만드는데, 정리할 때 forceContextLoss로 잃은 WebGL 문맥의 같은 캔버스에 새 렌더러를 붙여 아무것도 안 그려졌다.
+// → 다온·온유·다온, 떠났다 돌아오기, 다온 저장 뒤 새로고침 모두 주인공 칸에 실제 화소가 그려지는지 본다.
+{
+  const { browser, page, errors } = await openGame({ viewport: { width: 1428, height: 976 } });
+  // 시작 화면 루프가 한 번 그린 직후(같은 프레임) 3D 캔버스의 그려진(불투명) 화소 수
+  const heroPixels = () => page.evaluate(() => new Promise((res) => {
+    const d0 = DR.TitleScene.state().draws;
+    let tries = 0;
+    (function tick() {
+      if (DR.TitleScene.state().draws === d0 && ++tries < 120) return requestAnimationFrame(tick);
+      const c = document.getElementById('title-runner');
+      const gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (!gl || gl.isContextLost()) return res({ mode: DR.TitleScene.state().mode, lost: true, opaque: 0 });
+      const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, buf = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+      let n = 0; for (let i = 3; i < buf.length; i += 4) if (buf[i] > 0) n++;
+      res({ mode: DR.TitleScene.state().mode, lost: false, opaque: n, total: w * h });
+    })();
+  }));
+  const expectHero = async (label) => {
+    const p = await heroPixels();
+    assert.equal(p.mode, '3d', label + ' ' + JSON.stringify(p));
+    assert.ok(!p.lost && p.opaque > p.total * 0.03, label + ' hero drawn ' + JSON.stringify(p));
+  };
+  try {
+    await page.waitForFunction(() => DR.TitleScene.state().running);
+    await expectHero('onyu first');
+    for (const id of ['daon', 'onyu', 'daon']) {
+      await page.locator('#hero-pick [data-hero="' + id + '"]').click();
+      assert.equal(await page.evaluate(() => DR.TitleScene.state().hero), id);
+      await expectHero('pick ' + id);
+    }
+    await page.screenshot({ path: shotPath('title-hero-daon-1428') });
+    // 떠났다 돌아오기(다온 그대로)
+    await page.locator('#btn-m1').click();
+    await page.locator('#screen-story').waitFor({ state: 'visible' });
+    await page.evaluate(() => DR.App.go('title'));
+    await page.waitForFunction(() => DR.TitleScene.state().running);
+    assert.equal(await page.evaluate(() => DR.TitleScene.state().hero), 'daon');
+    await expectHero('back to title');
+    // 다온 저장된 채 새로고침
+    await page.reload();
+    await page.waitForFunction(() => window.DR && DR.TitleScene && DR.TitleScene.state().running);
+    assert.equal(await page.evaluate(() => DR.TitleScene.state().hero), 'daon');
+    await expectHero('reload with daon');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }

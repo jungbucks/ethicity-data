@@ -82,3 +82,18 @@ test('임무 기록: 처음부터(clear)는 기록도 지운다, 깨진 저장�
   assert.deepEqual(Save.records(st), {});
   assert.deepEqual(Save.records({ getItem: () => '{oops' }), {});
 });
+test('배경음악: 없으면 켜짐, 효과음과 따로(ethicity.data.bgm), 저장 형식은 그대로', () => {
+  const st = mem();
+  assert.equal(Save.BGM_KEY, 'ethicity.data.bgm');
+  assert.equal(Save.bgmOn(st), true);
+  Save.setSound(false, st);
+  assert.equal(Save.bgmOn(st), true, '효과음을 꺼도 배경음악은 켜진 채');
+  Save.setBgm(false, st);
+  assert.equal(st._m.get('ethicity.data.bgm'), '0');
+  assert.equal(Save.bgmOn(st), false);
+  assert.equal(Save.soundOn(st), false);
+  Save.setBgm(true, st);
+  assert.equal(Save.bgmOn(st), true);
+  assert.equal(st._m.get('ethicity.data.save'), undefined, '체크포인트 키는 건드리지 않음');
+  assert.equal(Save.bgmOn({ getItem: () => { throw new Error('blocked'); } }), true);
+});

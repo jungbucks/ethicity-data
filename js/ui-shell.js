@@ -21,7 +21,7 @@
     var leaving = false;
     menu = DR.UI.modal({
       title: '일시정지',
-      body: [el('p', { class: 'note', text: '달리기를 잠깐 멈췄어요. Esc나 P를 누르면 이어서 달려요.' })],
+      body: [el('p', { class: 'note', text: '달리기를 잠깐 멈췄어요. Esc나 P를 누르면 이어서 달려요.' }), bgmToggle()],
       actions: [
         { text: '계속하기', primary: true },
         { text: '도움말', onClick: function () { leaving = true; menu.close(); DR.UI.help(DR.App.mission(), { onClose: reopen }); } },
@@ -29,6 +29,14 @@
       ],
       onClose: function () { menu = null; if (!leaving) resume(); }
     });
+  }
+  // 배경음악 켬/끔(효과음 ♪ 버튼과 따로, ethicity.data.bgm에 남음) — 달리는 동안만 음악이 나오므로 달리기 일시정지 메뉴에 둔다
+  function bgmToggle() {
+    if (!DR.Bgm) return null;
+    var box = el('input', { type: 'checkbox', id: 'opt-bgm' });
+    box.checked = DR.Bgm.isOn();
+    box.addEventListener('change', function () { DR.Bgm.set(box.checked); });
+    return el('label', { class: 'opt-toggle', for: 'opt-bgm' }, [box, el('span', { text: '배경음악' })]);
   }
   // 도움말·확인을 닫으면 일시정지 메뉴로 돌아온다(달리기는 계속 멈춘 채)
   function reopen() { if (running()) { DR.Run.setPaused(false); openPause(); } }

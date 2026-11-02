@@ -76,6 +76,9 @@
     });
     t.renderer.dispose();
     if (t.renderer.forceContextLoss) t.renderer.forceContextLoss();
+    // 문맥을 잃은 캔버스엔 새 렌더러를 붙일 수 없다(주인공 바꾸기·돌아오기에서 주인공이 사라졌음) → 같은 속성의 새 캔버스로 바꿔 둔다
+    var old = t.renderer.domElement;
+    if (old && old.parentNode) old.parentNode.replaceChild(old.cloneNode(false), old);
     S.three = null;
   }
   function pose(t, time) {

@@ -456,7 +456,7 @@
     var b = document.getElementById('btn-mute');
     if (!b) return;
     b.setAttribute('aria-pressed', root.DR.Sfx.muted ? 'true' : 'false');
-    b.setAttribute('aria-label', root.DR.Sfx.muted ? '소리 켜기' : '소리 끄기');
+    b.setAttribute('aria-label', root.DR.Sfx.muted ? '효과음 켜기' : '효과음 끄기');
   }
 
   function end() {

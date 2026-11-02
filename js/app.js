@@ -26,6 +26,8 @@
     // 시작 화면 장면: 떠나면 멈추고 3D 정리(DR.TitleScene), 돌아오면 renderTitle이 다시 시작
     if (name !== 'title' && DR.TitleScene) DR.TitleScene.stop();
     if (name === 'title' && DR.Shell) DR.Shell.renderTitle();
+    // 달리기 배경음악: 달리기 화면에서만 틀고, 떠나면 서서히 멈춘다(DR.Bgm)
+    if (DR.Bgm) DR.Bgm.scene(name);
   }
 
   // 체크포인트: 화면 경계(브리핑·검수·결과·보충 준비 진입)에서만 저장 — 달리기 도중은 저장하지 않는다(P4)

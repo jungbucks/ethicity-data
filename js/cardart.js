@@ -574,8 +574,31 @@
       var grd = g.createLinearGradient(0, 0, 0, S * HZ);
       grd.addColorStop(0, '#3b2a5c'); grd.addColorStop(1, '#f2a35e');
       g.fillStyle = grd; g.fillRect(0, 0, S, S * HZ + 2);
+    } else if (o.rain && o.time !== 'night') {
+      // 비 오는 낮: 파란 하늘 대신 잿빛 먹구름(맑은 날 사진과 한눈에 달라야 한다 — 같은 장소 이름표라 그림이 유일한 단서)
+      var sky = g.createLinearGradient(0, 0, 0, S * HZ);
+      sky.addColorStop(0, '#4a5463'); sky.addColorStop(1, '#8e98a4');
+      g.fillStyle = sky; g.fillRect(0, 0, S, S * HZ + 2);
+      g.fillStyle = 'rgba(58,66,80,.85)';
+      [[0.18, 0.08, 0.2], [0.48, 0.05, 0.24], [0.8, 0.1, 0.2]].forEach(function (k) { g.beginPath(); g.ellipse(S * k[0], S * k[1], S * k[2], S * 0.07, 0, 0, 7); g.fill(); });
     } else drawSky(g, S, { time: o.time === 'night' ? 'night' : 'day' }, r);
     if (o.rain) { g.fillStyle = 'rgba(40,50,70,.35)'; g.fillRect(0, 0, S, S * HZ + 2); }
+  }
+  // 비: 전체를 어둡게, 젖은 바닥 물웅덩이·반사, 노란 우산 쓴 사람, 굵은 빗줄기
+  function rainOver(g, S, r) {
+    g.fillStyle = 'rgba(36,50,74,.42)'; g.fillRect(0, 0, S, S);
+    g.fillStyle = 'rgba(175,200,230,.5)';
+    [[0.1, 0.53, 0.07], [0.36, 0.9, 0.1], [0.72, 0.52, 0.06], [0.86, 0.93, 0.08]].forEach(function (k) { g.beginPath(); g.ellipse(S * k[0], S * k[1], S * k[2], S * k[2] * 0.28, 0, 0, 7); g.fill(); });
+    g.fillStyle = 'rgba(200,215,235,.18)';
+    for (var s = 0; s < 6; s++) g.fillRect(S * (0.08 + s * 0.16), S * 0.6, S * 0.03, S * 0.26);
+    // 우산 쓴 사람(왼쪽 보도)
+    var px = S * 0.09, py = S * 0.6;
+    g.fillStyle = '#26324a'; g.fillRect(px - S * 0.018, py - S * 0.1, S * 0.036, S * 0.1);
+    g.beginPath(); g.arc(px, py - S * 0.115, S * 0.02, 0, 7); g.fill();
+    g.strokeStyle = '#26324a'; g.lineWidth = S * 0.008; g.beginPath(); g.moveTo(px, py - S * 0.13); g.lineTo(px, py - S * 0.17); g.stroke();
+    g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(px, py - S * 0.165, S * 0.075, Math.PI, 0); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(225,238,255,.8)'; g.lineWidth = Math.max(1.5, S * 0.005);
+    for (var i = 0; i < 90; i++) { var x = r.next() * S, y = r.next() * S; g.beginPath(); g.moveTo(x, y); g.lineTo(x - S * 0.02, y + S * 0.07); g.stroke(); }
   }
   function windows(g, x, y, w, h, night, r) {
     for (var wy = y + 6; wy < y + h - 8; wy += 10) for (var wx = x + 5; wx < x + w - 6; wx += 9) {
@@ -720,11 +743,7 @@
     viewSky(g, S, o, r);
     if (o.view !== 'market') drawBuildings(g, S, { time: o.time === 'night' ? 'night' : 'day' }, r, 'street');
     VIEWS[o.view](g, S, o, r);
-    if (o.rain) {
-      g.strokeStyle = 'rgba(200,220,240,.55)'; g.lineWidth = 1.2;
-      for (var i = 0; i < 60; i++) { var x = r.next() * S, y = r.next() * S; g.beginPath(); g.moveTo(x, y); g.lineTo(x - S * 0.02, y + S * 0.06); g.stroke(); }
-      g.fillStyle = 'rgba(160,190,220,.18)'; g.fillRect(0, S * 0.85, S, S * 0.15);
-    }
+    if (o.rain) rainOver(g, S, r);
   }
 
   // 길 안내 결과 컷: 지금의 거리 + 경로(초록 = 맞게 안내 / 빨강 점선 = 옛길로 안내), 위험 = 없는 육교로 안내 → 감독관 멈춤

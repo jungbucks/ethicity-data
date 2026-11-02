@@ -114,6 +114,12 @@ try {
     // 바뀌기 전 사진은 그림 내용이 다르다(같은 장소 지금 사진과 픽셀이 많이 다름)
     const diff = (a, b) => { const x = px(a), y = px(b); let d = 0; for (let i = 0; i < x.length; i += 4) d += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); return d / (x.length / 4); };
     out.oldDiff = ['station', 'river', 'crossing'].map((p) => diff(A.card(m3, p + '_now', 0, 128), A.card(m3, 'o_' + p, 0, 128)));
+    // 한 장면의 두 조합(지금 / 비·밤·저녁)은 이름표가 같다(장소) → 그림만 보고 한눈에 구별돼야 한다(달리는 중 카드·작은 썸네일 모두).
+    // 버그(사용자 2026-11-02): '비 오는 학교 앞'이 맑은 날 횡단보도와 거의 같아(차이 35, 다른 장면은 300+) '비 오는 날 카드가 안 나온다'고 느꼈다
+    out.condDiff = m3.scenes.map((sc) => {
+      const [a, b] = sc.combos.map((cb) => cb.keys[0]);
+      return { scene: sc.id, a, b, min: Math.min(...[0, 1, 2].map((v) => diff(A.card(m3, a, v, 128), A.card(m3, b, v, 128))), diff(A.thumb(A.card(m3, a, 0, 256), 24), A.thumb(A.card(m3, b, 0, 256), 24))) };
+    });
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
     const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
@@ -131,6 +137,7 @@ try {
   assert.equal(r3.scenes, 16, 'm3 scenes');
   assert.equal(r3.outcomesDiffer, 4, 'm3 outcomes differ');
   assert.ok(r3.oldDiff.every((d) => d > 15), 'old photos show the old landmark ' + r3.oldDiff.map((d) => d.toFixed(1)));
+  for (const c of r3.condDiff) assert.ok(c.min > 150, 'scene condition visible at a glance: ' + c.scene + ' ' + c.a + ' vs ' + c.b + ' = ' + c.min.toFixed(1));
 
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
