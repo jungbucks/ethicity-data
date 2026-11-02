@@ -61,9 +61,11 @@
   if (pauseBtn) pauseBtn.addEventListener('click', function () { DR.Sfx.play('ui'); openPause(); });
 
   /* ---------- 타이틀 ---------- */
+  // 시작 화면을 떠날 때의 짧은 전환(끊긴 선이 이어지며 주인공이 달려 나감) — 기능은 그대로, 0.55초 뒤 실행
+  function leave(fn) { if (DR.TitleScene) DR.TitleScene.leave(fn); else fn(); }
   function startChoice(clearFirst) {
     // 처음부터: 저장과 함께 메모리의 임무 기록도 비운다(3 임무 정체 공개가 지운 기록을 인용하지 않게)
-    function begin(fn) { return function () { DR.Sfx.unlock(); if (clearFirst) { DR.Save.clear(); DR.App.records = {}; } fn(); }; }
+    function begin(fn) { return function () { DR.Sfx.unlock(); if (clearFirst) { DR.Save.clear(); DR.App.records = {}; } leave(fn); }; }
     var s = DR.Save.load();
     var acts = s && s.tutorialDone
       ? [{ text: '튜토리얼부터', primary: true, onClick: begin(DR.App.startTutorial) },
@@ -90,10 +92,41 @@
       ]);
       b.dataset.hero = id;
       b.setAttribute('aria-pressed', String(id === cur));
-      b.addEventListener('click', function () { DR.Sfx.play('ui'); DR.Save.setHero(id); renderHeroPick(); });
+      b.addEventListener('click', function () {
+        DR.Sfx.play('ui'); DR.Save.setHero(id); renderHeroPick();
+        if (DR.TitleScene) DR.TitleScene.setHero(id);
+        // 고른 카드는 잠깐 다른 표정(초상 2번째 칸)
+        var img = box.querySelector('[data-hero="' + id + '"] .character-portrait img');
+        if (img) { img.style.transform = 'translateX(-25%)'; setTimeout(function () { img.style.transform = 'translateX(-0%)'; }, 900); }
+      });
       box.appendChild(b);
     });
-    box.appendChild(el('div', { class: 'hero-companion' }, [DR.UI.characterPortrait('robot', 88), el('span', { text: 'AI 봇' })]));
+  }
+
+  // AI 봇: 달릴 주인공 묶음 밖의 안내 역할(고를 수 없음). 초상 칸·말풍선은 DR.TitleScene이 바꾼다
+  function renderGuide() {
+    var box = document.getElementById('title-guide');
+    if (!box) return;
+    box.innerHTML = '';
+    box.appendChild(el('div', { class: 'tl-bot' }, [DR.UI.characterPortrait('robot', 92)]));
+    box.appendChild(el('p', { class: 'tl-bubble' }));
+  }
+
+  // 임무 카드: 썸네일 + 한 줄 미끼 + 상태(저장에서: 완료 / 진행 중 / 아직). 접근성 이름은 예전 칩 글자 그대로
+  var MISSION_CARDS = [
+    ['m1', '1 임무 · 침수 판별', '비 오는 밤, AI는 잠긴 길을 알아볼까?', 'assets/title/mission-m1.webp'],
+    ['m2', '2 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
+    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', null]
+  ];
+  function missionStatus(id) {
+    var rec = DR.App && DR.App.records && DR.App.records[id], s = DR.Save.load();
+    if (s && s.mission === id) return '진행 중';
+    if (rec && rec.cleared) return '완료';
+    return '아직';
+  }
+  function missionThumb(m, src) {
+    if (src) return src;
+    try { return DR.CardArt.scene(DR.Missions[m], 'S1', 'neutral', 320).toDataURL(); } catch (e) { return ''; } // 3 임무는 Codex 썸네일이 없어 코드 그림
   }
 
   // 임무 고르기 — 팀원이 반복해서 볼 때 앞을 다시 하지 않게(spec §6). 고르면 그 임무 도입부터(저장된 진행은 브리핑에서 덮어씀)
@@ -102,45 +135,66 @@
     if (!box) return;
     box.innerHTML = '';
     box.appendChild(el('span', { class: 'title-missions-label', text: '임무 고르기' }));
-    [['m1', '1 임무 · 침수 판별'], ['m2', '2 임무 · 분리배출'], ['m3', '3 임무 · 길 안내']].forEach(function (p) {
+    MISSION_CARDS.forEach(function (p) {
       if (!DR.Missions[p[0]]) return;
-      var b = el('button', { id: 'btn-' + p[0], class: 'btn btn-small', type: 'button', text: p[1] });
+      var status = missionStatus(p[0]);
+      var b = el('button', { id: 'btn-' + p[0], class: 'mission-card', type: 'button', 'aria-label': p[1], 'aria-describedby': 'mc-' + p[0] + '-hook mc-' + p[0] + '-status', 'data-status': status }, [
+        el('img', { class: 'mc-thumb', src: missionThumb(p[0], p[3]), alt: '' }),
+        el('span', { class: 'mc-body' }, [
+          el('b', { class: 'mc-title', text: p[1] }),
+          el('span', { id: 'mc-' + p[0] + '-hook', class: 'mc-hook', text: p[2] }),
+          el('span', { id: 'mc-' + p[0] + '-status', class: 'mc-status', text: status })
+        ])
+      ]);
       b.addEventListener('click', function () {
         DR.Sfx.unlock(); DR.Sfx.play('ui');
         var saved = DR.Save.load();
-        if (!(saved && saved.mission)) { DR.App.startMission(p[0]); return; }
+        if (!(saved && saved.mission)) { leave(function () { DR.App.startMission(p[0]); }); return; }
         // 저장된 진행이 있으면 먼저 묻는다(옆의 '처음부터'와 같은 결 — 이어 하려던 학생의 진행을 지키게)
         DR.UI.modal({
           title: p[1].split(' · ')[0] + '부터 할까요?',
           body: [el('p', { text: '저장된 진행은 지워져요. 하던 걸 이어 하려면 [이어하기]를 누르세요.' })],
-          actions: [{ text: p[1].split(' · ')[0] + ' 시작', primary: true, onClick: function () { DR.App.startMission(p[0]); } }, { text: '취소' }]
+          actions: [{ text: p[1].split(' · ')[0] + ' 시작', primary: true, onClick: function () { leave(function () { DR.App.startMission(p[0]); }); } }, { text: '취소' }]
         });
       });
       box.appendChild(b);
     });
   }
 
+  // 이어하기 아래: 지금 어디까지 했는지(예: '2임무 · 검수부터')
+  var SCREEN_TEXT = { briefing: '브리핑부터', inspect: '검수부터', result: '결과부터', prep: '보충 준비부터' };
+  function progressText(s) {
+    var m = s.mission === 'tutorial' ? '튜토리얼' : s.mission.replace(/^m(\d+)$/, '$1임무');
+    return m + ' · ' + (SCREEN_TEXT[s.screen] || '이어서');
+  }
+
   function renderTitle() {
     renderHeroPick();
     renderMissionPick();
+    renderGuide();
+    var progEl = document.getElementById('title-progress');
+    if (progEl) progEl.hidden = true;
     var box = document.getElementById('title-actions');
     if (!box) return;
     box.innerHTML = '';
     var s = DR.Save.load();
     if (s && s.mission) {
       var cont = el('button', { id: 'btn-continue', class: 'btn btn-primary', type: 'button', text: '이어하기' });
-      cont.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); DR.App.resume(s); });
+      cont.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); leave(function () { DR.App.resume(s); }); });
       var fresh = el('button', { id: 'btn-fresh', class: 'btn', type: 'button', text: '처음부터' });
       fresh.addEventListener('click', function () { DR.Sfx.play('ui'); startChoice(true); });
       box.appendChild(cont); box.appendChild(fresh);
+      var prog = document.getElementById('title-progress');
+      if (prog) { prog.textContent = progressText(s); prog.hidden = false; }
     } else {
       var start = el('button', { id: 'btn-start', class: 'btn btn-primary', type: 'button', text: '시작하기' });
       start.addEventListener('click', function () {
         DR.Sfx.unlock(); DR.Sfx.play('ui');
-        if (s && s.tutorialDone) startChoice(false); else DR.App.startTutorial();
+        if (s && s.tutorialDone) startChoice(false); else leave(DR.App.startTutorial);
       });
       box.appendChild(start);
     }
+    if (DR.TitleScene && DR.App.screen === 'title') DR.TitleScene.start();
   }
 
   DR.Shell = { openPause: openPause, renderTitle: renderTitle, isPaused: function () { return !!menu; } };

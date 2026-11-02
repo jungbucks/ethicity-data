@@ -5,18 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>데이터 러너: 끊어진 도시</title>
 <meta name="description" content="AI 학습 데이터를 직접 골라 모으며 데이터 관리의 책임을 경험하는 3레인 러너 게임">
+<meta property="og:type" content="website">
+<meta property="og:title" content="데이터 러너: 끊어진 도시">
+<meta property="og:description" content="비 오는 도시를 달리며 AI가 배울 사진을 고르고, 그 판단이 어떤 결과로 이어지는지 확인하는 러너 게임">
+<meta property="og:url" content="https://jungbucks.github.io/ethicity-data/">
+<meta property="og:image" content="https://jungbucks.github.io/ethicity-data/assets/title/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="데이터 러너: 끊어진 도시">
+<meta name="twitter:image" content="https://jungbucks.github.io/ethicity-data/assets/title/og-image.jpg">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <main id="app">
   <section id="screen-title" class="screen">
-    <div class="title-wrap">
-      <p class="title-kicker">윤리시티 · 데이터 관리 편</p>
-      <h1>데이터 러너<span>끊어진 도시</span></h1>
-      <p class="title-lead">비가 오면 도시의 AI가 길을 잃는다. 무엇을 가져와 다시 이을지는 러너가 정한다.</p>
-      <div id="title-actions" class="actions"><button id="btn-start" class="btn btn-primary" type="button">시작하기</button></div>
-      <div id="title-missions" class="title-missions" role="group" aria-label="임무 고르기"></div>
-      <div id="hero-pick" class="hero-pick" role="group" aria-label="달릴 주인공"></div>
+    <div id="title-scene" class="title-scene no-art" aria-hidden="true">
+      <div class="tl-sky"></div>
+      <div class="tl-layer tl-far"></div>
+      <div class="tl-layer tl-mid"><i class="tl-spark" style="left:6.5%;top:31%"></i><i class="tl-spark" style="left:14%;top:24%"></i><i class="tl-spark" style="left:27%;top:34%"></i><i class="tl-spark" style="left:36%;top:27%"></i><i class="tl-spark" style="left:44%;top:33%"></i><i class="tl-spark" style="left:56.5%;top:31%"></i><i class="tl-spark" style="left:64%;top:24%"></i><i class="tl-spark" style="left:77%;top:34%"></i><i class="tl-spark" style="left:86%;top:27%"></i><i class="tl-spark" style="left:94%;top:33%"></i></div>
+      <div class="tl-layer tl-road"></div>
+      <div class="tl-rain"></div>
+      <div class="tl-stage"><canvas id="title-runner" aria-hidden="true"></canvas></div>
+      <div class="tl-cards"></div>
+    </div>
+    <div class="title-layout">
+      <div class="title-wrap">
+        <p class="title-kicker">윤리시티 · 데이터 관리 편</p>
+        <h1>데이터 러너<span class="title-sub"><span class="title-glitch" data-text="끊어진 도시">끊어진 도시</span><i class="title-link" aria-hidden="true"></i></span></h1>
+        <p class="title-lead">비가 오면 도시의 AI가 길을 잃는다. 무엇을 가져와 다시 이을지는 러너가 정한다.</p>
+        <div id="title-actions" class="actions"><button id="btn-start" class="btn btn-primary" type="button">시작하기</button></div>
+        <p id="title-progress" class="title-progress" hidden></p>
+        <div id="title-missions" class="title-missions" role="group" aria-label="임무 고르기"></div>
+        <div id="hero-pick" class="hero-pick" role="group" aria-label="달릴 주인공"></div>
+      </div>
+      <div id="title-guide" class="title-guide"></div>
     </div>
   </section>
   <section id="screen-profile" class="screen" hidden></section>
@@ -63,6 +86,7 @@
 <script src="assets/models/hero-onyu.js"></script>
 <script src="assets/models/hero-daon.js"></script>
 <script src="js/hero-model.js"></script>
+<script src="js/title-scene.js"></script>
 <script src="js/run-scenery.js"></script>
 <script src="js/run-feedback.js"></script>
 <script src="js/run3d.js"></script>

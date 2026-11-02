@@ -3,8 +3,12 @@ import { openGame, shotPath } from './browser.mjs';
 for (const width of [1280, 375]) {
   const { browser, page, errors } = await openGame({ viewport: { width, height: 800 } });
   try {
-    await page.waitForFunction(() => [...document.querySelectorAll('#hero-pick img')].length === 3 && [...document.querySelectorAll('#hero-pick img')].every(i => i.complete && i.naturalWidth === 1024));
-    assert.deepEqual(await page.locator('#hero-pick img').evaluateAll(imgs => imgs.map(i => i.alt)), ['온유', '다온', 'AI 봇']);
+    // 시작 화면 다시 꾸미기: AI 봇은 '달릴 주인공' 묶음 밖의 안내 역할(#title-guide)
+    await page.waitForFunction(() => [...document.querySelectorAll('#hero-pick img, #title-guide img')].length === 3 && [...document.querySelectorAll('#hero-pick img, #title-guide img')].every(i => i.complete && i.naturalWidth === 1024));
+    assert.deepEqual(await page.locator('#hero-pick img').evaluateAll(imgs => imgs.map(i => i.alt)), ['온유', '다온']);
+    assert.equal(await page.locator('#title-guide img').getAttribute('alt'), 'AI 봇');
+    // 모바일 시작 화면은 달리는 장면이 위로 올라가 '달릴 주인공'이 아래쪽 — 가로로 넘치지 않고, 스크롤하면 다 보이면 된다
+    await page.locator('#hero-pick').scrollIntoViewIfNeeded();
     assert.ok(await page.locator('#hero-pick').evaluate(e => e.getBoundingClientRect().right <= innerWidth && e.getBoundingClientRect().bottom <= innerHeight));
     await page.locator('[data-hero="daon"]').click();
     assert.equal(await page.evaluate(() => DR.Save.hero()), 'daon');

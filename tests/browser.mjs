@@ -20,6 +20,8 @@ export async function openGame(opts = {}) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   // 자동 일시정지(창 포커스 잃음)는 끈다 — 테스트가 페이지를 여러 개 열면 포커스가 옮겨 달리기가 멈춰 버림. 일시정지 자체는 flow-browser가 키·버튼으로 확인
   if (!opts.autoPause) await page.addInitScript(() => { window.__DR_NO_AUTOPAUSE = true; });
+  // 시작 화면을 떠나는 0.55초 전환은 테스트에서 건너뛴다(전환 자체는 title-browser가 titleFx로 확인)
+  if (!opts.titleFx) await page.addInitScript(() => { window.__DR_FAST_TITLE = true; });
   await page.goto(pathToFileURL(path.join(DATA_DIR, 'index.html')).href + (opts.query || ''));
   return { browser, page, errors };
 }

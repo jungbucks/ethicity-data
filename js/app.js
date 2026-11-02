@@ -23,6 +23,8 @@
       if (show) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
     });
     App.screen = name;
+    // 시작 화면 장면: 떠나면 멈추고 3D 정리(DR.TitleScene), 돌아오면 renderTitle이 다시 시작
+    if (name !== 'title' && DR.TitleScene) DR.TitleScene.stop();
     if (name === 'title' && DR.Shell) DR.Shell.renderTitle();
   }
 
