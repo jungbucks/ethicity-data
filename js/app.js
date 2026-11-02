@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
 
-  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'result', 'prep', 'knockout', 'outro'];
+  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'result', 'prep', 'knockout', 'outro'];
   var DR = root.DR;
 
   // 화면을 바꿀 때 포커스를 풀어 둔다 — 연타한 Space/Enter가 다음 화면 버튼을 눌러 브리핑·결과를 건너뛰지 않게
@@ -161,6 +161,7 @@
     }
     // 2 임무: 장면별 결과 전에 컨베이어 실제 분류(spec §5.5). 1 임무 결과는 그대로
     if (m.conveyor) DR.UI.conveyor(m, r, showResult);
+    else if (m.guide) DR.UI.guide(m, r, showResult); // 3 임무: 길 안내 시연
     else showResult();
   }
 
@@ -186,6 +187,19 @@
     });
   }
 
+  // 3 임무 정체 공개: 1·2 임무 첫 판 실수 기록이 있으면 그 장면 이름을 '누구나 하는 실수'의 예로, 없으면 일반 문장
+  function revealLines(m) {
+    var rv = m.story.reveal;
+    if (!rv) return [];
+    var hit = null;
+    ['m1', 'm2'].forEach(function (id) {
+      var rec = App.records[id];
+      if (!hit && rec && rec.firstFails && rec.firstFails.length) hit = { mission: id.slice(1) + ' 임무', scene: rec.firstFails[0].title };
+    });
+    var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene) } : rv.withoutRecord;
+    return rv.before.concat([mid]).concat(rv.after);
+  }
+
   // 임무 끝: 기록을 한 곳(DR.App.records + 저장소 records)에 남긴다 — 다음 임무 브리핑 한 줄, 3 임무 정체 공개, (검토 중인) 도시 복구 화면이 읽는다
   function finishMission(m) {
     App.state.record = { firstTry: App.state.firstTry, supplements: App.state.supplements };
@@ -195,7 +209,7 @@
     DR.Save.finish();
     DR.Save.setRecord(m.id, rec);
     var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
-    DR.UI.dialogue(m.story.senior, function () {
+    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () {
       DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, { kicker: m.title + ' 완료', next: next });
     });
   }

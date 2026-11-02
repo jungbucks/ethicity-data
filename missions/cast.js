@@ -14,7 +14,8 @@
     senior:     { name: '선배',    color: '#E58BFF', shape: 'circle' },
     examiner:   { name: '시험관',  color: '#C9C9D9', shape: 'diamond' },
     client:     { name: '도로 관리원', color: '#A8E06A', shape: 'square' },
-    sorter:     { name: '선별장 직원', color: '#F2C14E', shape: 'square' }
+    sorter:     { name: '선별장 직원', color: '#F2C14E', shape: 'square' },
+    courier:    { name: '택배 기사', color: '#6FC3FF', shape: 'square' }
   };
 
   root.DR = root.DR || {};

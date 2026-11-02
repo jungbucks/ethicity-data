@@ -15,6 +15,16 @@
   function ambDef(mission, id) { return mission.ambiguous.filter(function (a) { return a.id === id; })[0]; }
   function labelText(mission, id) { var o = mission.labelOptions.filter(function (x) { return x.id === id; })[0]; return o ? o.text : ''; }
   function cardLabel(mission, card) { return DR.Cards.cardLabel(mission, card); }
+  function changeLogOf(mission, label) { return (mission.changeLog || []).filter(function (c) { return c.label === label; })[0] || null; }
+  // 3 임무 '도시 변경 기록' 판(검수 위에 늘 보임) — 장소마다 한 줄
+  function changeLogBoard(mission) {
+    if (!mission.changeLog) return null;
+    var ul = el('ul', { class: 'change-log-list' });
+    mission.changeLog.forEach(function (c) {
+      ul.appendChild(el('li', null, [DR.UI.iconStrip(mission, [c.label], 20), el('b', { text: DR.Cards.labelText(mission, c.label) }), el('span', { text: (c.when ? c.when + ' · ' : '') + c.text })]));
+    });
+    return el('section', { id: 'change-log', class: 'change-log', 'aria-label': '도시 변경 기록' }, [el('h3', { text: '도시 변경 기록' }), ul]);
+  }
 
   // 플레이어가 붙인 대로의 key("?" 카드: 맞으면 truthKey, 틀리면 같은 시간대·같은 설명표의 일반 key)
   function effectiveKey(mission, card) {
@@ -119,7 +129,8 @@
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: '검수 · ' + mission.title }),
         el('h2', { text: '가방 확인 (' + bag.length + '/' + mission.bag + '칸)' }),
-        el('p', { class: 'note', text: mission.labels ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
+        changeLogBoard(mission),
+        el('p', { class: 'note', text: mission.changeLog ? '카드를 누르면 크게 볼 수 있다. 언제 찍은 사진인지 도시 변경 기록과 맞춰 보고, 지금의 거리가 아닌 사진은 뺀다.' : mission.labels ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
         notice,
         bagGrid(mission, bag, 'inspect-grid', {
           onOpen: zoom.open, newIds: opts.newIds,
@@ -166,7 +177,13 @@
           labels.appendChild(b);
         });
         inner.push(el('h3', { text: '추가 단서' }), clues, el('h3', { text: '설명표' }), labels);
-      } else if (mission.labels) {
+      }
+      if (!amb && mission.changeLog) {
+        var date = DR.Cards.dateOf(mission, card, variantOf(card)), cl = changeLogOf(mission, DR.Cards.currentLabel(mission, card));
+        if (date) inner.push(el('p', { class: 'zoom-date', text: '촬영: ' + date }));
+        if (cl) inner.push(el('p', { class: 'zoom-log', text: '도시 변경 기록 · ' + DR.Cards.labelText(mission, cl.label) + ': ' + (cl.when ? cl.when + ' ' : '') + cl.text }));
+      }
+      if (!amb && mission.labels && mission.relabel !== false) {
         var cur = DR.Cards.currentLabel(mission, card), orig = DR.Cards.originalLabel(mission, card);
         var relabel = el('div', { class: 'labels relabel', role: 'group', 'aria-label': '이름표 고치기' });
         mission.labels.forEach(function (l) {
@@ -249,11 +266,11 @@
           var c = comboById[id], have = comboCount(mission, counts, c);
           shorts.appendChild(el('li', { class: 'combo short', 'data-combo': id }, [
             DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: DR.Cards.keyLabel(mission, c.keys[0]) }),
-            el('b', { class: 'combo-count', text: have < c.need ? '부족 ' + (c.need - have) + '장' : (mission.labels ? '이름표를 다시 살펴봐요' : '설명표를 다시 살펴봐요') })
+            el('b', { class: 'combo-count', text: have < c.need ? '부족 ' + (c.need - have) + '장' : (mission.changeLog ? '사진을 다시 살펴봐요' : mission.labels ? '이름표를 다시 살펴봐요' : '설명표를 다시 살펴봐요') })
           ]));
         });
         // 오염으로 실패한 장면: 어느 카드인지는 말하지 않는다 — 사진을 보고 찾게
-        var contam = (s.contaminated || []).length ? el('p', { class: 'prep-contam', text: mission.labels
+        var contam = (s.contaminated || []).length ? el('p', { class: 'prep-contam', text: mission.labels && mission.relabel !== false
           ? '엉뚱한 사진이 섞여 있다. 사진을 보고 찾아서 고치거나 빼자.'
           : '엉뚱한 사진이 섞여 있다. 사진을 보고 찾아서 빼자.' }) : null;
         failed.appendChild(el('li', { 'data-scene': s.id }, [el('span', { text: sc.title }), s.missing.length ? shorts : null, contam]));

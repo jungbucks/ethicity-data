@@ -282,7 +282,7 @@ async function finishFromSenior(page) {
     await submitAndConfirm(page);
     await throughResults(page);
     await finishFromSenior(page);
-    assert.equal(await page.locator('#btn-next-mission').count(), 0, 'no next mission after m2 (m3 not built)');
+    assert.equal(await page.locator('#btn-next-mission').count(), 1, 'm2 chains to m3');
     const rec = await page.evaluate(() => DR.App.records.m2);
     assert.equal(rec.firstTry, false);
     assert.deepEqual(rec.firstFails, [{ scene: 'S1', title: '음료 캔과 통조림 캔', kind: 'inconvenience' }]);

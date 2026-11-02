@@ -21,7 +21,7 @@
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { byCombo[c.id] = c; }); });
     var i = 0;
     // 2 임무: 컨베이어에서 그 장면의 잘못 간 물건(같은 판정 = 같은 결과)
-    var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : [];
+    var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : mission.guide ? DR.Conveyor.sort(mission, judged, mission.guide) : [];
     var notes = DR.Judge.fixedNotes(mission, (DR.App.state && DR.App.state.bag) || [], judged);
 
     function show() {
@@ -48,7 +48,15 @@
         parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src, (r.lingering || []).indexOf(src) >= 0) }));
       });
       var wrong = sorted.filter(function (it) { return it.scene === s.id && !it.correct; });
-      if (wrong.length) {
+      if (wrong.length && mission.guide) {
+        // 3 임무: 이 장면에서 옛 거리를 기준으로 안내한 질문
+        var ql = el('ul', { class: 'result-wrong-list' });
+        wrong.forEach(function (it) {
+          var g = mission.guide.filter(function (x) { return x.id === it.id; })[0];
+          ql.appendChild(el('li', { text: '“' + g.q + '” → “' + g.wrong + '”' + (g.note ? ' — ' + g.note : '') }));
+        });
+        parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '길 안내 시연에서 잘못 안내한 질문' }), ql]));
+      } else if (wrong.length) {
         var row = el('div', { class: 'result-wrong-row' });
         wrong.forEach(function (it) {
           var name = DR.Cards.fakeDef(mission, it.art) ? DR.Cards.fakeDef(mission, it.art).name : mission.cardTypes[it.art].name;

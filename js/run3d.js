@@ -301,7 +301,7 @@
       var fakeDist = Math.max(speed, cfg().baseSpeed) * cfg().catchLead * 2;
       for (var q = 0; q < items.length; q++) {
         var fc = items[q], qd = fc.z - S.z;
-        if (fc.kind === 'card' && fc.fakeId && qd > 0 && qd <= fakeDist) { S.fakeHintShown = true; showHint('그림이랑 이름표가 맞는지 봐!', 2.5); break; }
+        if (fc.kind === 'card' && fc.fakeId && qd > 0 && qd <= fakeDist) { S.fakeHintShown = true; showHint(S.mission.fakeHint || '그림이랑 이름표가 맞는지 봐!', 2.5); break; }
       }
     }
     var r = S.grabber.update({ now: S.t, items: items, runnerZ: S.z, speed: speed, lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, taken: S.taken });

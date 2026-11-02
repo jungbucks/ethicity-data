@@ -9,7 +9,7 @@ try {
   assert.equal(await page.evaluate(() => typeof DR.Missions.tutorial), 'object');
   assert.equal(await page.evaluate(() => typeof THREE), 'object');
   // 임무 고르기(팀원이 앞을 다시 하지 않게): 처음부터 + 1 임무 + 2 임무
-  assert.equal(await page.locator('#title-missions button').count(), 2, 'mission picker');
+  assert.equal(await page.locator('#title-missions button').count(), 3, 'mission picker (1·2·3 임무)');
   assert.ok(await page.locator('#btn-m1').isVisible() && await page.locator('#btn-m2').isVisible());
   await page.locator('#btn-m2').click();
   await page.locator('#screen-story').waitFor({ state: 'visible', timeout: 4000 });

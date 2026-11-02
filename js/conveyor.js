@@ -39,15 +39,16 @@
     return !!(f && f.truth && mission.cardTypes[f.truth] && mission.cardTypes[f.truth].hazard);
   }
 
-  function sort(mission, judged) {
-    return (mission.conveyor || []).map(function (it) {
+  // items를 주면 그 목록(3 임무 길 안내 질문), 아니면 mission.conveyor
+  function sort(mission, judged, items) {
+    return (items || mission.conveyor || []).map(function (it) {
       var cause = null;
       for (var i = 0; i < it.causes.length && !cause; i++) if (happened(judged, it.causes[i], it.scene)) cause = it.causes[i];
       var correct = !cause;
       return {
         id: it.id, art: it.art, variant: it.variant, scene: it.scene,
         bin: correct ? it.bin : it.wrongBin, correctBin: it.bin, correct: correct, cause: cause,
-        emergency: !correct && hazardous(mission, it.art)
+        emergency: !correct && (!!it.hazard || hazardous(mission, it.art))
       };
     });
   }

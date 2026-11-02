@@ -301,3 +301,26 @@ body { overflow: hidden; word-break: keep-all; }
 /* ---------- 결과·컨베이어: 이름표는 맞게 고쳤지만 개수 부족 ---------- */
 .fixed-note, .cv-note { color: var(--yellow); }
 .cv-note { margin: 4px 0; font-size: 15px; }
+
+/* ---------- 3 임무: 도시 변경 기록·촬영 날짜·길 안내 시연 ---------- */
+.change-log { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 12px 0; }
+.change-log h3 { font-size: 15px; margin: 0 0 6px; color: var(--cyan); }
+.change-log-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.change-log-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; }
+.change-log-list .bag-icons { margin: 0; }
+.zoom-date { margin: 8px 0 0; font-weight: 700; color: var(--yellow); }
+.zoom-log { margin: 2px 0 0; font-size: 14px; color: var(--ink-2); }
+.gd-stage { position: relative; min-height: 260px; }
+.gd-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
+.gd-item { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 8px; animation: gd-in .25s ease-out both; }
+.gd-item.ok { border-color: var(--ok); }
+.gd-item.bad { border-color: var(--danger); }
+.gd-art { width: 96px; height: 96px; border-radius: 10px; display: block; }
+.gd-q { margin: 0; font-weight: 700; }
+.gd-a { margin: 4px 0 0; }
+.gd-note { margin: 2px 0 0; font-size: 14px; color: var(--pink); }
+@keyframes gd-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .gd-item { animation: none; } }
+@media (max-width: 640px) { .gd-item { grid-template-columns: 64px 1fr; } .gd-art { width: 64px; height: 64px; } }
+.result-wrong-list { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+#gd-stop { align-content: end; padding-bottom: 16px; }

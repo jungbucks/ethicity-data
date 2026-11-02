@@ -62,7 +62,8 @@
 
   /* ---------- 타이틀 ---------- */
   function startChoice(clearFirst) {
-    function begin(fn) { return function () { DR.Sfx.unlock(); if (clearFirst) DR.Save.clear(); fn(); }; }
+    // 처음부터: 저장과 함께 메모리의 임무 기록도 비운다(3 임무 정체 공개가 지운 기록을 인용하지 않게)
+    function begin(fn) { return function () { DR.Sfx.unlock(); if (clearFirst) { DR.Save.clear(); DR.App.records = {}; } fn(); }; }
     var s = DR.Save.load();
     var acts = s && s.tutorialDone
       ? [{ text: '튜토리얼부터', primary: true, onClick: begin(DR.App.startTutorial) },
@@ -101,7 +102,7 @@
     if (!box) return;
     box.innerHTML = '';
     box.appendChild(el('span', { class: 'title-missions-label', text: '임무 고르기' }));
-    [['m1', '1 임무 · 침수 판별'], ['m2', '2 임무 · 분리배출']].forEach(function (p) {
+    [['m1', '1 임무 · 침수 판별'], ['m2', '2 임무 · 분리배출'], ['m3', '3 임무 · 길 안내']].forEach(function (p) {
       if (!DR.Missions[p[0]]) return;
       var b = el('button', { id: 'btn-' + p[0], class: 'btn btn-small', type: 'button', text: p[1] });
       b.addEventListener('click', function () {

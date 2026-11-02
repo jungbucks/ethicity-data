@@ -98,6 +98,40 @@ try {
   assert.ok(r2.s1Dry > 10, 'm1 S1 inconvenience shows a dry alley ' + r2.s1Dry);
   assert.ok(r2.batteryDiff, 'conveyor batteries differ from training cards');
 
+  // 3 임무: 거리 풍경 카드(지금·옛·비·밤·저녁), 장소 아이콘 4종, 길 안내 결과 컷 — 시트 _shot-cardart-m3.png
+  const r3 = await page.evaluate(() => {
+    document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
+    const A = DR.CardArt, M = DR.Missions, m3 = M.m3;
+    const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
+    const out = { bad: [], scenes: 0 };
+    const ids = [...Object.keys(m3.cardTypes), ...m3.fakes.map((f) => f.id)];
+    for (const id of ids) for (const v of [0, 1, 2]) if (std(A.card(m3, id, v, 256)) <= 10) out.bad.push(id + ' v' + v);
+    const icons = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat', ...M.m2.labels.map((l) => l.id), ...m3.labels.map((l) => l.id)];
+    out.iconUnique = new Set(icons.map((n) => A.icon(n, 64).toDataURL())).size;
+    for (const s of m3.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(m3, s.id, o, 320)) > 10) out.scenes++;
+    out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m3, 'S4', o, 320).toDataURL())).size;
+    // 바뀌기 전 사진은 그림 내용이 다르다(같은 장소 지금 사진과 픽셀이 많이 다름)
+    const diff = (a, b) => { const x = px(a), y = px(b); let d = 0; for (let i = 0; i < x.length; i += 4) d += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); return d / (x.length / 4); };
+    out.oldDiff = ['station', 'river', 'crossing'].map((p) => diff(A.card(m3, p + '_now', 0, 128), A.card(m3, 'o_' + p, 0, 128)));
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
+    const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
+    for (const id of ids) add(A.card(m3, id, 0, 256), id);
+    for (const id of ['station_now', 'market_old', 'crossing_now']) add(A.card(m3, id, 1, 256), id + ' v1');
+    for (const id of ['station_now', 'o_station', 'river_now', 'o_river', 'crossing_now', 'o_crossing', 'market_now', 'market_old']) add(A.thumb(A.card(m3, id, 0, 256), 24), 'thumb ' + id, 80);
+    for (const l of m3.labels) add(A.icon(l.id, 64), l.text, 56);
+    for (const s of m3.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(m3, s.id, o, 320), s.id + ' ' + o, 130);
+    document.body.append(sheet);
+    return out;
+  });
+  await page.screenshot({ path: shotPath('cardart-m3') });
+  assert.deepEqual(r3.bad, [], 'm3 blank art');
+  assert.equal(r3.iconUnique, 20, 'icons unique incl. m3');
+  assert.equal(r3.scenes, 16, 'm3 scenes');
+  assert.equal(r3.outcomesDiffer, 4, 'm3 outcomes differ');
+  assert.ok(r3.oldDiff.every((d) => d > 15), 'old photos show the old landmark ' + r3.oldDiff.map((d) => d.toFixed(1)));
+
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
   assert.ok(r.variantDiffers, 'variant');

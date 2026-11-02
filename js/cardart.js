@@ -566,6 +566,201 @@
     g.fillStyle = pick(r, ['#ffd166', '#ef767a', '#7bdff2']); g.fillRect(x + w * 0.55, y + h * 0.5, w * 0.25, w * 0.25);
   }
 
+  /* ---------- 3 임무 눈높이 거리 풍경 — 역 앞·시장 골목·강변길·학교 앞, 지금/바뀌기 전(era:'old') ----------
+   * 같은 붓(하늘·건물 줄·바닥)을 쓰고 장소의 표지물만 바꾼다. 옛 사진도 같은 붓 — 세피아·흐림 같은 표식 없음.
+   * 바뀌기 전 표지물: 역 앞 = 광장 자리의 빌딩, 강변 = 길 자리의 공사 펜스·공터, 학교 앞 = 횡단보도 자리의 육교. 지하보도 금지. */
+  function viewSky(g, S, o, r) {
+    if (o.time === 'evening') {
+      var grd = g.createLinearGradient(0, 0, 0, S * HZ);
+      grd.addColorStop(0, '#3b2a5c'); grd.addColorStop(1, '#f2a35e');
+      g.fillStyle = grd; g.fillRect(0, 0, S, S * HZ + 2);
+    } else drawSky(g, S, { time: o.time === 'night' ? 'night' : 'day' }, r);
+    if (o.rain) { g.fillStyle = 'rgba(40,50,70,.35)'; g.fillRect(0, 0, S, S * HZ + 2); }
+  }
+  function windows(g, x, y, w, h, night, r) {
+    for (var wy = y + 6; wy < y + h - 8; wy += 10) for (var wx = x + 5; wx < x + w - 6; wx += 9) {
+      if (r.next() < (night ? 0.5 : 0.85)) { g.fillStyle = night ? '#ffd88a' : 'rgba(80,110,160,.55)'; g.fillRect(wx, wy, 4, 5); }
+    }
+  }
+  function drawStation(g, S, o, r) {
+    var night = o.time === 'night';
+    // 뒤의 역 건물(넓고 낮은 지붕 + 시계 + '역' 간판)
+    var bx = S * 0.18, by = S * 0.22, bw = S * 0.64, bh = S * 0.24;
+    g.fillStyle = night ? '#2a2f55' : '#c9b79a'; g.fillRect(bx, by, bw, bh);
+    g.fillStyle = night ? '#1b1f3d' : '#8a6d4d';
+    g.beginPath(); g.moveTo(bx - S * 0.03, by); g.lineTo(S * 0.5, by - S * 0.08); g.lineTo(bx + bw + S * 0.03, by); g.closePath(); g.fill();
+    g.fillStyle = '#f4f1e8'; g.beginPath(); g.arc(S * 0.5, by + S * 0.05, S * 0.035, 0, 7); g.fill();
+    g.strokeStyle = '#333'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(S * 0.5, by + S * 0.05); g.lineTo(S * 0.5, by + S * 0.025); g.moveTo(S * 0.5, by + S * 0.05); g.lineTo(S * 0.518, by + S * 0.055); g.stroke();
+    g.fillStyle = '#1f4fa0'; g.fillRect(S * 0.42, by + S * 0.11, S * 0.16, S * 0.06);
+    g.fillStyle = '#fff'; g.font = 'bold ' + Math.round(S * 0.045) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('역', S * 0.5, by + S * 0.14);
+    g.fillStyle = night ? '#ffd88a' : '#5a4630';
+    for (var d = 0; d < 4; d++) g.fillRect(bx + bw * (0.12 + d * 0.22), by + bh * 0.62, bw * 0.1, bh * 0.38);
+    // 광장 바닥(타일)
+    g.fillStyle = night ? '#3a3a52' : '#d9d2c3'; g.fillRect(0, S * HZ, S, S * (1 - HZ));
+    g.strokeStyle = night ? 'rgba(255,255,255,.08)' : 'rgba(120,105,85,.3)'; g.lineWidth = 1;
+    for (var t = 1; t < 7; t++) { var yy = S * HZ + S * (1 - HZ) * (t / 7) * (t / 7 + 0.2); g.beginPath(); g.moveTo(0, yy); g.lineTo(S, yy); g.stroke(); }
+    for (var c = -4; c <= 4; c++) { g.beginPath(); g.moveTo(S * 0.5 + c * S * 0.04, S * HZ); g.lineTo(S * 0.5 + c * S * 0.2, S); g.stroke(); }
+    if (o.era === 'old') {
+      // 철거 전 빌딩: 광장 한가운데 높은 건물 + 간판
+      var tx = S * 0.3, tw = S * 0.4, ty = S * 0.06, th = S * 0.74;
+      g.fillStyle = night ? '#1c1d38' : '#7d8aa3'; g.fillRect(tx, ty, tw, th);
+      g.strokeStyle = 'rgba(20,25,40,.6)'; g.lineWidth = 2; g.strokeRect(tx, ty, tw, th);
+      windows(g, tx, ty + S * 0.08, tw, th - S * 0.12, night, r);
+      g.fillStyle = '#e8434a'; g.fillRect(tx + tw * 0.15, ty + S * 0.015, tw * 0.7, S * 0.05);
+      g.fillStyle = '#fff'; g.font = 'bold ' + Math.round(S * 0.035) + 'px sans-serif'; g.fillText('빌딩', S * 0.5, ty + S * 0.04);
+    } else {
+      // 지금: 비어 있는 광장 + 벤치·나무
+      [0.2, 0.8].forEach(function (fx) {
+        g.fillStyle = '#4c8a4a'; g.beginPath(); g.arc(S * fx, S * 0.6, S * 0.06, 0, 7); g.fill();
+        g.fillStyle = '#6b4a2b'; g.fillRect(S * fx - S * 0.01, S * 0.64, S * 0.02, S * 0.08);
+      });
+      g.fillStyle = night ? '#55597a' : '#8a6d4d'; g.fillRect(S * 0.42, S * 0.8, S * 0.16, S * 0.025);
+    }
+  }
+  function drawMarket(g, S, o, r) {
+    var eve = o.time === 'evening', night = o.time === 'night';
+    g.fillStyle = eve || night ? '#4a3b3a' : '#cbbfa8'; g.fillRect(0, S * HZ, S, S * (1 - HZ));
+    // 좁은 골목 바닥
+    g.fillStyle = eve || night ? '#5c4a44' : '#b3a68d';
+    g.beginPath(); g.moveTo(S * 0.42, S * HZ); g.lineTo(S * 0.58, S * HZ); g.lineTo(S * 0.85, S); g.lineTo(S * 0.15, S); g.closePath(); g.fill();
+    // 양쪽 가게 차양(줄무늬) 3겹 — 뒤로 갈수록 작게
+    var cols = [['#e8434a', '#fff'], ['#2f80ed', '#fff'], ['#27ae60', '#fff'], ['#f2a33a', '#fff']];
+    for (var k = 2; k >= 0; k--) {
+      var f = 1 - k * 0.28, top = S * (HZ - 0.12 * f), h = S * 0.1 * f, w = S * 0.36 * f;
+      [-1, 1].forEach(function (side) {
+        var x0 = side < 0 ? S * 0.5 - S * 0.08 - w - S * 0.12 * (1 - f) * 2.2 : S * 0.5 + S * 0.08 + S * 0.12 * (1 - f) * 2.2;
+        var c = pick(r, cols);
+        g.fillStyle = eve || night ? '#3a2c2a' : '#e9dcc4'; g.fillRect(x0, top + h, w, S * 0.2 * f);
+        for (var s = 0; s < 6; s++) { g.fillStyle = s % 2 ? c[1] : c[0]; g.fillRect(x0 + w * s / 6, top, w / 6, h); }
+        g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(x0, top + h, w, h * 0.25);
+      });
+    }
+    // 매달린 등불
+    for (var i = 0; i < 5; i++) {
+      var lx = S * (0.3 + i * 0.1), ly = S * (0.12 + (i % 2) * 0.03);
+      g.strokeStyle = '#444'; g.lineWidth = 1; g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, ly); g.stroke();
+      g.fillStyle = eve || night ? '#ffcf5a' : '#e8434a';
+      if (eve || night) { g.shadowColor = '#ffcf5a'; g.shadowBlur = 12; }
+      g.beginPath(); g.ellipse(lx, ly + S * 0.02, S * 0.018, S * 0.026, 0, 0, 7); g.fill(); g.shadowBlur = 0;
+    }
+  }
+  function drawRiver(g, S, o, r) {
+    var night = o.time === 'night';
+    g.fillStyle = night ? '#23304a' : '#9fc77b'; g.fillRect(0, S * HZ, S, S * (1 - HZ));
+    // 오른쪽 강물
+    g.fillStyle = night ? '#162a4a' : '#4f9fd6';
+    g.beginPath(); g.moveTo(S * 0.6, S * HZ); g.lineTo(S, S * HZ); g.lineTo(S, S); g.lineTo(S * 0.95, S); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.5;
+    for (var w = 0; w < 5; w++) { var wy = S * (0.5 + w * 0.09); g.beginPath(); g.ellipse(S * (0.85 + (w % 2) * 0.05), wy, S * 0.06, S * 0.008, 0, 0, 7); g.stroke(); }
+    if (o.era === 'old') {
+      // 공사 전 공터: 흙바닥 + 주황·흰 공사 펜스
+      g.fillStyle = '#a57d52';
+      g.beginPath(); g.moveTo(S * 0.3, S * HZ); g.lineTo(S * 0.6, S * HZ); g.lineTo(S * 0.95, S); g.lineTo(S * 0.0, S); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(80,55,30,.4)'; for (var p = 0; p < 10; p++) { g.beginPath(); g.arc(r.next() * S * 0.8, S * (0.55 + r.next() * 0.4), S * 0.01, 0, 7); g.fill(); }
+      for (var fz = 0; fz < 6; fz++) {
+        var fx = S * (0.05 + fz * 0.15), fy = S * 0.62, fw = S * 0.13, fh = S * 0.16;
+        g.fillStyle = fz % 2 ? '#ffffff' : '#ef7d2d'; g.fillRect(fx, fy, fw, fh);
+        g.strokeStyle = '#555'; g.lineWidth = 1.5; g.strokeRect(fx, fy, fw, fh);
+      }
+    } else {
+      // 지금: 밝은 산책로 + 자전거길 줄 + 난간
+      g.fillStyle = night ? '#4a4f6a' : '#e6dfcf';
+      g.beginPath(); g.moveTo(S * 0.42, S * HZ); g.lineTo(S * 0.58, S * HZ); g.lineTo(S * 0.9, S); g.lineTo(S * 0.1, S); g.closePath(); g.fill();
+      g.strokeStyle = night ? '#9fe8ff' : '#4fae5a'; g.lineWidth = S * 0.012; g.setLineDash([S * 0.04, S * 0.03]);
+      g.beginPath(); g.moveTo(S * 0.5, S * HZ); g.lineTo(S * 0.5, S); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = night ? '#c9ced6' : '#5b6470'; g.lineWidth = S * 0.012;
+      g.beginPath(); g.moveTo(S * 0.58, S * HZ); g.lineTo(S * 0.9, S); g.stroke();
+      for (var q = 1; q < 7; q++) { var t = q / 7; g.beginPath(); g.moveTo(S * (0.58 + 0.32 * t), S * (HZ + (1 - HZ) * t)); g.lineTo(S * (0.58 + 0.32 * t), S * (HZ + (1 - HZ) * t) - S * 0.04 * (0.4 + t)); g.stroke(); }
+      if (night) [0.25, 0.4].forEach(function (lx) {
+        g.strokeStyle = '#3d3a5c'; g.lineWidth = 3; g.beginPath(); g.moveTo(S * lx, S * 0.75); g.lineTo(S * lx, S * 0.35); g.stroke();
+        var gl = g.createRadialGradient(S * lx, S * 0.35, 0, S * lx, S * 0.35, S * 0.1); gl.addColorStop(0, 'rgba(255,220,140,.9)'); gl.addColorStop(1, 'rgba(255,220,140,0)');
+        g.fillStyle = gl; g.fillRect(S * lx - S * 0.1, S * 0.25, S * 0.2, S * 0.2);
+      });
+    }
+    // 나무
+    [0.08, 0.22].forEach(function (tx) { g.fillStyle = night ? '#1f3b2a' : '#3f7d3c'; g.beginPath(); g.arc(S * tx, S * 0.4, S * 0.07, 0, 7); g.fill(); g.fillStyle = '#5a3d22'; g.fillRect(S * tx - S * 0.01, S * 0.44, S * 0.02, S * 0.08); });
+  }
+  function drawCrossing(g, S, o, r) {
+    // 뒤의 학교 건물 + 시계
+    g.fillStyle = '#e8d9b8'; g.fillRect(S * 0.12, S * 0.18, S * 0.76, S * 0.24);
+    g.fillStyle = '#b5523b'; g.fillRect(S * 0.1, S * 0.16, S * 0.8, S * 0.03);
+    windows(g, S * 0.12, S * 0.2, S * 0.76, S * 0.2, false, r);
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(S * 0.5, S * 0.12, S * 0.04, 0, 7); g.fill(); g.strokeStyle = '#555'; g.lineWidth = 1.5; g.stroke();
+    // 담장
+    g.fillStyle = '#9aa0ad'; g.fillRect(0, S * 0.42, S, S * 0.04);
+    // 보도 + 차도(가로)
+    g.fillStyle = '#c3c0b8'; g.fillRect(0, S * 0.46, S, S * 0.54);
+    g.fillStyle = '#5d616c'; g.fillRect(0, S * 0.6, S, S * 0.26);
+    g.fillStyle = 'rgba(255,214,90,.9)'; g.fillRect(0, S * 0.725, S, S * 0.008);
+    if (o.era === 'old') {
+      // 철거 전 육교: 차도 위를 가로지르는 다리 + 양쪽 계단
+      g.fillStyle = '#7f8796'; g.fillRect(S * 0.15, S * 0.5, S * 0.7, S * 0.05);
+      g.fillStyle = '#9aa3b2'; g.fillRect(S * 0.15, S * 0.47, S * 0.7, S * 0.03);
+      g.strokeStyle = '#5a6170'; g.lineWidth = S * 0.01;
+      for (var b = 0; b < 8; b++) { g.beginPath(); g.moveTo(S * (0.17 + b * 0.095), S * 0.47); g.lineTo(S * (0.17 + b * 0.095), S * 0.44); g.stroke(); }
+      [[0.15, -1], [0.85, 1]].forEach(function (p) {
+        var x = S * p[0];
+        g.fillStyle = '#7f8796';
+        g.beginPath(); g.moveTo(x, S * 0.5); g.lineTo(x + p[1] * S * 0.12, S * 0.9); g.lineTo(x + p[1] * S * 0.17, S * 0.9); g.lineTo(x + p[1] * S * 0.05, S * 0.5); g.closePath(); g.fill();
+        g.fillRect(x - S * 0.015, S * 0.55, S * 0.03, S * 0.31);
+      });
+    } else {
+      // 지금: 횡단보도 줄무늬 + 신호등
+      g.fillStyle = '#f4f4f4';
+      for (var z = 0; z < 7; z++) g.fillRect(S * (0.2 + z * 0.09), S * 0.61, S * 0.05, S * 0.24);
+      g.fillStyle = '#333'; g.fillRect(S * 0.86, S * 0.3, S * 0.02, S * 0.32);
+      g.fillStyle = '#222'; g.fillRect(S * 0.83, S * 0.3, S * 0.08, S * 0.13);
+      g.fillStyle = '#e8434a'; g.beginPath(); g.arc(S * 0.87, S * 0.335, S * 0.018, 0, 7); g.fill();
+      g.fillStyle = '#4fdc7a'; g.beginPath(); g.arc(S * 0.87, S * 0.395, S * 0.018, 0, 7); g.fill();
+    }
+  }
+  var VIEWS = { station: drawStation, market: drawMarket, river: drawRiver, crossing: drawCrossing };
+  function drawStreetView(c, o, seed) {
+    var S = c.width, g = c.getContext('2d'), r = rng(seed);
+    viewSky(g, S, o, r);
+    if (o.view !== 'market') drawBuildings(g, S, { time: o.time === 'night' ? 'night' : 'day' }, r, 'street');
+    VIEWS[o.view](g, S, o, r);
+    if (o.rain) {
+      g.strokeStyle = 'rgba(200,220,240,.55)'; g.lineWidth = 1.2;
+      for (var i = 0; i < 60; i++) { var x = r.next() * S, y = r.next() * S; g.beginPath(); g.moveTo(x, y); g.lineTo(x - S * 0.02, y + S * 0.06); g.stroke(); }
+      g.fillStyle = 'rgba(160,190,220,.18)'; g.fillRect(0, S * 0.85, S, S * 0.15);
+    }
+  }
+
+  // 길 안내 결과 컷: 지금의 거리 + 경로(초록 = 맞게 안내 / 빨강 점선 = 옛길로 안내), 위험 = 없는 육교로 안내 → 감독관 멈춤
+  function route(g, S, col, dashed) {
+    g.strokeStyle = col; g.lineWidth = S * 0.025; g.lineCap = 'round';
+    if (dashed) g.setLineDash([S * 0.04, S * 0.03]);
+    g.beginPath(); g.moveTo(S * 0.5, S * 0.98); g.quadraticCurveTo(S * 0.45, S * 0.7, dashed ? S * 0.18 : S * 0.55, S * 0.55); g.stroke();
+    g.setLineDash([]);
+    var ex = dashed ? S * 0.18 : S * 0.55, ey = S * 0.55;
+    g.fillStyle = col; g.beginPath(); g.moveTo(ex, ey - S * 0.04); g.lineTo(ex - S * 0.035, ey + S * 0.02); g.lineTo(ex + S * 0.035, ey + S * 0.02); g.closePath(); g.fill();
+  }
+  function drawViewScene(c, mission, s, outcome, seed) {
+    var S = c.width, g = c.getContext('2d');
+    drawStreetView(c, Object.assign({}, s.art, { era: 'now' }), seed);
+    if (outcome === 'pass') { route(g, S, '#5be3a1', false); badge(g, S, '#5be3a1', 'check'); }
+    else if (outcome === 'inconvenience') {
+      route(g, S, '#ff9f5a', true);
+      // 헤매는 택배 기사 실루엣 + 물음표
+      g.fillStyle = '#10093a'; g.beginPath(); g.arc(S * 0.2, S * 0.72, S * 0.035, 0, 7); g.fill(); g.fillRect(S * 0.175, S * 0.755, S * 0.05, S * 0.14);
+      g.fillStyle = '#ff9f5a'; g.font = 'bold ' + Math.round(S * 0.08) + 'px sans-serif'; g.textAlign = 'center'; g.fillText('?', S * 0.2, S * 0.66);
+      badge(g, S, '#ff9f5a', 'bar');
+    } else if (outcome === 'danger') {
+      // 없는 육교(흰 점선 윤곽) + 차도로 내려서려는 사람 + 감독관 멈춤 손
+      if (s.art.view === 'crossing') {
+        g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = S * 0.008; g.setLineDash([S * 0.02, S * 0.015]);
+        g.strokeRect(S * 0.15, S * 0.47, S * 0.7, S * 0.08); g.setLineDash([]);
+      } else route(g, S, '#ff5f6d', true);
+      g.fillStyle = '#10093a';
+      g.beginPath(); g.arc(S * 0.46, S * 0.56, S * 0.03, 0, 7); g.fill(); g.fillRect(S * 0.44, S * 0.59, S * 0.04, S * 0.12);
+      g.beginPath(); g.arc(S * 0.3, S * 0.54, S * 0.045, 0, 7); g.fill();
+      g.fillRect(S * 0.27, S * 0.585, S * 0.06, S * 0.18); g.fillRect(S * 0.33, S * 0.6, S * 0.1, S * 0.025);
+      g.fillStyle = '#ff5f6d'; g.beginPath(); g.arc(S * 0.45, S * 0.612, S * 0.03, 0, 7); g.fill();
+      badge(g, S, '#ff5f6d', 'bang');
+    }
+  }
+
   /* ---------- 동물(튜토리얼) ---------- */
   function drawAnimal(c, o, seed) {
     var S = c.width, g = c.getContext('2d'), r = rng(seed);
@@ -599,6 +794,7 @@
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
       var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
       if (o.animal) drawAnimal(c, o, seed);
+      else if (o.view) drawStreetView(c, o, seed);
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
       else if (o.object) drawObject(c, o, seed, variant);
       else drawRoad(c, Object.assign({}, o, { place: PLACES[(hash(id) + variant) % PLACES.length] }), seed);
@@ -700,6 +896,29 @@
           g.strokeStyle = '#1a1240'; g.lineWidth = S * 0.035;
           [-0.08, 0, 0.08].forEach(function (f) { g.beginPath(); g.moveTo(m + S * f, S * 0.42); g.lineTo(m + S * f, S * 0.76); g.stroke(); });
           break;
+        // 3 임무 장소 이름표 4종
+        case 'station':
+          g.fillStyle = '#c9b79a'; g.fillRect(m - S * 0.28, S * 0.42, S * 0.56, S * 0.34);
+          g.fillStyle = '#8a6d4d'; g.beginPath(); g.moveTo(m - S * 0.34, S * 0.42); g.lineTo(m, S * 0.18); g.lineTo(m + S * 0.34, S * 0.42); g.closePath(); g.fill();
+          g.fillStyle = '#f4f1e8'; g.beginPath(); g.arc(m, S * 0.34, S * 0.07, 0, 7); g.fill();
+          g.fillStyle = '#1a1240'; g.fillRect(m - S * 0.07, S * 0.56, S * 0.14, S * 0.2);
+          break;
+        case 'market':
+          for (var ms = 0; ms < 5; ms++) { g.fillStyle = ms % 2 ? '#ffffff' : '#e8434a'; g.fillRect(S * 0.16 + ms * S * 0.136, S * 0.24, S * 0.136, S * 0.16); }
+          g.fillStyle = '#e8d9b8'; g.fillRect(S * 0.2, S * 0.4, S * 0.6, S * 0.36);
+          g.fillStyle = '#ffcf5a'; g.beginPath(); g.arc(S * 0.36, S * 0.56, S * 0.06, 0, 7); g.arc(S * 0.62, S * 0.56, S * 0.06, 0, 7); g.fill();
+          break;
+        case 'river':
+          g.strokeStyle = '#4fb3ff'; g.lineWidth = S * 0.07;
+          for (var rw = 0; rw < 2; rw++) { var ry = S * (0.6 + rw * 0.16); g.beginPath(); g.moveTo(S * 0.14, ry); g.quadraticCurveTo(S * 0.32, ry - S * 0.08, S * 0.5, ry); g.quadraticCurveTo(S * 0.68, ry + S * 0.08, S * 0.86, ry); g.stroke(); }
+          g.fillStyle = '#4fae5a'; g.beginPath(); g.arc(S * 0.3, S * 0.32, S * 0.11, 0, 7); g.fill();
+          g.fillStyle = '#e6dfcf'; g.fillRect(S * 0.5, S * 0.3, S * 0.36, S * 0.06);
+          break;
+        case 'crossing':
+          g.fillStyle = '#5d616c'; g.fillRect(S * 0.12, S * 0.3, S * 0.76, S * 0.46);
+          g.fillStyle = '#f4f4f4'; for (var cz = 0; cz < 4; cz++) g.fillRect(S * (0.18 + cz * 0.17), S * 0.36, S * 0.09, S * 0.34);
+          g.fillStyle = '#4fdc7a'; g.beginPath(); g.arc(S * 0.82, S * 0.2, S * 0.07, 0, 7); g.fill();
+          break;
         default: throw new Error('알 수 없는 아이콘: ' + name);
       }
       return c;
@@ -764,6 +983,7 @@
       var s = mission.scenes.filter(function (x) { return x.id === sceneId; })[0];
       var c = canvas(size), g = c.getContext('2d'), S = size, seed = hash(sceneId);
       if (s.art.place === 'sorting') { drawSorting(c, mission, s, outcome, seed); return c; }
+      if (s.art.view) { drawViewScene(c, mission, s, outcome, seed); return c; }
       if (s.art.place === 'shelter') {
         drawAnimal(c, { animal: 'dog' }, seed);
         var half = canvas(Math.round(S * 0.55)); drawAnimal(half, { animal: 'cat', noBg: true }, seed + 1);

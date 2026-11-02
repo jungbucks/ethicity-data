@@ -4,6 +4,7 @@
   'use strict';
   function create(view, mission) {
     if (mission && mission.scenery === 'sorting') return sorting(view, mission);
+    if (mission && mission.scenery === 'city') return city(view, mission);
     return street(view);
   }
 
@@ -115,6 +116,51 @@
       line.position.z = -Math.floor(z / 20) * 20 + 20;
     }
     return { update: update, state: function () { return { zone: current, theme: 'sorting', sky: sky }; } };
+  }
+  var CITY = {
+    S1: { sky: 0xb6cfdb, body: 0x657f8d, edges: [0xd9a066, 0xf4e1c1, 0xd6e8e9], scale: 0.55 },
+    S2: { sky: 0x6a4a6e, body: 0x3a2c3e, edges: [0xffcf5a, 0xe86a5a, 0xffe2a8], scale: 0.35 },
+    S3: { sky: 0x9fd0e6, body: 0x5f8a8f, edges: [0x4fb3ff, 0xd6f0ff, 0x9fe8b0], scale: 0.3 },
+    S4: { sky: 0x7f8ea0, body: 0x4a5566, edges: [0xb0b6c3, 0xe8d9b8, 0x9fe8ff], scale: 0.45 }
+  };
+  function city(view, mission) {
+    var scene = view.scene, lanterns = new THREE.Group(), river = new THREE.Group();
+    scene.add(lanterns); scene.add(river);
+    for (var i = 0; i < 10; i++) {
+      var row = new THREE.Group(); row.position.z = -i * 20;
+      for (var k = 0; k < 4; k++) {
+        var l = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: k % 2 ? 0xffcf5a : 0xe86a5a }));
+        l.position.set(-3 + k * 2, 6.2 + (k % 2) * 0.4, -5); row.add(l);
+      }
+      lanterns.add(row);
+      var water = new THREE.Mesh(new THREE.PlaneGeometry(10, 20), new THREE.MeshBasicMaterial({ color: 0x3f8fc7, transparent: true, opacity: 0.85 }));
+      water.rotation.x = -Math.PI / 2; water.position.set(10, 0.03, -i * 20); river.add(water);
+    }
+    var positions = new Float32Array(160 * 6), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    var rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xc6dbe8, transparent: true, opacity: 0.55 })); rain.frustumCulled = false; scene.add(rain);
+    var current = null, sky = null;
+    function update(id, z, t, reduced) {
+      var look = CITY[id] || CITY.S1;
+      if (id !== current) {
+        current = id; sky = look.sky;
+        scene.background = new THREE.Color(sky); scene.fog.color.setHex(sky);
+        view.buildings.forEach(function (b, i) {
+          b.scale.y = look.scale; b.position.y = b.geometry.parameters.height * b.scale.y / 2;
+          b.material.color.setHex(look.body); b.children[0].material.color.setHex(look.edges[i % look.edges.length]);
+        });
+        lanterns.visible = id === 'S2'; river.visible = id === 'S3'; rain.visible = id === 'S4';
+      }
+      lanterns.position.z = -Math.floor(z / 20) * 20 + 20;
+      river.position.z = -Math.floor(z / 20) * 20 + 20;
+      if (rain.visible) {
+        for (var j = 0; j < 160; j++) {
+          var x = ((j * 73) % 220) / 10 - 11, y = 13 - ((j * 0.73 + (reduced ? 0 : t * 10)) % 13), d = (j * 17) % 95;
+          positions.set([x, y, -z - d, x - 0.15, y - 0.85, -z - d + 0.1], j * 6);
+        }
+        geo.attributes.position.needsUpdate = true;
+      }
+    }
+    return { update: update, state: function () { return { zone: current, theme: 'city', sky: sky }; } };
   }
   root.DR.RunScenery = { create: create };
 })(window);

@@ -52,7 +52,9 @@
     return t === null || labelOfKey(mission, t) !== currentLabel(mission, card);
   }
 
+  // 피해: 가짜에 harm이 적혀 있으면 그것(3 임무 철거 전 육교), 아니면 진짜 종류가 위험물이면 위험
   function harm(mission, card) {
+    if (card.fakeId) { var fd = fakeDef(mission, card.fakeId); if (fd && fd.harm) return fd.harm; }
     var t = truthKey(mission, card);
     return t && mission.cardTypes[t] && mission.cardTypes[t].hazard ? 'danger' : 'inconvenience';
   }
@@ -82,6 +84,12 @@
     var label = currentLabel(mission, card);
     if (mission.labels) return [label];
     return (mission.cardTypes[label] && mission.cardTypes[label].icons) || [];
+  }
+
+  // 촬영 날짜(3 임무): 카드 종류·가짜의 dates에서 변형 번호로 하나. 없으면 null
+  function dateOf(mission, card, variant) {
+    var def = card.key ? mission.cardTypes[card.key] : (card.fakeId ? fakeDef(mission, card.fakeId) : null);
+    return def && def.dates ? def.dates[(variant || 0) % def.dates.length] : null;
   }
 
   function artId(card) { return card.key || card.ambiguousId || card.fakeId; }
@@ -134,8 +142,10 @@
     }
     return any;
   }
+  // displayAs: 화면에서 다른 종류와 한 줄로 센다(3 임무 시장 골목 옛 사진 — 옛 사진이라고 따로 보이지 않게)
+  function shownAs(mission, k) { var t = k && mission.cardTypes[k]; return t && t.displayAs ? t.displayAs : k; }
   function displayKey(mission, card) {
-    if (!card.ambiguousId && mission.labels) return isMislabeled(mission, card) ? commonKeyOfLabel(mission, currentLabel(mission, card)) : truthKey(mission, card);
+    if (!card.ambiguousId && mission.labels) return shownAs(mission, isMislabeled(mission, card) ? commonKeyOfLabel(mission, currentLabel(mission, card)) : truthKey(mission, card));
     if (!card.ambiguousId) return currentLabel(mission, card);
     if (!card.assigned) return null;
     var q = ambDef(mission, card.ambiguousId), keys = Object.keys(mission.cardTypes);
@@ -154,7 +164,9 @@
 
   var labelColors = { flood_deep: '#527de0', flood_shallow: '#25bdb0', wet: '#d8af32', dry: '#9dc77b', unknown: '#b49ae3',
     // 2 임무 분류함(컨베이어 함 색과 같음)
-    can: '#d9534f', pet: '#3a8fd9', pack: '#25bdb0', paper: '#c9a227', vinyl: '#d977a8', battery: '#2fae6b', trash: '#7d8290' };
+    can: '#d9534f', pet: '#3a8fd9', pack: '#25bdb0', paper: '#c9a227', vinyl: '#d977a8', battery: '#2fae6b', trash: '#7d8290',
+    // 3 임무 장소
+    station: '#d9a066', market: '#e86a5a', river: '#4fb3ff', crossing: '#b0b6c3' };
   function runColor(mission, card) {
     var icons = card.ambiguousId ? ['unknown'] : iconsOf(mission, card);
     return labelColors[icons[icons.length - 1]] || '#8ab5ce';
@@ -162,7 +174,7 @@
   var api = { labelColors: labelColors, runColor: runColor,
     fakeDef: fakeDef, labelOfKey: labelOfKey, originalLabel: originalLabel, currentLabel: currentLabel, truthKey: truthKey,
     isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel,
-    iconsOf: iconsOf, artId: artId, labelText: labelText,
+    iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText,
     keyLabel: keyLabel, cardLabel: cardLabel, displayKey: displayKey, labelCounts: labelCounts
   };
   root.DR = root.DR || {};
