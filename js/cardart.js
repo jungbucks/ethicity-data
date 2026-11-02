@@ -966,13 +966,14 @@
       var g = c.getContext('2d'), S = size;
       g.fillStyle = '#0f1a2e'; g.fillRect(0, 0, S, S);
       g.strokeStyle = '#7ff9ff'; g.lineWidth = 3; roundRect(g, 8, 8, S - 16, S - 16, 14); g.stroke();
+      g.translate(0, S * 0.18); // 글이 빠졌으니 아이콘을 가운데로
       g.fillStyle = '#7ff9ff';
       if (cl.type === 'sensor') { g.fillRect(S * 0.42, S * 0.14, S * 0.16, S * 0.36); g.fillStyle = '#4fb3ff'; g.fillRect(S * 0.44, S * 0.4, S * 0.12, S * 0.08); }
       else if (cl.type === 'wheel') { g.beginPath(); g.arc(S * 0.5, S * 0.32, S * 0.15, 0, 7); g.fill(); g.fillStyle = 'rgba(79,179,255,.7)'; g.fillRect(S * 0.25, S * 0.38, S * 0.5, S * 0.1); }
       else if (cl.type === 'time') { g.lineWidth = 4; g.beginPath(); g.arc(S * 0.5, S * 0.32, S * 0.15, 0, 7); g.stroke(); g.beginPath(); g.moveTo(S * 0.5, S * 0.32); g.lineTo(S * 0.5, S * 0.22); g.moveTo(S * 0.5, S * 0.32); g.lineTo(S * 0.58, S * 0.35); g.stroke(); }
       else { g.fillRect(S * 0.3, S * 0.24, S * 0.3, S * 0.14); g.fillRect(S * 0.6, S * 0.28, S * 0.12, S * 0.1); g.fillStyle = '#0f1a2e'; g.beginPath(); g.arc(S * 0.38, S * 0.4, S * 0.04, 0, 7); g.arc(S * 0.64, S * 0.4, S * 0.04, 0, 7); g.fill(); }
       g.fillStyle = '#f4f1ff'; g.font = 'bold ' + Math.round(S * 0.075) + 'px sans-serif'; g.textAlign = 'center';
-      wrapText(g, cl.text, S * 0.5, S * 0.66, S * 0.8, S * 0.1);
+      // 글은 그림 아래 캡션 하나로만(그림 칸 안에는 쓰지 않는다)
       return c;
     });
   }

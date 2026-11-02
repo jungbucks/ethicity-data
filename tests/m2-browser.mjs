@@ -260,7 +260,7 @@ async function finishFromSenior(page) {
     assert.ok(res.every((r) => r.outcome === 'pass'));
     await finishFromSenior(page);
     assert.ok((await page.locator('#screen-outro').innerText()).includes('침수 판별 AI 완료'), 'kicker names the mission');
-    assert.deepEqual(await page.evaluate(() => DR.App.records.m1), { cleared: true, passed: true, firstTry: true, supplements: 0, firstFails: [] });
+    assert.deepEqual(await page.evaluate(() => DR.App.records.m1), { cleared: true, passed: true, firstTry: true, supplements: 0, firstFails: [], fixedLabels: 0 });
     assert.deepEqual(await page.evaluate(() => DR.Save.records().m1.cleared), true, 'record saved');
     assert.ok(await page.locator('#btn-again').isVisible(), 'title button too');
     await page.locator('#btn-next-mission').click();

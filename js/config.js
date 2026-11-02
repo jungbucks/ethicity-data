@@ -22,6 +22,7 @@
     ambiguousWeight: 2,     // 올바르게 분류한 "?" 카드는 2장 몫
     fakeLimit: 2,           // 한 장면에 이름표가 틀린 카드가 이만큼 쌓이면 오염(실패)
     conveyor: { step: 1.2 }, // s — 2 임무 결과 컨베이어에서 물건 하나가 함까지 가는 시간(2배속은 절반)
+    maxPixelRatio: 1.25,    // 달리기 3D 화소 비율 상한(기기 DPR이 커도 이 이상 그리지 않음). ?low=1이면 1, 계단 다듬기 끔(저사양 모드)
     maxSupplements: 2,
     supplementFreeSlots: 6,
     randomSeed: false       // true면 시작할 때마다 코스가 바뀐다

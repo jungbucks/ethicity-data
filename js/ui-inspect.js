@@ -54,8 +54,10 @@
   function comboRow(mission, counts, c) {
     var have = comboCount(mission, counts, c), label = DR.Cards.keyLabel(mission, c.keys[0]);
     var short = DR.UI.needRevealed() && have < c.need;
+    // 같은 종류를 다른 장면도 쓰면 '(두 장면 공통)' — 한 카드가 두 장면에 함께 세어진다는 뜻
+    var shared = mission.scenes.filter(function (s) { return s.combos.some(function (o) { return o.keys.some(function (k) { return c.keys.indexOf(k) >= 0; }); }); }).length > 1;
     return el('li', { class: 'combo' + (short ? ' short' : ''), 'data-combo': c.id }, [
-      DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: label }), el('b', { class: 'combo-count', text: countText(have, c.need) })
+      DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: label }), shared ? el('span', { class: 'combo-shared', text: '(두 장면 공통)' }) : null, el('b', { class: 'combo-count', text: countText(have, c.need) })
     ]);
   }
 
@@ -109,7 +111,7 @@
       var notice = el('p', { id: 'inspect-undecided', class: 'notice', text: '아직 정하지 않은 "?" 카드 ' + undecided + '장 — 정하지 않으면 넣지 않아요.' });
       notice.hidden = undecided === 0;
       var scenes = el('div', { id: 'inspect-scenes' });
-      mission.scenes.forEach(function (s) {
+      DR.UI.sceneOrder(mission).forEach(function (s) {
         var keys = {};
         s.combos.forEach(function (c) { c.keys.forEach(function (k) { keys[k] = true; }); });
         var row = el('div', { class: 'scene-thumbs' });
@@ -258,8 +260,9 @@
 
       // 놓친 장면 + 그 장면에서 모자란 카드 종류(아이콘 + 라벨 + 부족 n장)
       var failed = el('ul', { id: 'prep-failed', class: 'failed' });
-      result.scenes.forEach(function (s) {
-        if (s.pass) return;
+      DR.UI.sceneOrder(mission).forEach(function (sd) {
+        var s = result.scenes.filter(function (x) { return x.id === sd.id; })[0];
+        if (!s || s.pass) return;
         var sc = mission.scenes.filter(function (x) { return x.id === s.id; })[0];
         var shorts = el('ul', { class: 'combo-list' });
         s.missing.forEach(function (id) {

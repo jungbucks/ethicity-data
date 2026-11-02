@@ -96,7 +96,8 @@ async function readResults(page) {
     out.push({ scene: await s.getAttribute('data-scene'), outcome: await s.getAttribute('data-outcome'), contam: await page.locator('#screen-result p.contam').allInnerTexts() });
     await page.locator('#btn-next').click();
   }
-  return out;
+  // 결과는 달리기 구역 순서로 나온다 — 장면 번호(S1~S4) 순으로 정리해 비교
+  return out.sort((a, b) => a.scene.localeCompare(b.scene));
 }
 // 빈칸 2칸만 남는 28장: 흔한 카드 + 수영장 1 + 분수 1
 const FULL = { ...ALL2, day_deep: 5, day_shallow: 5, night_wet: 4, f_pool: 1, f_fountain: 1 };

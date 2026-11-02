@@ -24,7 +24,8 @@ async function readResults(page) {
     out.push({ scene: await s.getAttribute('data-scene'), outcome: await s.getAttribute('data-outcome'), text: await page.locator('#screen-result').innerText() });
     await page.locator('#btn-next').click();
   }
-  return out;
+  // 결과는 달리기 구역 순서로 나온다 — 장면 번호(S1~S4) 순으로 정리해 비교
+  return out.sort((a, b) => a.scene.localeCompare(b.scene));
 }
 
 for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 }]) {
@@ -36,7 +37,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     try {
       await page.locator('#btn-skip').click();
       assert.equal(await page.locator('#screen-briefing .brief-scene').count(), 4);
-      assert.equal(await page.locator('#screen-briefing .brief-scene').nth(3).getAttribute('data-emphasis'), 'low');
+      assert.equal(await page.locator('#screen-briefing .brief-scene[data-scene="S4"]').getAttribute('data-emphasis'), 'low');
       await page.locator('#btn-run').click();
       await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
       await fillAndFinish(page, { day_deep: 11, day_shallow: 9 });

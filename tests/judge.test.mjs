@@ -261,3 +261,11 @@ test('장면 문구가 장면 정답과 모순되지 않음', () => {
     assert.deepEqual(fixedNotes(m2, tin, judge(m2, tin, cfg)), {}, 'untouched (label equals original) is not a fix');
   });
 }
+
+// 사소한 문제 7: 튜토리얼 합격 기준은 기획서 §6 그대로 — "판정(초기값): 개와 고양이 사진이 각각 3장 이상",
+// 귀여운 실패는 "한쪽만 잔뜩 모으면". 가방 10칸을 다 채우거나 개·고양이 수를 똑같이 맞출 필요는 없다(의도)
+test('tutorial pass rule is each ≥3 (imbalance and spare slots are intended)', () => {
+  assert.equal(judge(tutorial, bagOf({ dog: 7, cat: 3 }), cfg).allPass, true, '7:3 passes');
+  assert.equal(judge(tutorial, bagOf({ dog: 3, cat: 3 }), cfg).allPass, true, '6 of 10 slots passes');
+  assert.equal(judge(tutorial, bagOf({ dog: 10 }), cfg).allPass, false, 'one side only fails');
+});

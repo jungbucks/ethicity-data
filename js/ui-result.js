@@ -20,12 +20,14 @@
     var byCombo = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { byCombo[c.id] = c; }); });
     var i = 0;
+    // 달리기 구역 순서로 보여 준다(판정 결과의 장면 번호는 그대로)
+    var order = DR.UI.sceneOrder(mission).map(function (s) { return mission.scenes.indexOf(s); });
     // 2 임무: 컨베이어에서 그 장면의 잘못 간 물건(같은 판정 = 같은 결과)
     var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : mission.guide ? DR.Conveyor.sort(mission, judged, mission.guide) : [];
     var notes = DR.Judge.fixedNotes(mission, (DR.App.state && DR.App.state.bag) || [], judged);
 
     function show() {
-      var r = judged.scenes[i], s = mission.scenes[i];
+      var r = judged.scenes[order[i]], s = mission.scenes[order[i]];
       var outcome = r.pass ? 'pass' : r.failKind;
       var last = i === judged.scenes.length - 1;
       var parts = [

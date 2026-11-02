@@ -51,11 +51,25 @@
     return c;
   }
 
+  function speakerName(who) {
+    if (who === 'runner' && root.DR.HeroModel && root.DR.Save) return root.DR.HeroModel.names[root.DR.Save.hero()] || root.DR.Cast.runner.name;
+    return root.DR.Cast[who].name;
+  }
+  // 장면을 보여 줄 순서: 달리기 구역 순서(mission.zones)가 있으면 그것 — 브리핑·검수·결과가 달리기와 같은 순서(1 임무 S2→S4→S3→S1)
+  function sceneOrder(mission) {
+    if (!mission.zones) return mission.scenes.slice();
+    var byId = {};
+    mission.scenes.forEach(function (s) { byId[s.id] = s; });
+    var out = mission.zones.map(function (z) { return byId[z.id]; }).filter(Boolean);
+    mission.scenes.forEach(function (s) { if (out.indexOf(s) < 0) out.push(s); });
+    return out;
+  }
+
   function line(l) {
     var p = root.DR.Cast[l.who];
     return el('div', { class: 'line' }, [
       portrait(l.who, 48),
-      el('div', { class: 'line-body' }, [el('b', { text: p.name, style: 'color:' + p.color }), el('p', { text: l.text })])
+      el('div', { class: 'line-body' }, [el('b', { text: speakerName(l.who), style: 'color:' + p.color }), el('p', { text: l.text })])
     ]);
   }
 
@@ -73,7 +87,7 @@
       box.innerHTML = '';
       box.appendChild(portrait(l.who, 72));
       box.appendChild(el('div', { class: 'dialog-body' }, [
-        el('b', { class: 'dialog-name', text: p.name, style: 'color:' + p.color }),
+        el('b', { class: 'dialog-name', text: speakerName(l.who), style: 'color:' + p.color }),
         el('p', { class: 'dialog-text', text: l.text }),
         el('span', { class: 'dialog-hint', text: (i + 1) + ' / ' + lines.length + ' · 눌러서 넘기기' })
       ]));
@@ -82,6 +96,7 @@
       if (finished) return;
       finished = true;
       root.removeEventListener('keydown', onKey);
+      screen.onclick = null;
       done();
     }
     function next() { root.DR.Sfx.play('ui'); if (++i >= lines.length) finish(); else show(); }
@@ -89,7 +104,8 @@
       if (e.target && e.target.tagName === 'BUTTON') return;
       if (e.code === 'Space' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) next(); }
     }
-    box.addEventListener('click', next);
+    // 화면 아무 곳이나 누르면 다음(버튼은 제외) — onclick 하나로 두어 대화가 바뀌어도 쌓이지 않게
+    screen.onclick = function (e) { if (finished || (e.target.closest && e.target.closest('button'))) return; next(); };
     skip.addEventListener('click', function () { root.DR.Sfx.play('ui'); finish(); });
     root.addEventListener('keydown', onKey);
     root.DR.App.go('story');
@@ -102,10 +118,10 @@
     var A = root.DR.CardArt;
     screen.innerHTML = '';
     var scenes = el('div', { class: 'brief-scenes' });
-    mission.scenes.forEach(function (s) {
+    sceneOrder(mission).forEach(function (s) {
       var c = A.scene(mission, s.id, 'neutral', 360);
       var img = el('img', { src: c.toDataURL(), alt: s.title });
-      scenes.appendChild(el('figure', { class: 'brief-scene', 'data-emphasis': s.emphasis || 'normal' }, [img, el('figcaption', { text: s.title })]));
+      scenes.appendChild(el('figure', { class: 'brief-scene', 'data-scene': s.id, 'data-emphasis': s.emphasis || 'normal' }, [img, el('figcaption', { text: s.title })]));
     });
     var run = el('button', { id: 'btn-run', class: 'btn btn-primary', type: 'button', text: '달리기 시작' });
     run.addEventListener('click', function () { root.DR.Sfx.unlock(); root.DR.Sfx.play('ui'); done(); });
@@ -154,7 +170,8 @@
     var i = 0, finished = false;
     var list = el('div', { class: 'mono', role: 'log', 'aria-live': 'polite' });
     var skip = el('button', { id: 'btn-skip', class: 'btn btn-ghost skip', type: 'button', text: '건너뛰기' });
-    var rows = data.profile.map(function (p) { return el('div', { class: 'profile-row' }, [el('dt', { text: p.label }), el('dd', { text: p.value })]); });
+    var rows = data.profile.map(function (p) { return el('div', { class: 'profile-row' }, [el('dt', { text: p.label }), el('dd', { text: p.value.replace('{hero}', speakerName('runner')) })]); });
+    var lineAt = 0;
     screen.innerHTML = '';
     screen.appendChild(skip);
     screen.appendChild(el('div', { class: 'page prologue' }, [
@@ -168,20 +185,28 @@
     function show() {
       Array.prototype.forEach.call(list.children, function (p) { p.classList.add('past'); });
       list.appendChild(el('p', { class: 'mono-line', text: data.lines[i] }));
+      lineAt = Date.now();
+    }
+    // 줄이 떠오르는 중(0.45초)에 누르면 그 줄을 바로 다 보이게 하고, 다 보이면 다음 줄 — 클릭을 버리지 않는다
+    function tap() {
+      var last = list.lastChild;
+      if (last && !last.classList.contains('done') && Date.now() - lineAt < 450) { last.classList.add('done'); return; }
+      next();
     }
     function finish() {
       if (finished) return;
       finished = true;
       root.removeEventListener('keydown', onKey);
+      screen.onclick = null;
       screen.innerHTML = '';
       done();
     }
     function next() { root.DR.Sfx.play('ui'); if (++i >= data.lines.length) finish(); else show(); }
     function onKey(e) {
       if (e.target && e.target.tagName === 'BUTTON') return;
-      if (e.code === 'Space' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) next(); }
+      if (e.code === 'Space' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) tap(); }
     }
-    list.addEventListener('click', next);
+    screen.onclick = function (e) { if (finished || (e.target.closest && e.target.closest('button'))) return; tap(); };
     skip.addEventListener('click', function () { root.DR.Sfx.play('ui'); finish(); });
     root.addEventListener('keydown', onKey);
     root.DR.App.go('profile');
@@ -189,7 +214,7 @@
   }
 
   // 마무리 안내(기획서 §4.7) — 대화 뒤 안내 카드
-  // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]) }
+  // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]), summary: ['이번 판 요약 줄', …] }
   function outro(lines, done, opts) {
     opts = opts || {};
     dialogue(lines, function () {
@@ -200,6 +225,7 @@
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: opts.kicker || '임무 완료' }),
         el('h2', { text: '도시 한 구간이 다시 이어졌다' }),
+        opts.summary && opts.summary.length ? el('ul', { id: 'outro-summary', class: 'outro-summary', 'aria-label': '이번 판 요약' }, opts.summary.map(function (t) { return el('li', { text: t }); })) : null,
         el('p', { class: 'lead', text: '이 게임의 결과는 실제 AI가 아니라 단순화한 규칙으로 만든 것이다. 실제 AI라면 무엇이 다를지, 우리가 넣는 데이터가 어떤 판단으로 이어지는지 이야기해 보자.' }),
         el('div', { class: 'actions' }, [next, again])
       ]));
@@ -210,6 +236,8 @@
   root.DR = root.DR || {};
   root.DR.UI = root.DR.UI || {};
   root.DR.UI.el = el;
+  root.DR.UI.speakerName = speakerName;
+  root.DR.UI.sceneOrder = sceneOrder;
   root.DR.UI.portrait = portrait;
   root.DR.UI.characterPortrait = characterPortrait;
   root.DR.UI.line = line;

@@ -18,7 +18,8 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     assert.ok((await page.locator('#screen-profile').innerText()).includes(pro.lines[0]), 'first monologue line');
     assert.ok((await page.locator('#screen-profile .profile-card').innerText()).includes('러너 자격 시험'), 'profile card');
     const nLines = pro.lines.length;
-    for (let i = 0; i < nLines; i++) await page.locator('#screen-profile .mono').click();
+    // 줄이 떠오르는 중에 누르면 그 줄을 다 보이게만 하고(클릭을 버리지 않음), 다 보이면 다음 — 줄마다 최대 두 번
+    for (let i = 0; i < nLines * 2 + 2 && await visible('profile'); i++) await page.locator('#screen-profile .mono').click();
     assert.ok(await visible('story'), 'story after prologue');
     assert.match(await page.locator('#screen-story').innerText(), new RegExp(tut.story.intro[0].text.slice(0, 8)));
     await page.locator('#btn-skip').click();

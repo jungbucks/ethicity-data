@@ -480,8 +480,9 @@
       running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false
     };
     S.grabber = root.DR.Catch.grabber(cfg());
-    S.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    S.renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, 2));
+    var low = /[?&]low=1/.test(root.location.search);
+    S.renderer = new THREE.WebGLRenderer({ antialias: !low, alpha: true });
+    S.renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, low ? 1 : (cfg().maxPixelRatio || 1.25)));
     container.appendChild(S.renderer.domElement);
     S.camera = new THREE.PerspectiveCamera(56, 1, 0.1, 400);
     S.heroId = DR.Save ? DR.Save.hero() : 'onyu';
@@ -552,7 +553,7 @@
     },
     peek: function () {
       if (!S) return { running: false };
-      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
+      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
     }
   };
 

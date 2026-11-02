@@ -8,13 +8,19 @@
 
   var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'result', 'prep', 'knockout', 'outro'];
   var DR = root.DR;
+  var STATIC = ['title', 'run']; // HTML에 고정 구조가 있는 화면(비우지 않음)
 
   // 화면을 바꿀 때 포커스를 풀어 둔다 — 연타한 Space/Enter가 다음 화면 버튼을 눌러 브리핑·결과를 건너뛰지 않게
   function go(name) {
     if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) document.activeElement.blur();
     SCREENS.forEach(function (s) {
       var el = document.getElementById('screen-' + s);
-      if (el) el.hidden = s !== name;
+      if (!el) return;
+      var show = s === name;
+      // 떠난 화면: 그때그때 그리는 화면은 비우고(지난 임무 DOM·같은 id 버튼이 남지 않게), 고정 화면(타이틀·달리기)은 aria-hidden
+      if (!show && !el.hidden && STATIC.indexOf(s) < 0) el.innerHTML = '';
+      el.hidden = !show;
+      if (show) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
     });
     App.screen = name;
     if (name === 'title' && DR.Shell) DR.Shell.renderTitle();
@@ -203,14 +209,22 @@
   // 임무 끝: 기록을 한 곳(DR.App.records + 저장소 records)에 남긴다 — 다음 임무 브리핑 한 줄, 3 임무 정체 공개, (검토 중인) 도시 복구 화면이 읽는다
   function finishMission(m) {
     App.state.record = { firstTry: App.state.firstTry, supplements: App.state.supplements };
+    var relabels = !!(m.labels && m.relabel !== false);
+    var fixed = (App.state.bag || []).filter(function (c) { return c.label !== undefined && !c.ambiguousId; }).length;
     var rec = { cleared: true, passed: !!(App.lastJudge && App.lastJudge.allPass), firstTry: App.state.firstTry === true,
-      supplements: App.state.supplements, firstFails: App.state.firstFails || [] };
+      supplements: App.state.supplements, firstFails: App.state.firstFails || [], fixedLabels: fixed };
+    // 이번 판 요약: 첫 제출에서 놓친 장면 · 보충 달리기 횟수 · 고친 이름표 수(이름표를 고칠 수 있는 임무만)
+    var summary = [
+      '첫 제출에서 놓친 장면: ' + (rec.firstFails.length ? rec.firstFails.map(function (f) { return f.title; }).join(', ') : '없음'),
+      '보충 달리기: ' + rec.supplements + '번'
+    ];
+    if (relabels) summary.push('고친 이름표: ' + fixed + '장');
     App.records[m.id] = rec;
     DR.Save.finish();
     DR.Save.setRecord(m.id, rec);
     var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
     DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () {
-      DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, { kicker: m.title + ' 완료', next: next });
+      DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, { kicker: m.title + ' 완료', next: next, summary: summary });
     });
   }
 

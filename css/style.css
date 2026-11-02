@@ -324,3 +324,9 @@ body { overflow: hidden; word-break: keep-all; }
 @media (max-width: 640px) { .gd-item { grid-template-columns: 64px 1fr; } .gd-art { width: 64px; height: 64px; } }
 .result-wrong-list { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
 #gd-stop { align-content: end; padding-bottom: 16px; }
+
+/* ---------- 사소한 문제 9가지 ---------- */
+.mono-line.done { animation: none; }
+#screen-story, #screen-profile { cursor: pointer; }
+.outro-summary { margin: 12px 0 0; padding-left: 18px; color: var(--ink-2); }
+.combo-shared { font-size: 12px; color: var(--ink-2); margin-left: 4px; }

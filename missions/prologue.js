@@ -7,7 +7,7 @@
 
   var prologue = {
     profile: [
-      { label: '이름', value: '나(가칭) · 고2' },
+      { label: '이름', value: '{hero} · 고2' }, // {hero} = 고른 주인공 이름(온유·다온)
       { label: '오늘', value: '러너 자격 시험' },
       { label: '좋아하는 것', value: '데이터 세계에서 달리기, 기록 갱신' },
       { label: '아직 서툰 것', value: '뭘 가져올지 고르기' }
