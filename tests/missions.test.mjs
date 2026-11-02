@@ -221,3 +221,15 @@ test('m1 S1 inconvenience says the dry side alley was closed', () => {
 test('every combo names what was missing (what), no fixed sentence', () => {
   for (const m of [m1, m2, tutorial]) for (const c of combos(m)) { assert.ok(c.what, c.id); assert.equal(c.missingLine, undefined, c.id); }
 });
+
+// 대화 초상 표정(face): 지정이 없으면 기본. 쓸 수 있는 값만
+test('dialogue faces are valid', () => {
+  const m3 = require('../missions/m3.js');
+  const ok = new Set([undefined, 'basic', 'happy', 'worried', 'explain']);
+  const all = [];
+  const walk = (v) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') { if (v.who && v.text) all.push(v); else Object.values(v).forEach(walk); } };
+  for (const m of [tutorial, m1, m2, m3]) walk(m.story);
+  assert.ok(all.length > 50);
+  for (const l of all) assert.ok(ok.has(l.face), l.who + ' ' + l.face);
+  assert.ok(all.filter((l) => l.face).length >= 25, 'most emotional lines carry a face');
+});

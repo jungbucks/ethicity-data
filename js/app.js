@@ -88,7 +88,7 @@
           DR.Save.markTutorialDone();
           // 합격 대사에 가방 구성 한 줄(개 n장, 고양이 m장)
           var c = DR.Cards.labelCounts(m, App.state.bag);
-          var count = { who: 'examiner', text: m.story.passCount.replace('{dog}', c.dog || 0).replace('{cat}', c.cat || 0) };
+          var count = { who: 'examiner', text: m.story.passCount.replace('{dog}', c.dog || 0).replace('{cat}', c.cat || 0), face: 'explain' };
           DR.UI.dialogue([m.story.outro[0], count].concat(m.story.outro.slice(1)), function () { startMission('m1'); });
         }
       });
@@ -204,7 +204,7 @@
       var rec = App.records[id];
       if (!hit && rec && rec.firstFails && rec.firstFails.length) hit = { mission: id.slice(1) + ' 임무', scene: rec.firstFails[0].title };
     });
-    var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene) } : rv.withoutRecord;
+    var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene), face: rv.withRecord.face } : rv.withoutRecord;
     return rv.before.concat([mid]).concat(rv.after);
   }
 

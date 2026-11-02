@@ -12,7 +12,7 @@
   'use strict';
 
   var DR = root.DR;
-  var FPS = 30, STEP = 1000 / FPS, MAX_PR = 1.25, LOW_RES = 0.6;
+  var FPS = 30, STEP = 1000 / FPS, MAX_PR = 1.25, LOW_RES = 0.6, LEAVE_MS = 400;
   var SPEED = { far: 14, mid: 36, road: 150 }; // px/초(그림 높이 기준 배율 적용 전)
   var LINES = [
     '비만 오면 내가 길을 헷갈려… 도와줄래?',
@@ -216,13 +216,13 @@
     screen.classList.add('tl-leaving');
     // 전환 동안은 루프를 멈춰 타이머가 밀리지 않게(마지막 그림을 CSS로 밀어낸다)
     S.running = false; if (S.raf) root.cancelAnimationFrame(S.raf); S.raf = 0;
-    setTimeout(function () { screen.classList.remove('tl-leaving'); fn(); }, 400);
+    setTimeout(function () { screen.classList.remove('tl-leaving'); fn(); }, LEAVE_MS);
   }
 
   document.addEventListener('visibilitychange', function () { if (!document.hidden && S.running) S.last = performance.now(); });
 
   DR.TitleScene = {
-    start: start, stop: stop, setHero: setHero, leave: leave,
+    start: start, stop: stop, setHero: setHero, leave: leave, LEAVE_MS: LEAVE_MS,
     state: function () {
       return { running: S.running, still: S.still, disposed: S.disposed, hero: S.hero, fpsCap: FPS, mode: S.mode,
         pixelRatio: S.three ? S.three.renderer.getPixelRatio() / LOW_RES : null, offsets: { far: S.offsets.far, mid: S.offsets.mid, road: S.offsets.road },

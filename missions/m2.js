@@ -124,13 +124,13 @@
     ],
     story: {
       intro: [
-        { who: 'supervisor', text: '이번엔 재활용 선별장이야. 분류 AI가 물건을 자꾸 엉뚱한 함에 넣고 있어.' },
-        { who: 'bot', text: '삐빅! 분리배출 사진 5,000장! 이름표도 제가 다 붙였어요! 이번엔 진짜 임무 완료!' },
-        { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 오늘 오전에만 물건 여러 개가 다른 함으로 갔습니다.' },
-        { who: 'sorter', text: '잘못 간 건 결국 저희가 손으로 다시 골라요. 캔 함에 건전지라도 섞이면 압착기에서 불이 날 수도 있고요.' },
-        { who: 'guide', text: '추가 경보. 데이터 세계의 불꽃이 다시 관측됩니다.' },
-        { who: 'senior', text: '1 임무 봤어. 다음엔 나랑 같이 달려 보자. 누가 더 제대로 모으나.' },
-        { who: 'supervisor', text: '러너, 출동. 이번엔 사진에 붙은 이름표도 하나하나 봐 줘.' }
+        { who: 'supervisor', text: '이번엔 재활용 선별장이야. 분류 AI가 물건을 자꾸 엉뚱한 함에 넣고 있어.', face: 'worried' },
+        { who: 'bot', text: '삐빅! 분리배출 사진 5,000장! 이름표도 제가 다 붙였어요! 이번엔 진짜 임무 완료!', face: 'basic' },
+        { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 오늘 오전에만 물건 여러 개가 다른 함으로 갔습니다.', face: 'explain' },
+        { who: 'sorter', text: '잘못 간 건 결국 저희가 손으로 다시 골라요. 캔 함에 건전지라도 섞이면 압착기에서 불이 날 수도 있고요.', face: 'worried' },
+        { who: 'guide', text: '추가 경보. 데이터 세계의 불꽃이 다시 관측됩니다.', face: 'worried' },
+        { who: 'senior', text: '1 임무 봤어. 다음엔 나랑 같이 달려 보자. 누가 더 제대로 모으나.', face: 'happy' },
+        { who: 'supervisor', text: '러너, 출동. 이번엔 사진에 붙은 이름표도 하나하나 봐 줘.', face: 'explain' }
       ],
       guideBrief: '이 AI는 선별장 컨베이어 위 물건을 일곱 개 분류함 중 하나에 넣어야 합니다. 사진에 붙은 이름표가 곧 AI가 배우는 정답입니다.',
       // 1 임무 기록에 따라 브리핑에 한 줄(기획서 §9 "대사 변화 한 줄"). 기록이 없으면(임무 고르기로 바로 들어옴) 이 줄 없음
@@ -139,18 +139,18 @@
         supplemented: '1 임무는 첫 판에 놓친 장면이 있었습니다. 이번에는 처음부터 이름표까지 살펴 주세요.'
       },
       supervisorQuestion: '카드마다 붙은 이름표, 그림이랑 맞는지 다 봤어?',
-      conveyorIntro: { who: 'supervisor', text: '그럼, 실제로 돌려 보자.' },
-      emergency: { who: 'supervisor', text: '비상 정지! {bin} 함에 건전지가 들어갔어.' }, // {bin} = 건전지가 들어간 함
+      conveyorIntro: { who: 'supervisor', text: '그럼, 실제로 돌려 보자.', face: 'explain' },
+      emergency: { who: 'supervisor', text: '비상 정지! {bin} 함에 건전지가 들어갔어.', face: 'worried' }, // {bin} = 건전지가 들어간 함
       responsibility: '승인한 건 나니까, 나도 같이 책임질게.',
-      clientPass: [{ who: 'sorter', text: '오늘은 손으로 다시 고를 게 거의 없겠어요. 고마워요.' }],
-      clientFail: [{ who: 'sorter', text: '아직 몇 개는 제가 다시 골라야겠네요. 한 번 더 부탁해요.' }],
+      clientPass: [{ who: 'sorter', text: '오늘은 손으로 다시 고를 게 거의 없겠어요. 고마워요.', face: 'basic' }],
+      clientFail: [{ who: 'sorter', text: '아직 몇 개는 제가 다시 골라야겠네요. 한 번 더 부탁해요.', face: 'worried' }],
       senior: [
-        { who: 'senior', text: '컨베이어, 꽤 잘 돌아가네.' },
-        { who: 'senior', text: '근데 기계가 틀리면 결국 사람이 다시 골라야 하잖아. 난 그게 계속 마음에 걸려.' }
+        { who: 'senior', text: '컨베이어, 꽤 잘 돌아가네.', face: 'happy' },
+        { who: 'senior', text: '근데 기계가 틀리면 결국 사람이 다시 골라야 하잖아. 난 그게 계속 마음에 걸려.', face: 'worried' }
       ],
       outro: [
-        { who: 'supervisor', text: '오늘 컨베이어도 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.' },
-        { who: 'supervisor', text: '이름표가 틀린 사진이 실제 AI에 들어가면 어떻게 될까? 다 같이 이야기해 보자.' }
+        { who: 'supervisor', text: '오늘 컨베이어도 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.', face: 'explain' },
+        { who: 'supervisor', text: '이름표가 틀린 사진이 실제 AI에 들어가면 어떻게 될까? 다 같이 이야기해 보자.', face: 'explain' }
       ]
     }
   };

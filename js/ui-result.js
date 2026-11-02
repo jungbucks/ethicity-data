@@ -66,7 +66,7 @@
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '컨베이어에서 잘못 간 물건' }), row]));
       }
-      if (outcome === 'danger') parts.push(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
+      if (outcome === 'danger') parts.push(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' }));
       if (last) {
         if (judged.mislabeled.length) parts.push(el('p', { class: 'missing', text: '설명표를 다르게 붙인 "?" 카드 ' + judged.mislabeled.length + '장은 어느 장면의 데이터도 되지 못했다.' }));
         var client = judged.allPass ? mission.story.clientPass : mission.story.clientFail;
@@ -97,7 +97,7 @@
       el('p', { class: 'kicker', text: '데이터 세계' }),
       el('h2', { text: '러너 연결이 끊겼다' }),
       el('p', { class: 'lead', text: '불꽃에 너무 많이 맞았다. 같은 코스를 처음부터 다시 달린다. 이번 판에 잡은 카드는 비워진다.' }),
-      DR.UI.line({ who: 'supervisor', text: '괜찮아, 다시 접속하자. 불꽃은 빨간 경고가 뜬 레인을 피하면 돼.' }),
+      DR.UI.line({ who: 'supervisor', text: '괜찮아, 다시 접속하자. 불꽃은 빨간 경고가 뜬 레인을 피하면 돼.', face: 'happy' }),
       el('div', { class: 'actions' }, [btn])
     ]));
     DR.App.go('knockout');

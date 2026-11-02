@@ -94,7 +94,7 @@
         el('img', { class: 'cv-stop-art', src: DR.CardArt.scene(mission, it.scene, 'danger', 320).toDataURL(), alt: '없는 육교로 안내, 감독관이 멈춤' }),
         el('div', { class: 'cv-stop-body' }, [
           DR.UI.line(mission.story.emergency),
-          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility })
+          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' })
         ].concat(noteEls(it.scene)).concat([el('div', { class: 'actions' }, [resume])]))
       ]));
       stop.hidden = false;
@@ -114,7 +114,7 @@
       endBox.innerHTML = '';
       if (emergency && !stopShown) {
         endBox.appendChild(DR.UI.line(mission.story.emergency));
-        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
+        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' }));
         noteEls(emergency.scene).forEach(function (n) { endBox.appendChild(n); });
       }
       endBox.hidden = !endBox.childNodes.length;

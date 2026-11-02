@@ -17,9 +17,19 @@
     return e;
   }
 
-  // 공통 팩: 256px 표정 4칸. 이미지 파일은 게임 안에 포함해 file://에서도 표시한다.
+  // 초상 시트(assets/characters): 256px 4칸. 이미지 파일은 게임 안에 포함해 file://에서도 표시한다.
+  //   4표정(기본·기쁨·걱정·설명): onyu·daon·robot(공통 팩)·supervisor·senior·examiner
+  //   2표정(1칸 기본·2칸 걱정, 3·4칸은 1칸 복사): sorter·client·collector(수거봇, cast 키 bot) — Codex 2026-11-02, README 참고
+  var SHEET_NAMES = { onyu: '온유', daon: '다온', robot: 'AI 봇', supervisor: '감독관', senior: '선배', examiner: '시험관', sorter: '선별장 직원', client: '도로 관리원', collector: '수거봇' };
+  var SHEETS = { supervisor: ['supervisor', 4], senior: ['senior', 4], examiner: ['examiner', 4], sorter: ['sorter', 2], client: ['client', 2], bot: ['collector', 2] };
+  var FACE4 = { basic: 0, happy: 1, worried: 2, explain: 3 };
+  // 대사 줄 표정(face) → 칸 번호. 2표정 시트는 걱정이면 2칸, 그 밖엔 1칸. 지정이 없으면 기본
+  function faceIndex(faces, face) {
+    if (faces === 2) return face === 'worried' ? 1 : 0;
+    return FACE4[face] || 0;
+  }
   function characterPortrait(id, size, expression) {
-    var names = { onyu: '온유', daon: '다온', robot: 'AI 봇' }, S = size || 72;
+    var names = SHEET_NAMES, S = size || 72;
     var frame = el('span', { class: 'portrait character-portrait', 'data-character': id, style: 'width:' + S + 'px;height:' + S + 'px' });
     var img = el('img', { src: 'assets/characters/' + id + '-portraits.png', alt: names[id], draggable: 'false' });
     img.style.transform = 'translateX(-' + ((expression || 0) * 25) + '%)';
@@ -27,12 +37,13 @@
     return frame;
   }
 
-  // 요청된 공통 캐릭터 외의 인물은 기존 도형 초상을 유지한다.
-  function portrait(who, size) {
+  // face = 대사 줄의 표정('basic'·'happy'·'worried'·'explain'). 시트가 없는 인물(택배 기사 등)은 도형 초상
+  function portrait(who, size, face) {
     var hero = root.DR.Save ? root.DR.Save.hero() : 'onyu';
-    if (who === 'runner') return characterPortrait(hero, size);
-    if (who === 'peer') return characterPortrait(hero === 'onyu' ? 'daon' : 'onyu', size);
-    if (who === 'guide' || who === 'bot') return characterPortrait('robot', size, who === 'guide' ? 3 : 0);
+    if (who === 'runner') return characterPortrait(hero, size, faceIndex(4, face));
+    if (who === 'peer') return characterPortrait(hero === 'onyu' ? 'daon' : 'onyu', size, faceIndex(4, face));
+    if (who === 'guide') return characterPortrait('robot', size, face ? faceIndex(4, face) : 3); // 안내 AI는 기본이 '설명'
+    if (SHEETS[who]) return characterPortrait(SHEETS[who][0], size, faceIndex(SHEETS[who][1], face));
     var p = root.DR.Cast[who], c = document.createElement('canvas'), S = size || 72;
     c.width = c.height = S * 2; c.style.width = c.style.height = S + 'px';
     c.className = 'portrait';
@@ -68,7 +79,7 @@
   function line(l) {
     var p = root.DR.Cast[l.who];
     return el('div', { class: 'line' }, [
-      portrait(l.who, 48),
+      portrait(l.who, 48, l.face),
       el('div', { class: 'line-body' }, [el('b', { text: speakerName(l.who), style: 'color:' + p.color }), el('p', { text: l.text })])
     ]);
   }
@@ -85,7 +96,7 @@
     function show() {
       var l = lines[i], p = root.DR.Cast[l.who];
       box.innerHTML = '';
-      box.appendChild(portrait(l.who, 72));
+      box.appendChild(portrait(l.who, 72, l.face));
       box.appendChild(el('div', { class: 'dialog-body' }, [
         el('b', { class: 'dialog-name', text: speakerName(l.who), style: 'color:' + p.color }),
         el('p', { class: 'dialog-text', text: l.text }),

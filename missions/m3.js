@@ -134,13 +134,13 @@
     ],
     story: {
       intro: [
-        { who: 'supervisor', text: '이번엔 길 안내 AI야. 도시 곳곳의 안내가 몇 년 전 거리를 가리키고 있어.' },
-        { who: 'courier', text: '안내대로 갔는데 빌딩이 없더라고요. 광장만 몇 바퀴 돌았어요.' },
-        { who: 'guide', text: '확인 결과, 최근 옛 거리 사진이 한꺼번에 들어왔습니다. 들어온 길은 수거봇입니다.' },
-        { who: 'bot', text: '삐빅… 저는 시키는 대로 담았을 뿐인데요?' },
-        { who: 'peer', text: '누가 이런 걸 시킨 거지?' },
-        { who: 'guide', text: '추가 경보. 불꽃 반응이 지금까지 중 가장 강합니다.' },
-        { who: 'supervisor', text: '러너, 출동. 이번엔 사진마다 언제 찍었는지도 봐 줘.' }
+        { who: 'supervisor', text: '이번엔 길 안내 AI야. 도시 곳곳의 안내가 몇 년 전 거리를 가리키고 있어.', face: 'worried' },
+        { who: 'courier', text: '안내대로 갔는데 빌딩이 없더라고요. 광장만 몇 바퀴 돌았어요.', face: 'worried' },
+        { who: 'guide', text: '확인 결과, 최근 옛 거리 사진이 한꺼번에 들어왔습니다. 들어온 길은 수거봇입니다.', face: 'explain' },
+        { who: 'bot', text: '삐빅… 저는 시키는 대로 담았을 뿐인데요?', face: 'worried' },
+        { who: 'peer', text: '누가 이런 걸 시킨 거지?', face: 'worried' },
+        { who: 'guide', text: '추가 경보. 불꽃 반응이 지금까지 중 가장 강합니다.', face: 'worried' },
+        { who: 'supervisor', text: '러너, 출동. 이번엔 사진마다 언제 찍었는지도 봐 줘.', face: 'explain' }
       ],
       guideBrief: '이 AI는 사람들에게 지금의 거리를 기준으로 길을 안내해야 합니다. 같은 장소라도 언제 찍은 사진이냐에 따라 지금과 다를 수 있습니다.',
       recordLine: {
@@ -148,31 +148,31 @@
         supplemented: '2 임무는 첫 판에 놓친 장면이 있었습니다. 이번엔 처음부터 날짜까지 살펴 주세요.'
       },
       supervisorQuestion: '사진마다 언제 찍었는지, 그 뒤로 거기가 바뀌었는지 봤어?',
-      guideIntro: { who: 'supervisor', text: '그럼, 실제로 길을 물어보자.' },
-      emergency: { who: 'supervisor', text: '안내 멈춰! 거기엔 이제 육교가 없어.' },
+      guideIntro: { who: 'supervisor', text: '그럼, 실제로 길을 물어보자.', face: 'explain' },
+      emergency: { who: 'supervisor', text: '안내 멈춰! 거기엔 이제 육교가 없어.', face: 'worried' },
       responsibility: '승인한 건 나니까, 나도 같이 책임질게.',
-      clientPass: [{ who: 'courier', text: '오늘은 한 번에 찾아갔어요. 고마워요.' }],
-      clientFail: [{ who: 'courier', text: '아직 몇 군데는 헤맸어요. 한 번 더 부탁해요.' }],
+      clientPass: [{ who: 'courier', text: '오늘은 한 번에 찾아갔어요. 고마워요.', face: 'happy' }],
+      clientFail: [{ who: 'courier', text: '아직 몇 군데는 헤맸어요. 한 번 더 부탁해요.', face: 'worried' }],
       // 정체 공개(결과 뒤). withRecord는 1·2 임무 첫 판 실수 기록이 있을 때 — '누구나 하는 실수'의 예로만, 탓하지 않는다
       reveal: {
         before: [
-          { who: 'senior', text: '잘했네. …이제 하나 말해 줄게.' },
-          { who: 'senior', text: '그 불꽃, 나였어. 수거봇에 옛 사진을 쏟아부은 것도.' },
-          { who: 'senior', text: '봐, 이 기계는 시키는 대로 쓸어 담을 뿐이야.' }
+          { who: 'senior', text: '잘했네. …이제 하나 말해 줄게.', face: 'basic' },
+          { who: 'senior', text: '그 불꽃, 나였어. 수거봇에 옛 사진을 쏟아부은 것도.', face: 'explain' },
+          { who: 'senior', text: '봐, 이 기계는 시키는 대로 쓸어 담을 뿐이야.', face: 'explain' }
         ],
-        withRecord: { who: 'senior', text: '네 {mission} 첫 판 기록도 봤어. \'{scene}\' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.' },
-        withoutRecord: { who: 'senior', text: '러너들 기록을 다 봤어. 첫 판에 장면 하나쯤 놓치는 건 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.' },
+        withRecord: { who: 'senior', text: '네 {mission} 첫 판 기록도 봤어. \'{scene}\' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.', face: 'basic' },
+        withoutRecord: { who: 'senior', text: '러너들 기록을 다 봤어. 첫 판에 장면 하나쯤 놓치는 건 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.', face: 'basic' },
         after: [
-          { who: 'senior', text: '나는 예전에 입학 평가에서 AI 채점 때문에 떨어졌다고 생각해. 그때부터 AI가 사람을 판단하는 게 싫어.' },
-          { who: 'peer', text: '선배 말이… 다 틀린 건 아니잖아?' },
-          { who: 'supervisor', text: 'AI를 버리자는 것도, AI가 알아서 한다는 것도 아니야. 넣는 건 사람이 정하고, 책임도 사람이 져.' },
-          { who: 'senior', text: '다음은 채점 AI야. 네가 지킬 수 있나 보자.' }
+          { who: 'senior', text: '나는 예전에 입학 평가에서 AI 채점 때문에 떨어졌다고 생각해. 그때부터 AI가 사람을 판단하는 게 싫어.', face: 'worried' },
+          { who: 'peer', text: '선배 말이… 다 틀린 건 아니잖아?', face: 'worried' },
+          { who: 'supervisor', text: 'AI를 버리자는 것도, AI가 알아서 한다는 것도 아니야. 넣는 건 사람이 정하고, 책임도 사람이 져.', face: 'explain' },
+          { who: 'senior', text: '다음은 채점 AI야. 네가 지킬 수 있나 보자.', face: 'basic' }
         ]
       },
       senior: [],
       outro: [
-        { who: 'supervisor', text: '오늘 길 안내도 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.' },
-        { who: 'supervisor', text: '오래된 자료는 언제 빼고 언제 지켜야 할까? 다 같이 이야기해 보자.' }
+        { who: 'supervisor', text: '오늘 길 안내도 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.', face: 'explain' },
+        { who: 'supervisor', text: '오래된 자료는 언제 빼고 언제 지켜야 할까? 다 같이 이야기해 보자.', face: 'explain' }
       ]
     }
   };

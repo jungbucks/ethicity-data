@@ -229,7 +229,7 @@
     c.addEventListener('click', function () { DR.Sfx.play('ui'); submit(); });
     screen.appendChild(el('div', { class: 'page page-center' }, [
       el('p', { class: 'kicker', text: '승인 전' }),
-      DR.UI.line({ who: 'supervisor', text: question }),
+      DR.UI.line({ who: 'supervisor', text: question, face: 'explain' }),
       el('div', { class: 'actions' }, [b, c])
     ]));
     DR.App.go('supervisor');

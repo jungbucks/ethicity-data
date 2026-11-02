@@ -16,8 +16,21 @@ for (const width of [1280, 375]) {
     await page.locator('#btn-start').click();
     assert.equal(await page.locator('#screen-profile .character-portrait').getAttribute('data-character'), 'daon');
     const mapping = await page.evaluate(() => ['runner','peer','guide','bot'].map(id => { const p=DR.UI.portrait(id,72); return [id,p.dataset.character,p.querySelector('img').style.transform]; }));
-    assert.deepEqual(mapping.map(x=>x[1]), ['daon','onyu','robot','robot']);
+    // 수거봇(bot)은 Codex 새 시트 collector
+    assert.deepEqual(mapping.map(x=>x[1]), ['daon','onyu','robot','collector']);
     assert.equal(mapping[2][2], 'translateX(-75%)');
+    // 새 인물 초상 6명: 4표정(기본·기쁨·걱정·설명) supervisor·senior·examiner / 2표정(기본·걱정) sorter·client·collector(bot)
+    const faces = await page.evaluate(() => [
+      ['supervisor', 'explain'], ['supervisor', 'worried'], ['senior', 'happy'], ['examiner', undefined],
+      ['sorter', 'worried'], ['sorter', 'happy'], ['client', 'worried'], ['bot', 'worried'], ['bot', 'explain']
+    ].map(([who, face]) => { const p = DR.UI.portrait(who, 72, face); return [who, face, p.dataset.character, p.querySelector('img').style.transform, p.querySelector('img').alt]; }));
+    assert.deepEqual(faces.map((f) => f[2]), ['supervisor', 'supervisor', 'senior', 'examiner', 'sorter', 'sorter', 'client', 'collector', 'collector']);
+    assert.deepEqual(faces.map((f) => f[3]), ['translateX(-75%)', 'translateX(-50%)', 'translateX(-25%)', 'translateX(0%)', 'translateX(-25%)', 'translateX(0%)', 'translateX(-25%)', 'translateX(-25%)', 'translateX(0%)']);
+    assert.deepEqual([...new Set(faces.map((f) => f[4]))], ['감독관', '선배', '시험관', '선별장 직원', '도로 관리원', '수거봇']);
+    assert.equal(await page.evaluate(() => DR.UI.portrait('courier', 72).tagName), 'CANVAS', '택배 기사는 시트가 없어 도형 초상');
+    await page.evaluate(() => DR.UI.dialogue([{ who: 'supervisor', text: '감독관', face: 'worried' }, { who: 'sorter', text: '선별장', face: 'worried' }], function () {}));
+    await page.waitForFunction(() => [...document.querySelectorAll('#screen-story img')].every((i) => i.complete && i.naturalWidth === 1024));
+    assert.equal(await page.locator('#screen-story .character-portrait').getAttribute('data-character'), 'supervisor');
     await page.evaluate(() => DR.UI.dialogue([{who:'guide',text:'러너, 준비됐나요?'}], function(){}));
     await page.waitForFunction(() => [...document.querySelectorAll('#screen-story img')].every(i=>i.complete && i.naturalWidth > 0));
     await page.screenshot({ path: shotPath('portraits-bot-' + width) });

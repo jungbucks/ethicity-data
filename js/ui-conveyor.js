@@ -21,7 +21,7 @@
   }
   function binText(mission, id) { return DR.Cards.labelText(mission, id); }
   // '비상 정지! {bin} 함에 …' — 건전지가 실제로 들어간 함 이름으로
-  function emergencyLine(mission, it) { return { who: mission.story.emergency.who, text: mission.story.emergency.text.replace('{bin}', binText(mission, it.bin)) }; }
+  function emergencyLine(mission, it) { return { who: mission.story.emergency.who, text: mission.story.emergency.text.replace('{bin}', binText(mission, it.bin)), face: mission.story.emergency.face }; }
 
   function conveyor(mission, judged, done) {
     var screen = document.getElementById('screen-conveyor');
@@ -120,7 +120,7 @@
         el('img', { class: 'cv-stop-art', src: A.scene(mission, it.scene, 'danger', 320).toDataURL(), alt: '압착기 불꽃, 비상 정지' }),
         el('div', { class: 'cv-stop-body' }, [
           DR.UI.line(emergencyLine(mission, it)),
-          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility })
+          DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' })
         ].concat(noteEls(it.scene)).concat([el('div', { class: 'actions' }, [resume])]))
       ]));
       stop.hidden = false;
@@ -151,10 +151,10 @@
       if (emergency && !stopShown) {
         // 건너뛰기·움직임 줄이기로 정지 창을 못 봤어도 그 순간은 남긴다
         endBox.appendChild(DR.UI.line(emergencyLine(mission, emergency)));
-        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
+        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' }));
         noteEls(emergency.scene).forEach(function (n) { endBox.appendChild(n); });
       } else if (emergency) {
-        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility }));
+        endBox.appendChild(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' }));
       }
       endBox.hidden = !endBox.childNodes.length;
       fastBtn.hidden = true; skipBtn.hidden = true;

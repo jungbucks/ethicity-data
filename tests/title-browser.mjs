@@ -98,8 +98,12 @@ for (const viewport of SIZES) {
     await page.locator('#btn-continue').click();
     assert.ok(await page.locator('#screen-title').evaluate((e) => e.classList.contains('tl-leaving')), 'leave transition');
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 3000 });
+    // 설계 길이: 전환 타이머·CSS 전환 모두 0.6초 이내. 실제 걸린 시간은 소프트웨어 렌더링(헤드리스, GPU 없음)에서 타이머가 밀릴 수 있어 넉넉히 1.5초 이내만 본다
     const ms = await page.evaluate(() => window.__t1 - window.__t0);
-    assert.ok(ms <= 650, 'transition within 0.6s (+ frame) ' + ms);
+    const design = await page.evaluate(() => ({ timer: DR.TitleScene.LEAVE_MS, css: [...document.styleSheets].flatMap((sh) => [...sh.cssRules]).filter((r) => r.selectorText === '.tl-stage' && r.style.transitionDuration).map((r) => r.style.transitionDuration) }));
+    assert.ok(design.timer <= 600, 'timer ' + design.timer);
+    assert.ok(design.css.length && design.css.every((d) => d.split(',').every((x) => parseFloat(x) <= 0.6)), 'css ' + design.css);
+    assert.ok(ms <= 1500, 'click → next screen ' + ms);
     assert.equal(await page.evaluate(() => DR.App.state.mission), 'm2', 'continue still resumes');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }

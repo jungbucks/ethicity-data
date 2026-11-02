@@ -119,26 +119,26 @@
     ],
     story: {
       intro: [
-        { who: 'supervisor', text: '올여름 비는 처음 보는 규모야. 침수 판별 AI가 따라가지 못하고 있어.' },
-        { who: 'bot', text: '삐빅! 침수 사진 3,000장 확보! 이름표도 제가 다 붙였어요! 임무 완료!' },
-        { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 밤의 젖은 도로 열두 곳을 침수로 판정해 통행을 막았습니다.' },
-        { who: 'supervisor', text: '3,000장 대부분이 낮의 물웅덩이 사진이네. 멀쩡한 길이 막혔어.' },
-        { who: 'guide', text: '추가 경보. 데이터 세계에 정체불명의 불꽃이 관측됩니다. 러너를 노리는 방해 세력으로 추정됩니다.' },
-        { who: 'peer', text: '나도 오늘 자격 딴 동기야. 같이 가자! 이번엔 제대로 모아 보자.' },
-        { who: 'supervisor', text: '러너, 출동. 무엇을 가져올지는 너희가 판단해. 넣을지는 내가 승인하고.' }
+        { who: 'supervisor', text: '올여름 비는 처음 보는 규모야. 침수 판별 AI가 따라가지 못하고 있어.', face: 'worried' },
+        { who: 'bot', text: '삐빅! 침수 사진 3,000장 확보! 이름표도 제가 다 붙였어요! 임무 완료!', face: 'basic' },
+        { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 밤의 젖은 도로 열두 곳을 침수로 판정해 통행을 막았습니다.', face: 'explain' },
+        { who: 'supervisor', text: '3,000장 대부분이 낮의 물웅덩이 사진이네. 멀쩡한 길이 막혔어.', face: 'worried' },
+        { who: 'guide', text: '추가 경보. 데이터 세계에 정체불명의 불꽃이 관측됩니다. 러너를 노리는 방해 세력으로 추정됩니다.', face: 'worried' },
+        { who: 'peer', text: '나도 오늘 자격 딴 동기야. 같이 가자! 이번엔 제대로 모아 보자.', face: 'happy' },
+        { who: 'supervisor', text: '러너, 출동. 무엇을 가져올지는 너희가 판단해. 넣을지는 내가 승인하고.', face: 'explain' }
       ],
       guideBrief: '이 AI는 비 오는 날 밤에도 침수 도로와 젖은 도로를 구별해야 합니다. 무엇을 모을지는 러너의 판단 영역입니다.',
       supervisorQuestion: '브리핑 장면 네 개, 하나씩 다 떠올려 봤어?',
       responsibility: '승인한 건 나니까, 나도 같이 책임질게.',
-      clientPass: [{ who: 'client', text: '덕분에 오늘 밤은 길 걱정을 좀 덜었네요.' }],
-      clientFail: [{ who: 'client', text: '아직 몇 군데는 불안하네요. 다시 한번 부탁해요.' }],
+      clientPass: [{ who: 'client', text: '덕분에 오늘 밤은 길 걱정을 좀 덜었네요.', face: 'basic' }],
+      clientFail: [{ who: 'client', text: '아직 몇 군데는 불안하네요. 다시 한번 부탁해요.', face: 'worried' }],
       senior: [
-        { who: 'senior', text: '첫날치고 나쁘지 않네.' },
-        { who: 'senior', text: '근데 AI 너무 믿지는 마. AI는 네가 준 것 이상은 절대 몰라.' }
+        { who: 'senior', text: '첫날치고 나쁘지 않네.', face: 'happy' },
+        { who: 'senior', text: '근데 AI 너무 믿지는 마. AI는 네가 준 것 이상은 절대 몰라.', face: 'explain' }
       ],
       outro: [
-        { who: 'supervisor', text: '오늘 결과는 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.' },
-        { who: 'supervisor', text: '실제 AI라면 어떻게 다를까? 그건 다 같이 이야기해 보자.' }
+        { who: 'supervisor', text: '오늘 결과는 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.', face: 'explain' },
+        { who: 'supervisor', text: '실제 AI라면 어떻게 다를까? 그건 다 같이 이야기해 보자.', face: 'explain' }
       ]
     }
   };
