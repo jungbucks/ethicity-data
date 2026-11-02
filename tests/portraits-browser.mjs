@@ -27,7 +27,9 @@ for (const width of [1280, 375]) {
     assert.deepEqual(faces.map((f) => f[2]), ['supervisor', 'supervisor', 'senior', 'examiner', 'sorter', 'sorter', 'client', 'collector', 'collector']);
     assert.deepEqual(faces.map((f) => f[3]), ['translateX(-75%)', 'translateX(-50%)', 'translateX(-25%)', 'translateX(0%)', 'translateX(-25%)', 'translateX(0%)', 'translateX(-25%)', 'translateX(-25%)', 'translateX(0%)']);
     assert.deepEqual([...new Set(faces.map((f) => f[4]))], ['감독관', '선배', '시험관', '선별장 직원', '도로 관리원', '수거봇']);
-    assert.equal(await page.evaluate(() => DR.UI.portrait('courier', 72).tagName), 'CANVAS', '택배 기사는 시트가 없어 도형 초상');
+    // 택배 기사(courier) = 2표정 시트(기본·걱정), 기쁨은 기본 칸
+    const courier = await page.evaluate(() => [undefined, 'worried', 'happy'].map((face) => { const p = DR.UI.portrait('courier', 72, face); return [p.dataset.character, p.querySelector('img').style.transform, p.querySelector('img').alt]; }));
+    assert.deepEqual(courier, [['courier', 'translateX(0%)', '택배 기사'], ['courier', 'translateX(-25%)', '택배 기사'], ['courier', 'translateX(0%)', '택배 기사']]);
     await page.evaluate(() => DR.UI.dialogue([{ who: 'supervisor', text: '감독관', face: 'worried' }, { who: 'sorter', text: '선별장', face: 'worried' }], function () {}));
     await page.waitForFunction(() => [...document.querySelectorAll('#screen-story img')].every((i) => i.complete && i.naturalWidth === 1024));
     assert.equal(await page.locator('#screen-story .character-portrait').getAttribute('data-character'), 'supervisor');

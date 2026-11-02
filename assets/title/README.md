@@ -30,9 +30,9 @@
 | bg-far.webp | bg-far.png 1103KB | 169KB |
 | bg-mid.webp | bg-mid.png 2314KB | 362KB |
 | bg-road.webp | bg-road.png 1144KB | 111KB |
-| mission-m1.webp · mission-m2.webp | (원본 그대로) | 68KB · 58KB |
+| mission-m1.webp · mission-m2.webp · mission-m3.webp | (원본 그대로, m3은 mission-m3-original.png를 줄인 것) | 68KB · 58KB · 112KB |
 | og-image.jpg (og:image·twitter:image) | og-image.png 1507KB | 154KB |
 
-- 저장소에 올리지 않는 것(검토·원본 보관용, 이 폴더에만 있음): `bg-far.png`·`bg-mid.png`·`bg-road.png`·`og-image.png`(원본), `*-seam-check.png`, `preview-all.png`.
-- 3 임무 썸네일은 이 폴더에 없어 게임 코드 그림(`DR.CardArt.scene(m3,'S1')`)으로 대신한다.
+- 저장소에 올리지 않는 것(검토·원본 보관용, 이 폴더에만 있음): `bg-far.png`·`bg-mid.png`·`bg-road.png`·`og-image.png`(원본), `*-seam-check.png`, `preview-all.png`, `mission-m3-original.png`.
+- 3 임무 썸네일 = `mission-m3.webp`(Codex 2026-11-02, 비 그친 역 앞 사거리 + 반투명 옛 육교). 미끼 글은 게임이 얹는다(`ui-shell.js` MISSION_CARDS). 그림이 없는 임무만 코드 그림으로 대신한다.
 - AI 봇·주인공 초상은 `assets/characters/`(robot·onyu·daon-portraits.png, 이미 저장소에 있던 파일)를 쓴다.

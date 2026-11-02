@@ -205,7 +205,9 @@
       if (!hit && rec && rec.firstFails && rec.firstFails.length) hit = { mission: id.slice(1) + ' 임무', scene: rec.firstFails[0].title };
     });
     var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene), face: rv.withRecord.face } : rv.withoutRecord;
-    return rv.before.concat([mid]).concat(rv.after);
+    var out = rv.before.concat([mid]).concat(rv.after);
+    // 장면 그림(rv.bg)이 있으면 정체 공개 줄마다 붙인다 — 대화창(DR.UI.dialogue)이 줄의 bg를 뒤에 깐다
+    return rv.bg ? out.map(function (l) { return Object.assign({ bg: rv.bg }, l); }) : out;
   }
 
   // 임무 끝: 기록을 한 곳(DR.App.records + 저장소 records)에 남긴다 — 다음 임무 브리핑 한 줄, 3 임무 정체 공개, (검토 중인) 도시 복구 화면이 읽는다

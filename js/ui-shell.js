@@ -116,7 +116,7 @@
   var MISSION_CARDS = [
     ['m1', '1 임무 · 침수 판별', '비 오는 밤, AI는 잠긴 길을 알아볼까?', 'assets/title/mission-m1.webp'],
     ['m2', '2 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
-    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', null]
+    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp']
   ];
   function missionStatus(id) {
     var rec = DR.App && DR.App.records && DR.App.records[id], s = DR.Save.load();
@@ -126,7 +126,7 @@
   }
   function missionThumb(m, src) {
     if (src) return src;
-    try { return DR.CardArt.scene(DR.Missions[m], 'S1', 'neutral', 320).toDataURL(); } catch (e) { return ''; } // 3 임무는 Codex 썸네일이 없어 코드 그림
+    try { return DR.CardArt.scene(DR.Missions[m], 'S1', 'neutral', 320).toDataURL(); } catch (e) { return ''; } // 썸네일 그림이 없는 임무는 코드 그림
   }
 
   // 임무 고르기 — 팀원이 반복해서 볼 때 앞을 다시 하지 않게(spec §6). 고르면 그 임무 도입부터(저장된 진행은 브리핑에서 덮어씀)

@@ -154,7 +154,9 @@
       clientPass: [{ who: 'courier', text: '오늘은 한 번에 찾아갔어요. 고마워요.', face: 'happy' }],
       clientFail: [{ who: 'courier', text: '아직 몇 군데는 헤맸어요. 한 번 더 부탁해요.', face: 'worried' }],
       // 정체 공개(결과 뒤). withRecord는 1·2 임무 첫 판 실수 기록이 있을 때 — '누구나 하는 실수'의 예로만, 탓하지 않는다
+      //   bg = 정체 공개 대화 내내 대화창 뒤에 까는 장면 그림(Codex: 오른쪽 선배·불꽃, 가운데 수거봇·옛 사진, 왼쪽 1/3 비움)
       reveal: {
+        bg: 'assets/story/reveal-senior.webp',
         before: [
           { who: 'senior', text: '잘했네. …이제 하나 말해 줄게.', face: 'basic' },
           { who: 'senior', text: '그 불꽃, 나였어. 수거봇에 옛 사진을 쏟아부은 것도.', face: 'explain' },

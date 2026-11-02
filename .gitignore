@@ -1,3 +1,4 @@
 tests/_shot-*.png
 tests/_*.json
 tools/_hero/
+tools/_cards/

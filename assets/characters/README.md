@@ -15,6 +15,7 @@
 | sorter-portraits.png | 기본 | 걱정 | 기본(1칸 복사) | 기본(1칸 복사) | 42세 안팎 여성. 안전 문제를 구체적으로 설명하는 실무자; 작업복·장갑·안전모, #F2C14E. |
 | client-portraits.png | 기본 | 걱정 | 기본(1칸 복사) | 기본(1칸 복사) | 55세 안팎 남성. 시민의 길 걱정을 대신 전하며 정중하게 재점검을 부탁하는 관리원; 형광 조끼·우비, #A8E06A. |
 | collector-portraits.png | 기본 | 걱정 | 기본(1칸 복사) | 기본(1칸 복사) | 나이·성별 없는 소형 수거 로봇. 의욕은 높지만 지시를 곧이곧대로 수행하는 성격; 각진 몸체·집게·수거함, #FF9F5A. cast.js 키는 bot. |
+| courier-portraits.png | 기본 | 걱정 | 기본(1칸 복사) | 기본(1칸 복사) | 30대 후반 택배 기사. 친절하고 성실하지만 AI 길 안내로 광장을 돌아 지친 상태; 모자·상표 없는 하늘색 #6FC3FF 조끼·단말기. |
 
 설정은 `missions/cast.js`, `tutorial.js`, `m1.js`, `m2.js`, `m3.js`의 대사를 읽고 정한 그림 제작용 해석이며, 나이·성별을 코드에 추가하지 않았습니다.
 
@@ -23,3 +24,7 @@
 확인: 이미지 규격·알파·복사 칸·칸별 인물 일관성과 한 줄 비교. 미확인: 실제 게임의 새 파일 연결 및 표정 전환(코드 수정 없음). 특히 2표정 인물의 두 번째 칸은 걱정이므로 기존 4표정 매핑과 별도로 연결해야 합니다.
 
 생성 프롬프트 전체: `generation-prompts.json`.
+
+## 게임 연결
+
+`js/ui-story.js`의 SHEETS·SHEET_NAMES — 4표정은 칸 그대로, 2표정(sorter·client·collector(bot)·courier)은 걱정이면 2칸, 그 밖엔 1칸. 대사 줄의 `face`로 고른다. `courier-portraits-original.png`·`preview-all.png`·`README.md.bak`은 저장소에 올리지 않는다(이 폴더에만).

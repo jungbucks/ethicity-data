@@ -79,6 +79,15 @@ body { overflow: hidden; word-break: keep-all; }
 .dialog-name { font-size: 16px; }
 .dialog-text { font-size: 19px; line-height: 1.7; margin: 4px 0 8px; }
 .dialog-hint { font-size: 13px; color: var(--ink-2); }
+/* 대화 장면 그림(대사 줄 bg) — 인물이 오른쪽에 있는 그림 기준: 오른쪽을 남기고 잘라 폰에서도 인물이 보인다.
+   넓은 화면에선 대화창을 그림의 빈 왼쪽으로 */
+.story-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 90% 50%; opacity: 0; transition: opacity .6s ease; pointer-events: none; }
+.story-bg.on { opacity: 1; }
+#screen-story.has-bg .dialog { position: relative; z-index: 1; box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
+#screen-story .skip { z-index: 2; }
+#screen-story.has-bg .skip { background: rgba(16, 9, 58, .78); }
+@media (min-width: 900px) { #screen-story.has-bg { justify-content: flex-start; } #screen-story.has-bg .dialog { max-width: min(44rem, 42vw); margin-left: 2vw; } }
+@media (prefers-reduced-motion: reduce) { .story-bg { transition: none; } }
 
 /* 브리핑 장면 */
 .brief-scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: start; }

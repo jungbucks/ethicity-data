@@ -44,6 +44,13 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   {
     const { browser, page, errors } = await openGame({ viewport, query: '?start=m3' });
     try {
+      // 도입 대화 2줄째 = 택배 기사(2표정 시트 courier, 걱정 = 2칸)
+      await page.locator('#screen-story .dialog').click();
+      const cp = page.locator('#screen-story .character-portrait');
+      assert.equal(await cp.getAttribute('data-character'), 'courier');
+      assert.equal(await cp.locator('img').evaluate((i) => i.style.transform), 'translateX(-25%)');
+      await page.waitForFunction(() => { const i = document.querySelector('#screen-story .character-portrait img'); return i && i.complete && i.naturalWidth === 1024; });
+      await page.screenshot({ path: shotPath('m3-courier-worried-' + w) });
       await page.locator('#btn-skip').click();
       await page.locator('#screen-briefing').waitFor({ state: 'visible' });
       assert.equal(await page.locator('#screen-briefing .brief-scene').count(), 4);
@@ -91,8 +98,15 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       await page.locator('#btn-gd-next').click();
       const res = await throughResults(page);
       assert.deepEqual(res.map((r) => r.outcome), ['pass', 'pass', 'pass', 'pass']);
+      // 정체 공개 장면 그림(reveal.bg): 대화창 뒤에 서서히 깔린다. 폰에서도 선배(그림 오른쪽)가 보이게 오른쪽 기준으로 자름
+      await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 4000 });
+      assert.match(await page.locator('#screen-story .story-bg').getAttribute('src'), /assets\/story\/reveal-senior\.webp$/);
+      assert.ok(await page.evaluate(() => document.querySelector('#screen-story .story-bg').naturalWidth === 1600));
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: shotPath('m3-reveal-' + w) });
       // 정체 공개(기록 없음 → 일반 문장)
       const lines = await readDialogue(page);
+      assert.equal(await page.locator('#screen-story.has-bg').count(), 0, 'outro dialogue has no backdrop');
       const rv = await page.evaluate(() => DR.Missions.m3.story.reveal);
       assert.ok(lines.some((l) => /그 불꽃, 나였어/.test(l)), 'reveal');
       assert.ok(lines.includes(rv.withoutRecord.text), 'general line without a record');
@@ -178,6 +192,13 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 } });
   try {
     await page.evaluate(() => { DR.App.records.m2 = { cleared: true, passed: true, firstTry: false, supplements: 1, firstFails: [] }; });
+    // 임무 카드 썸네일 = Codex 그림(mission-m1·m2와 같은 자리), 글은 게임이 얹는다
+    const thumb = page.locator('#btn-m3 .mc-thumb');
+    assert.match(await thumb.getAttribute('src'), /^assets\/title\/mission-m3\.webp$/);
+    await page.waitForFunction(() => { const i = document.querySelector('#btn-m3 .mc-thumb'); return i.complete && i.naturalWidth === 640; });
+    assert.equal(await page.locator('#btn-m3 .mc-hook').innerText(), '몇 년 전 사진으로 길을 알려 준다면?');
+    await page.locator('#title-missions').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: shotPath('m3-mission-card-1280') });
     await page.locator('#btn-m3').click();
     await page.locator('#btn-skip').click();
     await page.locator('#screen-briefing').waitFor({ state: 'visible' });

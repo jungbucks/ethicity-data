@@ -151,6 +151,9 @@ test('m3 story: speakers, record line from m2, reveal with and without a record'
   assert.ok(rv.withoutRecord.text && rv.before.length && rv.after.length);
   assert.ok(!/바보|못했|한심|틀렸잖/.test(JSON.stringify(rv)), 'no shaming');
   assert.ok(rv.before.some((l) => l.who === 'senior' && /불꽃/.test(l.text)), '그 불꽃, 나였어');
+  // 정체 공개 장면 그림(대화창 뒤 bg) — 게임 폴더 안 실제 파일
+  assert.equal(rv.bg, 'assets/story/reveal-senior.webp');
+  assert.ok(fs.existsSync(new URL('../' + rv.bg, import.meta.url)), rv.bg);
 });
 
 // 리뷰 반영
