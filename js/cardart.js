@@ -808,11 +808,213 @@
   }
   function shade(hex) { var n = parseInt(hex.slice(1), 16); var f = function (v) { return Math.round(v * 0.7); }; return 'rgb(' + f(n >> 16) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')'; }
 
+  /* ---------- 4 임무 손글씨 답안 — 모두 같은 붓(답안지 칸 + 베지어 획 숫자) ----------
+   * 획 좌표는 숫자 칸 가운데(0,0) 기준 단위 좌표(위아래 ±0.42). 변형은 굵기·기울기·위치·크기만 조금씩.
+   * 독특한 필체(크게 기운 1)도 같은 붓이다 — 획 굵기 일정·떨림 없음·크게·기울게(개성 있는 글씨, 못 쓴 글씨가 아님).
+   * 닮은 짝: 깃발 1 ↔ 7(위 가로줄 대신 오른쪽으로 올라간 깃발), 고리 3 ↔ 8(양 끝이 안쪽으로 말려 고리가 거의 닫힘),
+   *          각진 2 ↔ 5(왼쪽 위가 꺾인 윗머리), 둥근 5 ↔ 2(짧은 윗줄 + 크게 감긴 아래). 비슷하지만 구별된다. */
+  var GLYPHS = {
+    '1/neat': [[['M', -0.12, -0.3], ['L', 0.04, -0.42], ['L', 0.04, 0.42]]],
+    '1/flag': [[['M', -0.27, -0.2], ['Q', -0.1, -0.28, 0.06, -0.42], ['L', 0.0, 0.42]]],
+    '1/slant': [[['M', -0.26, -0.04], ['Q', -0.08, -0.22, 0.06, -0.44], ['L', 0.02, 0.4]], [['M', -0.16, 0.42], ['L', 0.2, 0.42]]],
+    '2/neat': [[['M', -0.24, -0.2], ['C', -0.2, -0.5, 0.28, -0.48, 0.24, -0.18], ['C', 0.2, 0.02, -0.1, 0.18, -0.26, 0.4], ['L', 0.28, 0.4]]],
+    '2/angular': [[['M', -0.2, -0.16], ['L', -0.2, -0.4], ['L', 0.2, -0.4], ['Q', 0.26, -0.08, -0.24, 0.38], ['L', 0.28, 0.38]]],
+    '3/neat': [[['M', -0.22, -0.32], ['C', -0.1, -0.5, 0.3, -0.46, 0.22, -0.2], ['C', 0.18, -0.06, 0.0, -0.02, -0.06, -0.02], ['C', 0.32, 0.0, 0.32, 0.42, -0.02, 0.42], ['Q', -0.18, 0.42, -0.26, 0.3]]],
+    '3/loop': [[['M', -0.13, -0.17], ['C', -0.32, -0.24, -0.24, -0.44, 0.0, -0.43], ['C', 0.3, -0.42, 0.28, -0.08, -0.04, -0.02], ['C', 0.34, 0.02, 0.34, 0.44, 0.0, 0.43], ['C', -0.3, 0.42, -0.32, 0.22, -0.13, 0.16]]],
+    '3/flat': [[['M', -0.22, -0.4], ['L', 0.22, -0.4], ['L', -0.04, -0.06], ['C', 0.34, -0.08, 0.34, 0.44, 0.0, 0.42], ['Q', -0.18, 0.42, -0.26, 0.3]]],
+    '4/neat': [[['M', 0.1, -0.42], ['L', -0.26, 0.14], ['L', 0.3, 0.14]], [['M', 0.14, -0.2], ['L', 0.14, 0.42]]],
+    '5/neat': [[['M', -0.16, -0.4], ['L', 0.24, -0.4]], [['M', -0.16, -0.4], ['L', -0.2, -0.04], ['C', 0.0, -0.16, 0.3, -0.06, 0.26, 0.16], ['C', 0.22, 0.44, -0.14, 0.46, -0.26, 0.3]]],
+    '5/gap': [[['M', -0.06, -0.43], ['L', 0.26, -0.43]], [['M', -0.16, -0.34], ['L', -0.2, -0.04], ['C', 0.0, -0.16, 0.3, -0.06, 0.26, 0.16], ['C', 0.22, 0.44, -0.14, 0.46, -0.26, 0.3]]],
+    '5/round': [[['M', 0.0, -0.42], ['L', 0.2, -0.42]], [['M', -0.02, -0.42], ['L', -0.12, -0.12], ['C', 0.3, -0.22, 0.38, 0.3, 0.02, 0.4], ['Q', -0.3, 0.44, -0.22, 0.18]]]
+  };
+  // 붓: 스타일별 굵기·기울기·크기(slant = 크게, 오른쪽으로 기울게, 굵고 일정하게)
+  var PEN = { neat: { w: 1, rot: 0, k: 1 }, flag: { w: 1, rot: 0.04, k: 1 }, loop: { w: 1, rot: 0, k: 1 }, angular: { w: 1.05, rot: 0, k: 1 },
+    round: { w: 1, rot: 0, k: 1 }, slant: { w: 1.3, rot: 0.26, k: 1.16 }, flat: { w: 1, rot: 0, k: 1 }, gap: { w: 1, rot: 0, k: 1 } };
+  var PENCIL = '#26263a', PAPER = '#f4f1e6', BOX = '#7a7f98';
+
+  function glyphKey(digit, style) {
+    if (GLYPHS[digit + '/' + style]) return digit + '/' + style;
+    if (style === 'slant' || style === 'flag') return '1/' + style;
+    return digit + '/neat';
+  }
+  function strokeGlyph(g, key, cx, cy, k, rot, width) {
+    g.save();
+    g.translate(cx, cy); g.rotate(rot); g.scale(k, k);
+    g.strokeStyle = PENCIL; g.lineWidth = width / k; g.lineCap = 'round'; g.lineJoin = 'round';
+    GLYPHS[key].forEach(function (stroke) {
+      g.beginPath();
+      stroke.forEach(function (p) {
+        if (p[0] === 'M') g.moveTo(p[1], p[2]);
+        else if (p[0] === 'L') g.lineTo(p[1], p[2]);
+        else if (p[0] === 'Q') g.quadraticCurveTo(p[1], p[2], p[3], p[4]);
+        else g.bezierCurveTo(p[1], p[2], p[3], p[4], p[5], p[6]);
+      });
+      g.stroke();
+    });
+    g.restore();
+  }
+  // 답안지 바탕: 종이 + 연한 줄 + 문제 글줄(회색 막대, 글자 아님)
+  function paper(g, S, r) {
+    g.fillStyle = PAPER; g.fillRect(0, 0, S, S);
+    g.strokeStyle = 'rgba(120,150,200,.28)'; g.lineWidth = Math.max(1, S * 0.004);
+    for (var y = S * 0.18; y < S; y += S * 0.09) { g.beginPath(); g.moveTo(0, y); g.lineTo(S, y); g.stroke(); }
+    g.fillStyle = 'rgba(60,60,80,.22)';
+    var w1 = 0.5 + r.next() * 0.3;
+    g.fillRect(S * 0.08, S * 0.06, S * w1, S * 0.025); g.fillRect(S * 0.08, S * 0.105, S * (w1 - 0.18), S * 0.025);
+  }
+  // '답' 칸 테두리(+ 작은 '답' 글자). 빈 칸이면 글씨 없이
+  function answerBox(g, S, x, y, w, h) {
+    g.strokeStyle = BOX; g.lineWidth = Math.max(1.5, S * 0.012);
+    roundRect(g, x, y, w, h, S * 0.03); g.stroke();
+    g.fillStyle = BOX; g.font = 'bold ' + Math.round(S * 0.06) + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillText('답', x + S * 0.02, y + S * 0.015);
+  }
+  // 풀이를 표로 정리한 칸(교과서와 다른 풀이): 풀이 칸엔 짧은 연필 자국, 끝 칸에 답 — 답 칸은 비어 있다
+  function solutionTable(g, S, r, x, y, w, h, digit, style) {
+    var cols = 3, rows = 2, cw = w / cols, rh = h / rows;
+    g.strokeStyle = 'rgba(38,38,58,.75)'; g.lineWidth = Math.max(1, S * 0.008);
+    for (var i = 0; i <= cols; i++) { g.beginPath(); g.moveTo(x + cw * i, y); g.lineTo(x + cw * i, y + h); g.stroke(); }
+    for (var j = 0; j <= rows; j++) { g.beginPath(); g.moveTo(x, y + rh * j); g.lineTo(x + w, y + rh * j); g.stroke(); }
+    g.strokeStyle = 'rgba(38,38,58,.6)'; g.lineWidth = Math.max(1, S * 0.012); g.lineCap = 'round';
+    for (var c = 0; c < cols; c++) for (var rr2 = 0; rr2 < rows; rr2++) {
+      if (c === cols - 1 && rr2 === rows - 1) continue;
+      var mx = x + cw * c + cw * 0.25, my = y + rh * rr2 + rh * 0.5;
+      for (var t = 0; t < 2 + Math.floor(r.next() * 2); t++) { g.beginPath(); g.moveTo(mx + t * cw * 0.16, my - rh * 0.18); g.lineTo(mx + t * cw * 0.16 + cw * 0.04, my + rh * 0.18); g.stroke(); }
+    }
+    strokeGlyph(g, glyphKey(digit, style), x + cw * 2.5, y + rh * 1.5, Math.min(cw, rh) * 0.95, PEN[style] ? PEN[style].rot : 0, S * 0.04 * (PEN[style] ? PEN[style].w : 1));
+  }
+
+  // 카드 한 장(4 임무): o = { digit, style } — style: neat·flag·loop·angular·round·slant·table·scribble·smudge·flat·gap
+  function drawAnswer(c, o, seed) {
+    var S = c.width, g = c.getContext('2d'), r = rng(seed);
+    paper(g, S, r);
+    var jitter = function (a) { return (r.next() - 0.5) * a; };
+    if (o.style === 'table') {
+      answerBox(g, S, S * 0.68, S * 0.2, S * 0.24, S * 0.22);
+      solutionTable(g, S, r, S * 0.08 + jitter(S * 0.02), S * 0.48 + jitter(S * 0.02), S * 0.84, S * 0.42, o.digit, 'neat');
+      return;
+    }
+    var bx = S * 0.12, by = S * 0.18, bw = S * 0.76, bh = S * 0.74;
+    answerBox(g, S, bx, by, bw, bh);
+    var cx = S * 0.5 + jitter(S * 0.06), cy = S * 0.57 + jitter(S * 0.04);
+    if (o.style === 'scribble') {
+      // 지우개 자국(흐린 회색) + 지그재그 낙서 — 답이 아님
+      g.fillStyle = 'rgba(120,120,140,.22)'; g.beginPath(); g.ellipse(cx, cy, S * 0.24, S * 0.14, jitter(0.6), 0, 7); g.fill();
+      g.strokeStyle = PENCIL; g.lineWidth = S * 0.018; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(cx - S * 0.22, cy + jitter(S * 0.1));
+      for (var z = 0; z < 9; z++) g.lineTo(cx - S * 0.22 + S * 0.05 * (z + 1), cy + (z % 2 ? -1 : 1) * S * (0.08 + r.next() * 0.1));
+      g.stroke();
+      return;
+    }
+    var pen = PEN[o.style] || PEN.neat;
+    var key = o.style === 'smudge' ? glyphKey(o.digit, 'angular') : glyphKey(o.digit, o.style);
+    var k = S * 0.6 * pen.k * (0.95 + r.next() * 0.1), rot = pen.rot + jitter(0.1), width = S * 0.055 * pen.w * (o.style === 'slant' ? 1 : 0.92 + r.next() * 0.16);
+    strokeGlyph(g, key, cx, cy, k, rot, width);
+    if (o.style === 'smudge') {
+      // 번진 윗머리: 같은 붓 획 위에 손으로 문지른 자국 — 2인지 5인지 위쪽만 흐려진다
+      g.save(); g.globalAlpha = 0.5;
+      for (var s2 = 0; s2 < 5; s2++) strokeGlyph(g, '5/neat', cx + jitter(S * 0.03), cy + jitter(S * 0.02), k, rot, width * 0.7);
+      g.restore();
+      g.fillStyle = 'rgba(150,150,165,.55)'; g.beginPath(); g.ellipse(cx - S * 0.02, cy - S * 0.15, S * 0.2, S * 0.1, -0.2, 0, 7); g.fill();
+    }
+  }
+
+  // "?" 카드 단서(4 임무): 같은 학생의 다른 답 / 연필 자국 확대(획 방향)
+  function drawAnswerClue(c, q, cl, seed) {
+    var S = c.width, g = c.getContext('2d');
+    if (cl.type === 'same_student') {
+      drawAnswer(c, q.id === 'q_25' ? { digit: '2', style: 'angular' } : { digit: '5', style: 'gap' }, seed);
+      return;
+    }
+    g.fillStyle = PAPER; g.fillRect(0, 0, S, S);
+    // 돋보기 원 + 크게 본 획
+    g.save(); g.beginPath(); g.arc(S * 0.5, S * 0.5, S * 0.42, 0, 7); g.clip();
+    g.fillStyle = '#ece6d4'; g.fillRect(0, 0, S, S);
+    var key = q.id === 'q_25' ? '2/angular' : '3/flat';
+    strokeGlyph(g, key, S * 0.5, q.id === 'q_25' ? S * 0.78 : S * 0.5, S * (q.id === 'q_25' ? 1.4 : 1.1), 0, S * 0.07);
+    g.restore();
+    g.strokeStyle = '#4a4f68'; g.lineWidth = S * 0.025; g.beginPath(); g.arc(S * 0.5, S * 0.5, S * 0.42, 0, 7); g.stroke();
+    g.strokeStyle = '#3a8fd9'; g.fillStyle = '#3a8fd9'; g.lineWidth = S * 0.018; g.lineCap = 'round';
+    if (q.id === 'q_25') {
+      // 한 획으로 이어진다: 시작점(점) → 꺾임을 따라 화살표
+      g.beginPath(); g.arc(S * 0.22, S * 0.56, S * 0.03, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(S * 0.14, S * 0.5); g.lineTo(S * 0.14, S * 0.24); g.lineTo(S * 0.6, S * 0.2); g.stroke();
+      g.beginPath(); g.moveTo(S * 0.6, S * 0.2); g.lineTo(S * 0.53, S * 0.15); g.lineTo(S * 0.54, S * 0.25); g.closePath(); g.fill();
+    } else {
+      // 가운데가 안쪽으로 꺾인 곳에 동그라미
+      g.beginPath(); g.arc(S * 0.46, S * 0.44, S * 0.08, 0, 7); g.stroke();
+    }
+  }
+
+  // 결과·브리핑 컷(4 임무): 책상 위 답안지 + 도장(○ 초록 / ✕ 빨강 / 사람 채점 노랑) + 선생님 실루엣
+  var EXAM_ART = { neat: { digit: '3', style: 'neat' }, quick: { digit: '1', style: 'flag' }, table: { digit: '4', style: 'table' }, slant: { digit: '1', style: 'slant' } };
+  function stampO(g, S, x, y, rad) { g.strokeStyle = '#2fae6b'; g.lineWidth = S * 0.03; g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); }
+  function stampX(g, S, x, y, rad) { g.strokeStyle = '#e8434a'; g.lineWidth = S * 0.035; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - rad, y - rad); g.lineTo(x + rad, y + rad); g.moveTo(x + rad, y - rad); g.lineTo(x - rad, y + rad); g.stroke(); }
+  function stampHuman(g, S, x, y) {
+    g.save(); g.translate(x, y); g.rotate(-0.12);
+    g.strokeStyle = '#d9a400'; g.fillStyle = 'rgba(242,193,78,.3)'; g.lineWidth = S * 0.014;
+    roundRect(g, -S * 0.14, -S * 0.09, S * 0.28, S * 0.18, S * 0.03); g.fill(); g.stroke();
+    g.fillStyle = '#d9a400'; g.beginPath(); g.arc(0, -S * 0.03, S * 0.03, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(-S * 0.06, S * 0.07); g.quadraticCurveTo(0, -S * 0.01, S * 0.06, S * 0.07); g.closePath(); g.fill();
+    g.restore();
+  }
+  function drawExamScene(c, mission, s, outcome, seed) {
+    var S = c.width, g = c.getContext('2d');
+    g.fillStyle = '#2c2547'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#3b3260'; g.fillRect(0, S * 0.72, S, S * 0.28);
+    var sheet = canvas(Math.round(S * 0.7));
+    drawAnswer(sheet, EXAM_ART[s.art.exam] || EXAM_ART.neat, seed);
+    g.save(); g.translate(S * 0.46, S * 0.52); g.rotate(-0.05);
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(-S * 0.35 + S * 0.015, -S * 0.35 + S * 0.02, S * 0.7, S * 0.7);
+    g.drawImage(sheet, -S * 0.35, -S * 0.35, S * 0.7, S * 0.7);
+    g.restore();
+    var ax = S * 0.48, ay = S * 0.56;
+    if (outcome === 'pass') { stampO(g, S, ax, ay, S * 0.2); badge(g, S, '#5be3a1', 'check'); }
+    else if (outcome === 'danger') {
+      stampX(g, S, ax, ay, S * 0.17);
+      // 감독관 멈춤 손(실루엣)
+      silhouette(g, S, S * 0.88, S * 0.62, 1.2, Math.PI + 0.25);
+      g.fillStyle = '#ff5f6d'; g.beginPath(); g.arc(S * 0.72, S * 0.66, S * 0.03, 0, 7); g.fill();
+      badge(g, S, '#ff5f6d', 'bang');
+    } else if (outcome === 'inconvenience') {
+      stampHuman(g, S, S * 0.62, S * 0.3);
+      // 선생님 실루엣이 답안지를 가져간다
+      silhouette(g, S, S * 0.9, S * 0.5, 1.3, Math.PI - 0.35);
+      badge(g, S, '#ff9f5a', 'bar');
+    }
+  }
+
+  // 결판: 선배의 옛 답안(크게 기운 1을 표 끝 칸에) + 위쪽 'AI가 읽은 답' 자리. read = true(1 · ○) / false(7 · ✕) / 그 밖(빈 자리)
+  function sheet(mission, who, read, size) {
+    size = size || 360;
+    return cached('sheet|' + mission.id + '|' + who + '|' + read + '|' + size, function () {
+      var c = canvas(size), g = c.getContext('2d'), S = size, r = rng(hash('senior-sheet'));
+      paper(g, S, r);
+      // 'AI가 읽은 답' 자리(점선 칸)
+      g.strokeStyle = '#4a4f68'; g.lineWidth = Math.max(1.5, S * 0.008); g.setLineDash([S * 0.02, S * 0.015]);
+      roundRect(g, S * 0.56, S * 0.17, S * 0.36, S * 0.2, S * 0.03); g.stroke(); g.setLineDash([]);
+      if (read === true || read === false) {
+        g.fillStyle = read ? '#1f7a4c' : '#b8283a'; g.font = 'bold ' + Math.round(S * 0.13) + 'px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(read ? '1' : '7', S * 0.66, S * 0.27);
+        if (read) stampO(g, S, S * 0.82, S * 0.27, S * 0.06); else stampX(g, S, S * 0.82, S * 0.27, S * 0.05);
+      } else if (read === 'hold') {
+        // 표 끝 칸의 답을 찾지 못함 → '답 없음'(빈 자리) + 사람 채점 도장
+        g.fillStyle = '#8a6d00'; g.font = 'bold ' + Math.round(S * 0.11) + 'px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('—', S * 0.66, S * 0.27);
+        stampHuman(g, S * 0.6, S * 0.82, S * 0.27);
+      }
+      answerBox(g, S, S * 0.08, S * 0.17, S * 0.36, S * 0.2);
+      solutionTable(g, S, r, S * 0.06, S * 0.46, S * 0.88, S * 0.46, '1', 'slant');
+      return c;
+    });
+  }
+
   /* ---------- 공개 API ---------- */
   function card(mission, id, variant, size) {
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
       var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
       if (o.animal) drawAnimal(c, o, seed);
+      else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
       else if (o.object) drawObject(c, o, seed, variant);
@@ -938,6 +1140,12 @@
           g.fillStyle = '#f4f4f4'; for (var cz = 0; cz < 4; cz++) g.fillRect(S * (0.18 + cz * 0.17), S * 0.36, S * 0.09, S * 0.34);
           g.fillStyle = '#4fdc7a'; g.beginPath(); g.arc(S * 0.82, S * 0.2, S * 0.07, 0, 7); g.fill();
           break;
+        // 4 임무 선택지 번호: 동그라미 친 번호 하나(7·8도 같은 모양 — 정체를 드러내지 않음)
+        case '1': case '2': case '3': case '4': case '5': case '7': case '8':
+          g.strokeStyle = '#f4f1ff'; g.lineWidth = S * 0.07; g.beginPath(); g.arc(m, m, S * 0.34, 0, 7); g.stroke();
+          g.fillStyle = '#f4f1ff'; g.font = 'bold ' + Math.round(S * 0.46) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText(name, m, m + S * 0.03);
+          break;
         default: throw new Error('알 수 없는 아이콘: ' + name);
       }
       return c;
@@ -978,6 +1186,7 @@
     return cached('clue|' + mission.id + '|' + ambiguousId + '|' + index + '|' + size, function () {
       var q = mission.ambiguous.filter(function (a) { return a.id === ambiguousId; })[0];
       var cl = q.clues[index], c = canvas(size);
+      if (q.art && q.art.style) { drawAnswerClue(c, q, cl, hash(ambiguousId) + index); return c; }
       if (cl.type === 'usual_photo') {
         drawRoad(c, Object.assign({}, q.art, { water: 'dry', ambiguity: null, place: PLACES[hash(ambiguousId) % PLACES.length] }), hash(ambiguousId));
         return c;
@@ -1004,6 +1213,7 @@
       var c = canvas(size), g = c.getContext('2d'), S = size, seed = hash(sceneId);
       if (s.art.place === 'sorting') { drawSorting(c, mission, s, outcome, seed); return c; }
       if (s.art.view) { drawViewScene(c, mission, s, outcome, seed); return c; }
+      if (s.art.exam) { drawExamScene(c, mission, s, outcome, seed); return c; }
       if (s.art.place === 'shelter') {
         drawAnimal(c, { animal: 'dog' }, seed);
         var half = canvas(Math.round(S * 0.55)); drawAnimal(half, { animal: 'cat', noBg: true }, seed + 1);
@@ -1148,7 +1358,7 @@
     else { g.beginPath(); g.moveTo(x, y - r * 0.5); g.lineTo(x, y + r * 0.1); g.stroke(); g.beginPath(); g.arc(x, y + r * 0.4, S * 0.012, 0, 7); g.fill(); }
   }
 
-  var api = { card: card, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, binColors: BIN_COLORS };
+  var api = { card: card, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, binColors: BIN_COLORS };
   root.DR = root.DR || {};
   root.DR.CardArt = api;
 })(window);

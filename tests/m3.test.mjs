@@ -145,6 +145,10 @@ test('m3 story: speakers, record line from m2, reveal with and without a record'
   for (const l of lines) assert.ok(cast[l.who], l.who);
   assert.equal(cast.courier.name, '택배 기사');
   assert.equal(m2.next, 'm3');
+  assert.equal(m3.next, 'm4', 'm3 chains to m4');
+  // 가상 시험 이름은 "새빛 진학 평가" 하나(4 임무와 같은 이름)
+  assert.match(JSON.stringify(m3.story), /새빛 진학 평가/);
+  assert.ok(!/입학 평가/.test(JSON.stringify(m3)), 'old exam name gone');
   assert.ok(m3.story.recordLine.firstTry && m3.story.recordLine.supplemented);
   const rv = m3.story.reveal;
   assert.match(rv.withRecord.text, /\{mission\}/); assert.match(rv.withRecord.text, /\{scene\}/);

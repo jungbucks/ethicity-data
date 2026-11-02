@@ -59,7 +59,7 @@
     if (c.fakeId) {
       var f = (mission.fakes || []).filter(function (x) { return x.id === c.fakeId; })[0];
       var best = -1;
-      (f ? cardsApi().scenesForLabel(mission, f.label) : []).forEach(function (id) { best = Math.max(best, ids.indexOf(id)); });
+      (f ? (f.scenes || cardsApi().scenesForLabel(mission, f.label)) : []).forEach(function (id) { best = Math.max(best, ids.indexOf(id)); });
       return best >= 0 ? best : ids.length - 1;
     }
     var key = c.key;

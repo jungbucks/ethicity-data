@@ -1,7 +1,7 @@
 // 3 임무 「길 안내 AI」 흐름: 브리핑 → 달리기(구역·도시 배경) → 검수(촬영 날짜·도시 변경 기록, 이름표 고치기 없음) → 감독관
 //   → 길 안내 시연(위험이면 멈춤) → 장면 결과 → 정체 공개(첫 판 실수 기록 / 없으면 일반 문장) → 마무리
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, shotPath } from './browser.mjs';
 
 const ALL = { station_now: 2, station_rain: 2, market_now: 2, market_old: 1, market_eve_old: 2, river_now: 2, river_night: 2, crossing_now: 2, crossing_rain: 2 };
 const NO_NUMBERS = /\d+\s*\/\s*\d+|%|\d+\s*개/;
@@ -110,10 +110,11 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       const rv = await page.evaluate(() => DR.Missions.m3.story.reveal);
       assert.ok(lines.some((l) => /그 불꽃, 나였어/.test(l)), 'reveal');
       assert.ok(lines.includes(rv.withoutRecord.text), 'general line without a record');
+      await passCity(page);
       await readDialogue(page);
       await page.locator('#screen-outro').waitFor({ state: 'visible' });
       assert.ok((await page.locator('#screen-outro').innerText()).includes('길 안내 AI 완료'));
-      assert.equal(await page.locator('#btn-next-mission').count(), 0, 'm4 not built yet');
+      assert.equal(await page.locator('#btn-next-mission').count(), 1, 'm3 chains to m4');
       assert.equal(await page.evaluate(() => DR.App.records.m3.cleared), true);
       assert.deepEqual(errors, []);
     } finally { await browser.close(); }

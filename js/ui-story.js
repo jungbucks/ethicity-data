@@ -19,9 +19,9 @@
 
   // 초상 시트(assets/characters): 256px 4칸. 이미지 파일은 게임 안에 포함해 file://에서도 표시한다.
   //   4표정(기본·기쁨·걱정·설명): onyu·daon·robot(공통 팩)·supervisor·senior·examiner
-  //   2표정(1칸 기본·2칸 걱정, 3·4칸은 1칸 복사): sorter·client·collector(수거봇, cast 키 bot)·courier(택배 기사) — Codex 2026-11-02, README 참고
-  var SHEET_NAMES = { onyu: '온유', daon: '다온', robot: 'AI 봇', supervisor: '감독관', senior: '선배', examiner: '시험관', sorter: '선별장 직원', client: '도로 관리원', collector: '수거봇', courier: '택배 기사' };
-  var SHEETS = { supervisor: ['supervisor', 4], senior: ['senior', 4], examiner: ['examiner', 4], sorter: ['sorter', 2], client: ['client', 2], bot: ['collector', 2], courier: ['courier', 2] };
+  //   2표정(1칸 기본·2칸 걱정, 3·4칸은 1칸 복사): sorter·client·collector(수거봇, cast 키 bot)·courier(택배 기사)·grader(채점 담당 선생님) — Codex 2026-11-02, README 참고
+  var SHEET_NAMES = { onyu: '온유', daon: '다온', robot: 'AI 봇', supervisor: '감독관', senior: '선배', examiner: '시험관', sorter: '선별장 직원', client: '도로 관리원', collector: '수거봇', courier: '택배 기사', grader: '채점 담당 선생님' };
+  var SHEETS = { supervisor: ['supervisor', 4], senior: ['senior', 4], examiner: ['examiner', 4], sorter: ['sorter', 2], client: ['client', 2], bot: ['collector', 2], courier: ['courier', 2], grader: ['grader', 2] };
   var FACE4 = { basic: 0, happy: 1, worried: 2, explain: 3 };
   // 대사 줄 표정(face) → 칸 번호. 2표정 시트는 걱정이면 2칸, 그 밖엔 1칸. 지정이 없으면 기본
   function faceIndex(faces, face) {
@@ -112,9 +112,28 @@
       if (bgImg.getAttribute('src') !== bgSrc) bgImg.src = bgSrc;
       else if (bgImg.complete) requestAnimationFrame(function () { if (bgSrc) bgImg.classList.add('on'); });
     }
+    // 대사 줄의 sheet({ mission, read })가 있으면 대화창 위에 답안 한 장(4 임무 결판 — 선배의 옛 답안, 'AI가 읽은 답')
+    var sheetBox = null;
+    function setSheet(sh) {
+      screen.classList.toggle('has-sheet', !!sh);
+      if (!sh) { if (sheetBox) { sheetBox.remove(); sheetBox = null; } return; }
+      var key = sh.mission + '|' + sh.read;
+      if (sheetBox && sheetBox.dataset.key === key) return;
+      if (sheetBox) sheetBox.remove();
+      var m = root.DR.Missions[sh.mission];
+      var cap = sh.read === true ? 'AI가 읽은 답: 1 · ○' : sh.read === false ? 'AI가 읽은 답: 7 — 선택지에 없는 번호 · ✕'
+        : sh.read === 'hold' ? 'AI가 읽은 답: 답 없음 — 표 끝 칸을 못 찾음 · 사람 채점' : 'AI가 읽은 답: ?';
+      sheetBox = el('figure', { class: 'story-sheet', 'data-read': String(sh.read) }, [
+        el('img', { src: root.DR.CardArt.sheet(m, 'senior', sh.read, 360).toDataURL(), alt: '선배의 옛 답안: 크고 오른쪽으로 기운 1을 풀이 표 끝 칸에 썼다' }),
+        el('figcaption', { class: 'story-sheet-read', text: cap })
+      ]);
+      sheetBox.dataset.key = key;
+      screen.insertBefore(sheetBox, box);
+    }
     function show() {
       var l = lines[i], p = root.DR.Cast[l.who];
       setBg(l.bg);
+      setSheet(l.sheet);
       box.innerHTML = '';
       box.appendChild(portrait(l.who, 72, l.face));
       box.appendChild(el('div', { class: 'dialog-body' }, [
@@ -129,6 +148,7 @@
       root.removeEventListener('keydown', onKey);
       screen.onclick = null;
       screen.classList.remove('has-bg');
+      setSheet(null);
       done();
     }
     function next() { root.DR.Sfx.play('ui'); if (++i >= lines.length) finish(); else show(); }
@@ -256,8 +276,13 @@
       var next = opts.next ? el('button', { id: 'btn-next-mission', class: 'btn btn-primary', type: 'button', text: '다음 임무로', onclick: function () { root.DR.Sfx.play('ui'); opts.next(); } }) : null;
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: opts.kicker || '임무 완료' }),
-        el('h2', { text: '도시 한 구간이 다시 이어졌다' }),
+        el('h2', { text: opts.headline || '도시 한 구간이 다시 이어졌다' }),
         opts.summary && opts.summary.length ? el('ul', { id: 'outro-summary', class: 'outro-summary', 'aria-label': '이번 판 요약' }, opts.summary.map(function (t) { return el('li', { text: t }); })) : null,
+        // 4 임무: 최종 토론 질문
+        opts.questions && opts.questions.length ? el('section', { id: 'outro-questions', class: 'outro-questions', 'aria-label': '토론 질문' }, [
+          el('h3', { text: '이야기해 보자' }),
+          el('ol', null, opts.questions.map(function (t) { return el('li', { text: t }); }))
+        ]) : null,
         el('p', { class: 'lead', text: '이 게임의 결과는 실제 AI가 아니라 단순화한 규칙으로 만든 것이다. 실제 AI라면 무엇이 다를지, 우리가 넣는 데이터가 어떤 판단으로 이어지는지 이야기해 보자.' }),
         el('div', { class: 'actions' }, [next, again])
       ]));

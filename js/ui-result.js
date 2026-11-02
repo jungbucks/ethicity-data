@@ -23,7 +23,8 @@
     // 달리기 구역 순서로 보여 준다(판정 결과의 장면 번호는 그대로)
     var order = DR.UI.sceneOrder(mission).map(function (s) { return mission.scenes.indexOf(s); });
     // 2 임무: 컨베이어에서 그 장면의 잘못 간 물건(같은 판정 = 같은 결과)
-    var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : mission.guide ? DR.Conveyor.sort(mission, judged, mission.guide) : [];
+    var sorted = mission.conveyor ? DR.Conveyor.sort(mission, judged) : mission.guide ? DR.Conveyor.sort(mission, judged, mission.guide)
+      : mission.grading ? DR.Conveyor.sort(mission, judged, mission.grading) : [];
     var notes = DR.Judge.fixedNotes(mission, (DR.App.state && DR.App.state.bag) || [], judged);
 
     function show() {
@@ -58,6 +59,15 @@
           ql.appendChild(el('li', { text: '“' + g.q + '” → “' + g.wrong + '”' + (g.note ? ' — ' + g.note : '') }));
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '길 안내 시연에서 잘못 안내한 질문' }), ql]));
+      } else if (wrong.length && mission.grading) {
+        // 4 임무: 이 장면에서 잘못 채점한 답안지(학생이 고른 번호 → AI가 읽은 번호·도장)
+        var gr = el('div', { class: 'result-wrong-row' });
+        wrong.forEach(function (it) {
+          var g = mission.grading.filter(function (x) { return x.id === it.id; })[0];
+          var cap = g.chose + '번 → ' + (it.bin === 'hold' ? '못 읽음 · 사람 채점' : g.read + ' · ✕');
+          gr.appendChild(el('figure', null, [el('img', { src: DR.CardArt.card(mission, g.art, g.variant, 160).toDataURL(), alt: mission.cardTypes[g.art].name }), el('figcaption', { text: cap })]));
+        });
+        parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '채점 시연에서 잘못 채점한 답안지' }), gr]));
       } else if (wrong.length) {
         var row = el('div', { class: 'result-wrong-row' });
         wrong.forEach(function (it) {

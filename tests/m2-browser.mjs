@@ -1,6 +1,6 @@
 // 2 임무 「분리배출 분류 AI」 흐름(spec §5): 이름표 고치기(검수·보충 준비) · 컨베이어 실제 분류 · 임무 잇기
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, shotPath } from './browser.mjs';
 
 const M2_ALL2 = { can_drink: 2, can_tin: 2, pet_clear: 2, pet_crushed: 2, vinyl_bag: 2, pack_milk: 2, paper_news: 2, trash_misc: 2, battery_aa: 2 };
 
@@ -228,6 +228,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
 const briefText = (page) => page.locator('#screen-briefing').innerText();
 async function finishFromSenior(page) {
   await page.locator('#btn-skip').click(); // 선배 대사
+  await passCity(page); // 도시 복구(칸이 늘었을 때만)
   await page.locator('#btn-skip').click(); // 마무리 대사
   await page.locator('#screen-outro').waitFor({ state: 'visible', timeout: 4000 });
 }

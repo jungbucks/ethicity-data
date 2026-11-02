@@ -76,9 +76,19 @@
     }).map(function (s) { return s.id; });
   }
 
+  // 가짜가 쌓이는 장면: 붙은 이름표가 원래 그대로이고 데이터에 scenes가 있으면 그것(4 임무 — '7'·'8'은 어느 종류의 이름표도 아니라서),
+  // 아니면 지금 붙은 이름표를 쓰는 장면(플레이어가 바꾼 이름표 포함)
+  function fakeScenes(mission, card) {
+    var f = card.fakeId ? fakeDef(mission, card.fakeId) : null;
+    if (f && f.scenes && currentLabel(mission, card) === f.label) return f.scenes.slice();
+    return scenesForLabel(mission, currentLabel(mission, card));
+  }
+
   function iconsOf(mission, card) {
     if (card.ambiguousId) {
       var q = ambDef(mission, card.ambiguousId);
+      // 4 임무 "?" 카드는 아이콘이 [?] 하나 — 붙이면 그 번호 하나
+      if (q.icons.length === 1) return card.assigned ? [card.assigned] : q.icons;
       return card.assigned ? [q.icons[0], card.assigned] : q.icons;
     }
     var label = currentLabel(mission, card);
@@ -95,7 +105,7 @@
   function artId(card) { return card.key || card.ambiguousId || card.fakeId; }
 
   function labelText(mission, label) {
-    var opts = (mission.labels || []).concat(mission.labelOptions || []);
+    var opts = (mission.labels || []).concat(mission.labelOptions || []).concat(mission.labelExtra || []);
     for (var i = 0; i < opts.length; i++) if (opts[i].id === label) return opts[i].text;
     var t = mission.cardTypes[label];
     return (t && t.name) || label;
@@ -123,10 +133,10 @@
 
   function cardLabel(mission, card) {
     if (card.ambiguousId) {
-      var q = ambDef(mission, card.ambiguousId), time = TIME_TEXT[q.icons[0]] || '';
-      if (card.assigned === undefined) return time + ' · ?';
-      if (card.assigned === null) return time + ' · ? (넣지 않기)';
-      return time + ' · ' + labelText(mission, card.assigned);
+      var q = ambDef(mission, card.ambiguousId), time = TIME_TEXT[q.icons[0]] || '', pre = time ? time + ' · ' : '';
+      if (card.assigned === undefined) return pre + '?';
+      if (card.assigned === null) return pre + '? (넣지 않기)';
+      return pre + labelText(mission, card.assigned);
     }
     return keyLabel(mission, currentLabel(mission, card));
   }
@@ -145,9 +155,14 @@
   // displayAs: 화면에서 다른 종류와 한 줄로 센다(3 임무 시장 골목 옛 사진 — 옛 사진이라고 따로 보이지 않게)
   function shownAs(mission, k) { var t = k && mission.cardTypes[k]; return t && t.displayAs ? t.displayAs : k; }
   function displayKey(mission, card) {
-    if (!card.ambiguousId && mission.labels) return shownAs(mission, isMislabeled(mission, card) ? commonKeyOfLabel(mission, currentLabel(mission, card)) : truthKey(mission, card));
+    if (!card.ambiguousId && mission.labels) {
+      if (!isMislabeled(mission, card)) return shownAs(mission, truthKey(mission, card));
+      // 어느 종류의 이름표도 아닌 번호(4 임무 7·8)는 그 이름표 자체로 센다(보충 준비 '1장 빼기'에도 나오게, 정체는 드러내지 않음)
+      return shownAs(mission, commonKeyOfLabel(mission, currentLabel(mission, card))) || currentLabel(mission, card);
+    }
     if (!card.ambiguousId) return currentLabel(mission, card);
     if (!card.assigned) return null;
+    if (mission.labels) return shownAs(mission, commonKeyOfLabel(mission, card.assigned)); // 4 임무: 붙인 번호의 보통 종류(맞았는지 드러내지 않음)
     var q = ambDef(mission, card.ambiguousId), keys = Object.keys(mission.cardTypes);
     for (var i = 0; i < keys.length; i++) {
       var t = mission.cardTypes[keys[i]];
@@ -166,14 +181,16 @@
     // 2 임무 분류함(컨베이어 함 색과 같음)
     can: '#d9534f', pet: '#3a8fd9', pack: '#25bdb0', paper: '#c9a227', vinyl: '#d977a8', battery: '#2fae6b', trash: '#7d8290',
     // 3 임무 장소
-    station: '#d9a066', market: '#e86a5a', river: '#4fb3ff', crossing: '#b0b6c3' };
+    station: '#d9a066', market: '#e86a5a', river: '#4fb3ff', crossing: '#b0b6c3',
+    // 4 임무 선택지 번호(7·8도 보통 번호와 같은 결 — 색으로 정체를 드러내지 않는다)
+    '1': '#ffd24a', '2': '#7be0a0', '3': '#8fa8ff', '4': '#ff9f5a', '5': '#e58bff', '7': '#f2c14e', '8': '#9fb4ff' };
   function runColor(mission, card) {
     var icons = card.ambiguousId ? ['unknown'] : iconsOf(mission, card);
     return labelColors[icons[icons.length - 1]] || '#8ab5ce';
   }
   var api = { labelColors: labelColors, runColor: runColor,
     fakeDef: fakeDef, labelOfKey: labelOfKey, originalLabel: originalLabel, currentLabel: currentLabel, truthKey: truthKey,
-    isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel,
+    isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel, fakeScenes: fakeScenes,
     iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText,
     keyLabel: keyLabel, cardLabel: cardLabel, displayKey: displayKey, labelCounts: labelCounts
   };

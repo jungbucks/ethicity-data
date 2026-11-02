@@ -5,7 +5,53 @@
   function create(view, mission) {
     if (mission && mission.scenery === 'sorting') return sorting(view, mission);
     if (mission && mission.scenery === 'city') return city(view, mission);
+    if (mission && mission.scenery === 'exam') return exam(view, mission);
     return street(view);
+  }
+
+  // 4 임무 시험장: 양옆에 칠판(분필 줄 — 숫자·글자 없음)·교실 창틀, 구역마다 색만 바뀐다
+  var EXAM = {
+    S1: { sky: 0xc9d6dc, body: 0x6f8592, edges: [0xf4f1e6, 0xd6e8e9, 0x9fb4c8], board: 0x24513f, scale: 0.4 },
+    S2: { sky: 0x8fa6bf, body: 0x4f6378, edges: [0xffd24a, 0xf4f1e6, 0x8fa8ff], board: 0x1f4a3a, scale: 0.5 },
+    S3: { sky: 0xd8cfb0, body: 0x7d735c, edges: [0xff9f5a, 0xf4f1e6, 0xe8d9b8], board: 0x2b5a46, scale: 0.35 },
+    S4: { sky: 0x6e6a8a, body: 0x3d3a55, edges: [0xe58bff, 0xf4f1e6, 0x7be0a0], board: 0x1a3d31, scale: 0.6 }
+  };
+  function exam(view, mission) {
+    var scene = view.scene, rows = new THREE.Group(), boards = [];
+    scene.add(rows);
+    var chalk = new THREE.MeshBasicMaterial({ color: 0xe8efe6 });
+    for (var i = 0; i < 10; i++) {
+      var frame = new THREE.Group(); frame.position.z = -i * 20;
+      [-1, 1].forEach(function (side) {
+        var board = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.2, 8), new THREE.MeshBasicMaterial({ color: 0x24513f }));
+        board.position.set(side * 7.4, 3.6, -6);
+        board.add(new THREE.LineSegments(new THREE.EdgesGeometry(board.geometry), new THREE.LineBasicMaterial({ color: 0x8a6d4d })));
+        frame.add(board); boards.push(board);
+        for (var k = 0; k < 3; k++) {
+          var line = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 4 + k * 1.2), chalk);
+          line.position.set(side * 7.22, 4.6 - k * 0.8, -6 - k * 0.4); frame.add(line);
+        }
+        // 교실 창틀(빈 사각 틀)
+        var win = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.1, 3, 5)), new THREE.LineBasicMaterial({ color: 0xd6e8e9 }));
+        win.position.set(side * 7.6, 3.8, -15); frame.add(win);
+      });
+      rows.add(frame);
+    }
+    var current = null, sky = null;
+    function update(id, z) {
+      var look = EXAM[id] || EXAM.S1;
+      if (id !== current) {
+        current = id; sky = look.sky;
+        scene.background = new THREE.Color(sky); scene.fog.color.setHex(sky);
+        boards.forEach(function (b) { b.material.color.setHex(look.board); });
+        view.buildings.forEach(function (b, i) {
+          b.scale.y = look.scale; b.position.y = b.geometry.parameters.height * b.scale.y / 2;
+          b.material.color.setHex(look.body); b.children[0].material.color.setHex(look.edges[i % look.edges.length]);
+        });
+      }
+      rows.position.z = -Math.floor(z / 20) * 20 + 20;
+    }
+    return { update: update, state: function () { return { zone: current, theme: 'exam', sky: sky }; } };
   }
 
   function street(view) {

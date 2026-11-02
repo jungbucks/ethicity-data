@@ -139,6 +139,51 @@ try {
   assert.ok(r3.oldDiff.every((d) => d > 15), 'old photos show the old landmark ' + r3.oldDiff.map((d) => d.toFixed(1)));
   for (const c of r3.condDiff) assert.ok(c.min > 150, 'scene condition visible at a glance: ' + c.scene + ' ' + c.a + ' vs ' + c.b + ' = ' + c.min.toFixed(1));
 
+  // 4 임무: 손글씨 답안(같은 붓), 번호 아이콘 7종, "?" 단서, 채점 결과 컷, 결판 선배 답안 — 시트 _shot-cardart-m4.png(24칸 썸네일 = 게임 크기)
+  const r4 = await page.evaluate(() => {
+    document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
+    const A = DR.CardArt, M = DR.Missions, m4 = M.m4;
+    const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
+    const diff = (a, b) => { const x = px(a), y = px(b); let d = 0; for (let i = 0; i < x.length; i += 4) d += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); return d / (x.length / 4); };
+    const out = { bad: [], scenes: 0, clues: 0 };
+    const ids = [...Object.keys(m4.cardTypes), ...m4.fakes.map((f) => f.id), ...m4.ambiguous.map((a) => a.id)];
+    for (const id of ids) for (const v of [0, 1, 2]) if (std(A.card(m4, id, v, 256)) <= 10) out.bad.push(id + ' v' + v);
+    out.variantDiff = A.card(m4, 'neat_3', 0, 256).toDataURL() !== A.card(m4, 'neat_3', 1, 256).toDataURL();
+    const digits = ['1', '2', '3', '4', '5', '7', '8'];
+    out.iconUnique = new Set(digits.map((n) => A.icon(n, 64).toDataURL())).size;
+    for (const s of m4.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(m4, s.id, o, 320)) > 10) out.scenes++;
+    out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m4, 'S4', o, 320).toDataURL())).size;
+    for (const q of m4.ambiguous) q.clues.forEach((_, i) => { if (std(A.clue(m4, q.id, i, 256)) > 5) out.clues++; });
+    out.sheets = [true, false, null].map((x) => A.sheet(m4, 'senior', x, 360).toDataURL()).length === 3 && A.sheet(m4, 'senior', true, 360) !== A.sheet(m4, 'senior', false, 360);
+    // 닮은 짝은 썸네일에서 서로 다르다(같은 그림이 아니다)
+    const T = (id) => A.thumb(A.card(m4, id, 0, 256), 24);
+    out.pairs = [['neat_1', 'flag_1'], ['flag_1', 'slant_1'], ['neat_3', 'loop_3'], ['angular_2', 'round_5'], ['neat_2', 'angular_2']].map(([a, b]) => diff(T(a), T(b)));
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
+    const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
+    // 큰 그림(크게 보기 크기 비슷)
+    for (const id of ids) add(A.card(m4, id, 0, 256), id, 120);
+    for (const id of ['flag_1', 'slant_1', 'loop_3']) add(A.card(m4, id, 1, 256), id + ' v1', 120);
+    // 24칸 썸네일 = 검수 격자·달리기 카드와 같은 크기: 1·7(깃발 1), 3·8(고리 3), 2·5 짝을 나란히
+    for (const id of ['neat_1', 'flag_1', 'slant_1', 'x_17', 'neat_3', 'loop_3', 'x_38', 'neat_2', 'angular_2', 'x_25', 'neat_5', 'round_5', 'neat_4', 'table_4', 'x_scribble', 'q_25', 'q_35']) add(T(id), 't ' + id, 72);
+    for (const n of digits) add(A.icon(n, 64), n, 40);
+    for (const q of m4.ambiguous) q.clues.forEach((_, i) => add(A.clue(m4, q.id, i, 256), q.id + ' clue' + i, 100));
+    for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(m4, 'S2', o, 320), 'S2 ' + o, 100);
+    for (const s of ['S1', 'S3', 'S4']) add(A.scene(m4, s, 'neutral', 320), s, 100);
+    add(A.sheet(m4, 'senior', false, 360), 'senior ✕', 140); add(A.sheet(m4, 'senior', true, 360), 'senior ○', 140);
+    document.body.append(sheet);
+    return out;
+  });
+  await page.screenshot({ path: shotPath('cardart-m4') });
+  assert.deepEqual(r4.bad, [], 'm4 blank art');
+  assert.ok(r4.variantDiff, 'm4 variants differ');
+  assert.equal(r4.iconUnique, 7, 'digit icons unique');
+  assert.equal(r4.scenes, 16, 'm4 scenes');
+  assert.equal(r4.outcomesDiffer, 4, 'm4 outcomes differ');
+  assert.equal(r4.clues, 4, 'm4 clues');
+  assert.ok(r4.sheets, 'senior sheet read/unread');
+  assert.ok(r4.pairs.every((d) => d > 3), 'look-alike pairs still differ ' + r4.pairs.map((d) => d.toFixed(1)));
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
   assert.ok(r.variantDiffers, 'variant');

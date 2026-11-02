@@ -40,7 +40,7 @@ for (const viewport of SIZES) {
     }
     // 임무 카드: 접근성 이름 그대로, 썸네일·한 줄·상태
     const cards = await page.locator('#title-missions button').evaluateAll((bs) => bs.map((b) => ({ id: b.id, name: b.getAttribute('aria-label'), img: !!b.querySelector('img'), hook: b.querySelector('.mc-hook')?.textContent, status: b.querySelector('.mc-status')?.textContent })));
-    assert.deepEqual(cards.map((c) => c.name), ['1 임무 · 침수 판별', '2 임무 · 분리배출', '3 임무 · 길 안내']);
+    assert.deepEqual(cards.map((c) => c.name), ['1 임무 · 침수 판별', '2 임무 · 분리배출', '3 임무 · 길 안내', '4 임무 · 채점']);
     assert.ok(cards.every((c) => c.img && c.hook && c.status === '아직'), JSON.stringify(cards));
     // AI 봇: 달릴 주인공 묶음 밖, 고를 수 없음, 말풍선
     assert.equal(await page.locator('#hero-pick img').count(), 2);
@@ -89,7 +89,7 @@ for (const viewport of SIZES) {
     });
     assert.equal((await page.locator('#title-progress').innerText()).trim(), '2임무 · 검수부터');
     const status = await page.locator('#title-missions .mc-status').allInnerTexts();
-    assert.deepEqual(status, ['완료', '진행 중', '아직']);
+    assert.deepEqual(status, ['완료', '진행 중', '아직', '아직']);
     // 클릭 → 화면 전환(go)까지 걸린 시간을 페이지 안에서 잰다(검수 화면 그리기 시간은 빼고)
     await page.evaluate(() => {
       document.getElementById('btn-continue').addEventListener('click', () => { window.__t0 = performance.now(); }, true);

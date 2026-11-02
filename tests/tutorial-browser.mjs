@@ -48,6 +48,12 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     assert.ok(await visible('story'), 'examiner outro');
     assert.ok((await page.locator('#screen-story').innerText()).includes('데이터 판단은'), 'examiner line');
     await page.locator('#btn-skip').click();
+    // 도시 복구 0 → 1/5(마무리 대화 뒤, 1 임무 도입 전)
+    assert.ok(await visible('city'), 'city screen after the tutorial');
+    assert.match(await page.locator('#city-line').innerText(), /^도시 1\/5 — 데이터 러너가 처음 길을 냈다$/);
+    await page.waitForFunction(() => document.querySelectorAll('#screen-city .city-dots i.on').length === 1);
+    await page.screenshot({ path: shotPath('city-tutorial-' + viewport.width) });
+    await page.locator('#btn-city-next').click();
     const m1 = await page.evaluate(() => DR.Missions.m1.story.intro[0].text);
     assert.ok(await visible('story'), 'm1 intro');
     assert.ok((await page.locator('#screen-story').innerText()).includes(m1.slice(0, 10)), 'm1 first line');

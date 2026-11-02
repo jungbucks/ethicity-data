@@ -15,7 +15,7 @@
   'use strict';
 
   var m3 = {
-    id: 'm3', title: '길 안내 AI', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 3301, fires: 8,
+    id: 'm3', title: '길 안내 AI', next: 'm4', cityLine: '길 안내 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 3301, fires: 8,
     zones: [
       { id: 'S1', title: '역 앞 사거리', short: '역 앞' },
       { id: 'S2', title: '시장 골목', short: '시장 골목' },
@@ -139,6 +139,7 @@
         { who: 'guide', text: '확인 결과, 최근 옛 거리 사진이 한꺼번에 들어왔습니다. 들어온 길은 수거봇입니다.', face: 'explain' },
         { who: 'bot', text: '삐빅… 저는 시키는 대로 담았을 뿐인데요?', face: 'worried' },
         { who: 'peer', text: '누가 이런 걸 시킨 거지?', face: 'worried' },
+        { who: 'peer', text: '옛날 사진은 그냥 다 빼면 되겠네. 이상한 건 빼는 게 제일 안전해.', face: 'basic' },
         { who: 'guide', text: '추가 경보. 불꽃 반응이 지금까지 중 가장 강합니다.', face: 'worried' },
         { who: 'supervisor', text: '러너, 출동. 이번엔 사진마다 언제 찍었는지도 봐 줘.', face: 'explain' }
       ],
@@ -165,7 +166,7 @@
         withRecord: { who: 'senior', text: '네 {mission} 첫 판 기록도 봤어. \'{scene}\' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.', face: 'basic' },
         withoutRecord: { who: 'senior', text: '러너들 기록을 다 봤어. 첫 판에 장면 하나쯤 놓치는 건 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어.', face: 'basic' },
         after: [
-          { who: 'senior', text: '나는 예전에 입학 평가에서 AI 채점 때문에 떨어졌다고 생각해. 그때부터 AI가 사람을 판단하는 게 싫어.', face: 'worried' },
+          { who: 'senior', text: '나는 예전에 새빛 진학 평가에서 AI 채점 때문에 떨어졌다고 생각해. 그때부터 AI가 사람을 판단하는 게 싫어.', face: 'worried' },
           { who: 'peer', text: '선배 말이… 다 틀린 건 아니잖아?', face: 'worried' },
           { who: 'supervisor', text: 'AI를 버리자는 것도, AI가 알아서 한다는 것도 아니야. 넣는 건 사람이 정하고, 책임도 사람이 져.', face: 'explain' },
           { who: 'senior', text: '다음은 채점 AI야. 네가 지킬 수 있나 보자.', face: 'basic' }

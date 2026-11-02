@@ -1,6 +1,6 @@
 // 1단계(P1~P4) 흐름 확인: 튜토리얼(빈 가방·합격) → m1(일시정지·라벨·되돌리기·S3 결과) → 새로고침 이어하기 → 보충(NEW) → 재제출 → 엔딩 → 타이틀
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, shotPath } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 const { night_deep, ...NO_DEEP } = ALL2;
@@ -57,6 +57,9 @@ try {
   for (let i = 0; i < 4 && await page.locator('#screen-story').isVisible(); i++) { talk.push(await page.locator('#screen-story').innerText()); await page.locator('#screen-story .dialog').click(); }
   assert.ok(talk.some((x) => /개 3장, 고양이 4장/.test(x)), 'pass count line');
   assert.equal((await save(page)).tutorialDone, true, 'tutorialDone saved');
+  // 도시 복구 0 → 1/5(튜토리얼 마무리 대화 뒤)
+  await page.locator('#screen-city').waitFor();
+  await passCity(page);
 
   // ── m1
   await page.waitForSelector('#btn-skip'); await skipTalk(page);
@@ -137,6 +140,8 @@ try {
   const res2 = await readResults(page);
   assert.ok(res2.every((r) => r.outcome === 'pass'), 'all pass after supplement');
   // 선배·마무리 대화 → 엔딩 화면 → 타이틀
+  for (let i = 0; i < 6 && await page.locator('#screen-story').isVisible(); i++) await page.locator('#screen-story .dialog').click();
+  await passCity(page);
   for (let i = 0; i < 6 && await page.locator('#screen-story').isVisible(); i++) await page.locator('#screen-story .dialog').click();
   await page.locator('#screen-outro').waitFor();
   await page.locator('#btn-again').click();

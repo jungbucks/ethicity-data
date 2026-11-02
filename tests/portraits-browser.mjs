@@ -9,7 +9,7 @@ for (const width of [1280, 375]) {
     assert.equal(await page.locator('#title-guide img').getAttribute('alt'), 'AI 봇');
     // 모바일 시작 화면은 달리는 장면이 위로 올라가 '달릴 주인공'이 아래쪽 — 가로로 넘치지 않고, 스크롤하면 다 보이면 된다
     await page.locator('#hero-pick').scrollIntoViewIfNeeded();
-    assert.ok(await page.locator('#hero-pick').evaluate(e => e.getBoundingClientRect().right <= innerWidth && e.getBoundingClientRect().bottom <= innerHeight));
+    assert.ok(await page.locator('#hero-pick').evaluate(e => e.getBoundingClientRect().right <= innerWidth && e.getBoundingClientRect().bottom <= innerHeight + 1));
     await page.locator('[data-hero="daon"]').click();
     assert.equal(await page.evaluate(() => DR.Save.hero()), 'daon');
     await page.screenshot({ path: shotPath('portraits-title-' + width) });

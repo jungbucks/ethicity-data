@@ -15,7 +15,7 @@
   'use strict';
 
   var m2 = {
-    id: 'm2', title: '분리배출 분류 AI', next: 'm3', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 2201, fires: 6,
+    id: 'm2', title: '분리배출 분류 AI', next: 'm3', cityLine: '분리배출 분류 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 2201, fires: 6,
     // 달리기 구역(장면 순서) · 가짜는 자기 구역 뒤쪽 절반 · 배경은 선별장(js/run-scenery.js)
     zones: [
       { id: 'S1', title: '음료 캔과 통조림 캔', short: '캔' },
@@ -128,6 +128,7 @@
         { who: 'bot', text: '삐빅! 분리배출 사진 5,000장! 이름표도 제가 다 붙였어요! 이번엔 진짜 임무 완료!', face: 'basic' },
         { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 오늘 오전에만 물건 여러 개가 다른 함으로 갔습니다.', face: 'explain' },
         { who: 'sorter', text: '잘못 간 건 결국 저희가 손으로 다시 골라요. 캔 함에 건전지라도 섞이면 압착기에서 불이 날 수도 있고요.', face: 'worried' },
+        { who: 'peer', text: '찌그러진 페트병 같은 건 빼자. 이상한 건 빼는 게 깔끔하잖아.', face: 'basic' },
         { who: 'guide', text: '추가 경보. 데이터 세계의 불꽃이 다시 관측됩니다.', face: 'worried' },
         { who: 'senior', text: '1 임무 봤어. 다음엔 나랑 같이 달려 보자. 누가 더 제대로 모으나.', face: 'happy' },
         { who: 'supervisor', text: '러너, 출동. 이번엔 사진에 붙은 이름표도 하나하나 봐 줘.', face: 'explain' }

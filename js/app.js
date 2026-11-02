@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
 
-  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'result', 'prep', 'knockout', 'outro'];
+  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'grade', 'result', 'prep', 'knockout', 'city', 'outro'];
   var DR = root.DR;
   var STATIC = ['title', 'run']; // HTML에 고정 구조가 있는 화면(비우지 않음)
 
@@ -45,22 +45,32 @@
   }
 
   // 달리기 한 판: course를 달리고 끝나면 onDone(새로 잡은 가방 항목)
-  function runCourse(m, course, bag, onDone) {
+  // reserve = 달리기 뒤에 들어올 카드 자리(4 임무 동기 카드) — 그만큼 가방 칸을 비워 둔다
+  function runCourse(m, course, bag, onDone, reserve) {
     go('run');
     App.course = course;
     DR.Run.start(document.getElementById('run-stage'), {
-      mission: m, course: course, bag: bag, bagMax: m.bag,
+      mission: m, course: course, bag: bag, bagMax: m.bag - (reserve || 0),
       onEnd: function (r) {
         root.__runResult = r;
         // 화면 전환은 다음 틱에(달리기 루프 안에서 장면을 치우지 않게)
         setTimeout(function () {
           DR.Run.stop();
           // 불꽃에 HP를 다 잃으면 같은 코스를 처음부터(그 판에 잡은 카드는 비움, 시작 가방은 그대로)
-          if (r.knockedOut) DR.UI.knockout(function () { runCourse(m, course, bag, onDone); });
+          if (r.knockedOut) DR.UI.knockout(function () { runCourse(m, course, bag, onDone, reserve); });
           else onDone(toBag(r.grabbed));
         }, 0);
       }
     });
+  }
+
+  /* ---------- 도시 복구(설계 §7) ---------- */
+  // 칸 수 = 튜토리얼 + 1~4 임무 중 깬 것(기록 기준, 0~5) — 타이틀 배지도 이것을 쓴다
+  function cityCount() { return DR.Save.cityCount(App.records); }
+  // step = DR.Save.cityStep(…) — null이면(칸이 늘지 않음) 건너뛴다
+  function cityScreen(m, step, done) {
+    if (!step) { done(); return; }
+    DR.UI.city({ from: step.from, to: step.to, line: m.cityLine || '' }, done);
   }
 
   /* ---------- 튜토리얼 ---------- */
@@ -87,11 +97,18 @@
         onRetry: function () { DR.Sfx.play('ui'); tutorialRun(); },
         onNext: function () {
           DR.Sfx.play('ui');
+          // 도시 복구: 튜토리얼 기록을 남기기 전·후 칸 수(마무리 대화 뒤, 1 임무 도입 전에 0 → 1)
+          var before = cityCount();
           DR.Save.markTutorialDone();
+          App.records.tutorial = { cleared: true };
+          DR.Save.setRecord('tutorial', App.records.tutorial);
+          var step = DR.Save.cityStep('tutorial', before, cityCount());
           // 합격 대사에 가방 구성 한 줄(개 n장, 고양이 m장)
           var c = DR.Cards.labelCounts(m, App.state.bag);
           var count = { who: 'examiner', text: m.story.passCount.replace('{dog}', c.dog || 0).replace('{cat}', c.cat || 0), face: 'explain' };
-          DR.UI.dialogue([m.story.outro[0], count].concat(m.story.outro.slice(1)), function () { startMission('m1'); });
+          DR.UI.dialogue([m.story.outro[0], count].concat(m.story.outro.slice(1)), function () {
+            cityScreen(m, step, function () { startMission('m1'); });
+          });
         }
       });
     });
@@ -100,7 +117,8 @@
   /* ---------- 임무 ---------- */
   function startMission(id) {
     var m = DR.Missions[id];
-    App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [] };
+    App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [],
+      peer: 'none', peerPending: false, showdownPassed: false };
     DR.UI.dialogue(m.story.intro, function () { missionBriefing(m); });
   }
   // 이전 임무(next가 이 임무인 것)의 기록에 따른 브리핑 한 줄. 기록이 없으면(임무 고르기로 바로 들어옴) null
@@ -128,7 +146,8 @@
     var m = DR.Missions[save.mission];
     if (!m) { go('title'); return; }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
-      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [] };
+      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [],
+      peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed };
     if (save.screen === 'briefing') { if (save.mission === 'tutorial') tutorialBriefing(); else missionBriefing(m); }
     else if (save.screen === 'inspect') review(m);
     else if (save.screen === 'result') judgeAndShow(m);
@@ -165,36 +184,87 @@
     r.scenes.forEach(function (s) { (s.contaminated || []).forEach(function (src) { if (App.state.named.indexOf(src) < 0) App.state.named.push(src); }); });
     function showResult() {
       DR.UI.result(m, r, function () {
-        if (r.allPass || App.state.supplements >= DR.config.maxSupplements) finishMission(m);
-        else prepSupplement(m, r);
+        // 4 임무: 장면 결과 바로 뒤 결판(선배의 옛 답안) — 한 번 읽으면 다시 하지 않는다
+        if (m.showdownScene && !App.state.showdownPassed) showdown(m, r);
+        else afterResult(m, r);
       });
     }
     // 2 임무: 장면별 결과 전에 컨베이어 실제 분류(spec §5.5). 1 임무 결과는 그대로
     if (m.conveyor) DR.UI.conveyor(m, r, showResult);
     else if (m.guide) DR.UI.guide(m, r, showResult); // 3 임무: 길 안내 시연
+    else if (m.grading) DR.UI.grade(m, r, showResult); // 4 임무: 채점 시연
     else showResult();
+  }
+
+  function afterResult(m, r) {
+    if (r.allPass || App.state.supplements >= DR.config.maxSupplements) finishMission(m);
+    else prepSupplement(m, r);
+  }
+
+  // 4 임무 결판(설계 §5.6): 선배 답안 한 장을 우리 AI가 읽나(DR.Judge.readable — 결판 장면의 조합만).
+  //   읽음 → 결판 끝(다른 장면이 남았고 보충이 남으면 감독관 한 줄 뒤 보통 보충, 아니면 재연결)
+  //   못 읽음 → "또 지웠잖아" → 동기 합류(처음 한 번 peerJoin) → 동기 카드(DR.Showdown: 남은 보충 2 = 뺄 수 있음 / 1 = 고정 / 0 = 고정 + 다시 제출)
+  function sheetLine(m, l, read, bg) {
+    return Object.assign({ bg: bg, sheet: { mission: m.id, read: read } }, l);
+  }
+  function showdown(m, r) {
+    var sd = m.story.showdown, ok = DR.Judge.readable(m, r);
+    // 못 읽은 까닭: 크게 기운 1을 못 배움 → "7 · ✕"(위험) / 표 안 답만 못 배움 → "답 없음 · 사람 채점"(불편) — 장면 결과와 같은 말
+    var s4 = r.scenes.filter(function (s) { return s.id === m.showdownScene; })[0];
+    var sc = m.scenes.filter(function (s) { return s.id === m.showdownScene; })[0];
+    var dangerMissing = sc.combos.some(function (c) { return s4.missing.indexOf(c.id) >= 0 && c.danger; });
+    var read = ok ? true : (dangerMissing ? false : 'hold');
+    var lines = sd.ask.map(function (l) { return sheetLine(m, l, null, sd.bg); })
+      .concat([sheetLine(m, ok ? sd.readPass : read === 'hold' ? sd.readHold : sd.readFail, read, sd.bg)])
+      .concat((ok ? sd.pass : sd.fail).map(function (l) { return sheetLine(m, l, read, sd.bg); }));
+    var mode = null;
+    if (ok) {
+      if (!r.allPass && App.state.supplements < DR.config.maxSupplements) lines.push(Object.assign({ bg: sd.bg }, sd.passOthers));
+    } else {
+      mode = DR.Showdown.peerMode(App.state, DR.config);
+      if (App.state.peer === 'none') sd.peerJoin.forEach(function (l) { lines.push(Object.assign({ bg: sd.bg }, l)); });
+      if (mode !== 'removable') lines.push(Object.assign({ bg: sd.bg }, sd.peerFixed));
+    }
+    DR.UI.dialogue(lines, function () {
+      if (ok) { App.state.showdownPassed = true; afterResult(m, r); return; }
+      App.state.peer = mode === 'removable' ? 'joined' : 'fixed';
+      // 보충 달리기가 끝나면 동기 카드가 가방에 들어온다. 남은 보충 0번(mode 'resubmit')이면 보충 준비가 달리기 없이 다시 제출로만 —
+      // 가방 칸이 모자라면 거기서 비우게 한다(30칸을 넘지 않게, 리뷰 I3). 보충 횟수 밖
+      App.state.peerPending = true;
+      prepSupplement(m, r);
+    });
   }
 
   // 보충: 빠진 조합에 모자란 장 수만큼(여유 포함) 그 카드가 나오는 짧은 코스. 이미 모은 가방은 그대로.
   // 부족분은 보충 준비에서 플레이어가 카드를 뺀 뒤의 가방으로 센다.
+  // 4 임무 동기 카드(peerPending): 달리기 뒤 가방에 NEW로 붙는다 — 부족분 계산엔 미리 넣고, 달리기 가방 칸은 그만큼 비워 둔다
   function prepSupplement(m, r) {
     App.state.newIds = [];
     checkpoint('prep');
+    var extra = App.state.peerPending ? DR.Showdown.peerCards(m, App.state.bag, App.state.peer === 'fixed') : [];
+    // 결판에서 못 읽었는데 보충이 남지 않음(설계 §5.6 '0번') → 달리기 없이 동기 카드를 고정으로 넣고 다시 제출 1회, 보충 횟수 밖
+    var outside = App.state.peerPending && App.state.supplements >= DR.config.maxSupplements;
     DR.UI.supplementPrep(m, r, App.state.bag, function (bag, opts) {
-      App.state.supplements++;
-      // 모자란 조합이 없으면(가짜만 뺀 경우) 달리지 않고 다시 제출 — 보충 1회로 센다
-      if (opts && opts.resubmit) { App.state.bag = bag; askSupervisor(m); return; }
-      var short = DR.Judge.shortfall(m, bag, DR.config);
+      if (!outside) App.state.supplements++;
+      App.state.peerPending = false;
+      var extraIds = extra.map(function (c) { return c.id; });
+      // 모자란 조합이 없으면(가짜만 뺀 경우) 달리지 않고 다시 제출 — 보충 1회로 센다. 동기 카드가 들어오면 검수에서 먼저 보여 준다
+      if (opts && opts.resubmit) {
+        App.state.bag = bag.concat(extra);
+        if (extra.length) { App.state.newIds = extraIds; review(m); } else askSupervisor(m);
+        return;
+      }
+      var short = DR.Judge.shortfall(m, bag.concat(extra), DR.config);
       var course = DR.Stream.build(m, DR.config, { seed: App.state.seed + App.state.supplements, focusCounts: short });
       runCourse(m, course, bag, function (fresh) {
         // 보충 코스의 카드 번호는 0부터 다시 시작한다 → 첫 판 카드와 겹치지 않게 접두사(NEW 표시·되돌리기가 엉뚱한 카드를 가리키지 않게)
         fresh.forEach(function (c) { c.id = 's' + App.state.supplements + '_' + c.id; });
-        App.state.bag = bag.concat(fresh);
+        App.state.bag = bag.concat(fresh).concat(extra);
         // 보충 뒤에도 첫 판처럼 검수를 거친다. 새로 담은 카드에는 NEW(P3)
-        App.state.newIds = fresh.map(function (c) { return c.id; });
+        App.state.newIds = fresh.map(function (c) { return c.id; }).concat(extraIds);
         review(m);
-      });
-    });
+      }, extra.length);
+    }, { extra: extra, peerFixed: App.state.peer === 'fixed', forceResubmit: outside });
   }
 
   // 3 임무 정체 공개: 1·2 임무 첫 판 실수 기록이 있으면 그 장면 이름을 '누구나 하는 실수'의 예로, 없으면 일반 문장
@@ -225,13 +295,27 @@
       '보충 달리기: ' + rec.supplements + '번'
     ];
     if (relabels) summary.push('고친 이름표: ' + fixed + '장');
+    var cityBefore = cityCount();
     App.records[m.id] = rec;
     DR.Save.finish();
     DR.Save.setRecord(m.id, rec);
     var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
-    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () {
-      DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, { kicker: m.title + ' 완료', next: next, summary: summary });
-    });
+    var outroOpts = { kicker: m.title + ' 완료', next: next, summary: summary };
+    var step = DR.Save.cityStep(m.id, cityBefore, cityCount());
+    function toOutro() { DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, outroOpts); }
+    if (m.story.after) {
+      // 4 임무: 도시 재연결(늘 5/5) → 의뢰인 한 줄 → (동기가 합류한 적 없으면) 동기의 상자 → 해커의 이후(bg) → 마무리(최종 토론 질문)
+      var lines = (rec.passed ? m.story.reconnect.pass : m.story.reconnect.partial).slice();
+      if (App.state.peer === 'none') lines.push(m.story.showdown.peerBox);
+      var af = m.story.after;
+      lines = lines.concat(af.lines.map(function (l) { return Object.assign({ bg: af.bg }, l); }));
+      outroOpts.headline = '도시가 다시 이어졌다';
+      outroOpts.questions = m.story.questions;
+      cityScreen(m, step, function () { DR.UI.dialogue(lines, toOutro); });
+      return;
+    }
+    // 1~3 임무: 마지막 대화(선배·정체 공개) → 도시 복구(칸이 늘었을 때만) → 임무 완료
+    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () { cityScreen(m, step, toOutro); });
   }
 
   // 테스트 훅: 달리는 중 현재 코스에서 key(또는 ambiguousId) 카드를 앞에서부터 골라 가방에 넣는다
@@ -263,7 +347,7 @@
 
   var App = {
     screen: 'title', state: null, lastJudge: null, course: null, records: DR.Save.records(),
-    go: go, startTutorial: startTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume,
+    go: go, cityCount: cityCount, startTutorial: startTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume,
     mission: function () { return App.state ? DR.Missions[App.state.mission] : null; }
   };
   DR.App = App;

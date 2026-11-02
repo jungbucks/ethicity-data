@@ -1,7 +1,7 @@
 // 사용자 지시서 '사소한 문제 9가지'(2026-11-02) — 대화 넘기기·단서 글 한 번·프로필 이름·장면 순서·두 장면 공통·
 // 임무 완료 요약·숨은 화면 정리·달리기 화소 비율 상한
 import assert from 'node:assert/strict';
-import { openGame } from './browser.mjs';
+import { passCity, openGame } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
@@ -78,7 +78,7 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
     assert.equal(await page.locator('#screen-inspect').evaluate((e) => e.innerHTML.trim()), '', 'inspect DOM cleared');
     for (let i = 0; i < 4; i++) await page.locator('#btn-next').click();
     // 6) 임무 완료 요약
-    await page.locator('#btn-skip').click(); await page.locator('#btn-skip').click();
+    await page.locator('#btn-skip').click(); await passCity(page); await page.locator('#btn-skip').click();
     await page.locator('#screen-outro').waitFor({ state: 'visible' });
     const sum = await page.locator('#outro-summary').innerText();
     assert.match(sum, /첫 제출에서 놓친 장면: 없음/);
@@ -104,7 +104,7 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
     await page.locator('#screen-conveyor').waitFor({ state: 'visible' });
     await page.locator('#btn-cv-skip').click(); await page.locator('#btn-cv-next').click();
     for (let i = 0; i < 4; i++) await page.locator('#btn-next').click();
-    await page.locator('#btn-skip').click(); await page.locator('#btn-skip').click();
+    await page.locator('#btn-skip').click(); await passCity(page); await page.locator('#btn-skip').click();
     await page.locator('#screen-outro').waitFor({ state: 'visible' });
     const sum = await page.locator('#outro-summary').innerText();
     assert.match(sum, /첫 제출에서 놓친 장면: 음료 캔과 통조림 캔/);

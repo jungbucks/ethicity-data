@@ -11,7 +11,7 @@
   'use strict';
 
   var m1 = {
-    id: 'm1', title: '침수 판별 AI', next: 'm2', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 6,
+    id: 'm1', title: '침수 판별 AI', next: 'm2', cityLine: '침수 판별 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 6,
     // 달리기 구역(코스 순서 — 사용자 승인: 물청소 → 고가 아래 → 밤 번화가 → 주택가 골목)
     zones: [
       { id: 'S2', title: '물청소 직후의 낮 도로', short: '물청소 도로' },
@@ -125,6 +125,7 @@
         { who: 'supervisor', text: '3,000장 대부분이 낮의 물웅덩이 사진이네. 멀쩡한 길이 막혔어.', face: 'worried' },
         { who: 'guide', text: '추가 경보. 데이터 세계에 정체불명의 불꽃이 관측됩니다. 러너를 노리는 방해 세력으로 추정됩니다.', face: 'worried' },
         { who: 'peer', text: '나도 오늘 자격 딴 동기야. 같이 가자! 이번엔 제대로 모아 보자.', face: 'happy' },
+        { who: 'peer', text: '흙탕물처럼 애매한 사진은 그냥 빼자. 이상한 건 AI만 헷갈려.', face: 'basic' },
         { who: 'supervisor', text: '러너, 출동. 무엇을 가져올지는 너희가 판단해. 넣을지는 내가 승인하고.', face: 'explain' }
       ],
       guideBrief: '이 AI는 비 오는 날 밤에도 침수 도로와 젖은 도로를 구별해야 합니다. 무엇을 모을지는 러너의 판단 영역입니다.',

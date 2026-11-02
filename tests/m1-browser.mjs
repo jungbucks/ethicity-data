@@ -1,6 +1,6 @@
 // 1 임무 흐름: 검수·감독관·결과(실패 종류)·"?" 미결정·보충(빈칸)·선배·마무리
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, shotPath } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 
@@ -122,6 +122,10 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       const senior = await page.evaluate(() => DR.Missions.m1.story.senior[0].text);
       assert.ok((await page.locator('#screen-story').innerText()).includes(senior), 'senior cameo');
       await page.locator('#btn-skip').click();
+      // 도시 복구 0 → 1(1 임무 첫 클리어)
+      assert.ok(await page.locator('#screen-city').isVisible(), 'city screen after the last dialogue');
+      assert.match(await page.locator('#city-line').innerText(), /도시 1\/5 — 침수 판별 AI가 다시 이어졌다/);
+      await passCity(page);
       await page.locator('#btn-skip').click();
       assert.ok(await page.locator('#screen-outro').isVisible(), 'outro');
       assert.ok((await page.locator('#screen-outro').innerText()).includes('단순화한 규칙'));

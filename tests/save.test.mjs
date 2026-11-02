@@ -97,3 +97,17 @@ test('배경음악: 없으면 켜짐, 효과음과 따로(ethicity.data.bgm), �
   assert.equal(st._m.get('ethicity.data.save'), undefined, '체크포인트 키는 건드리지 않음');
   assert.equal(Save.bgmOn({ getItem: () => { throw new Error('blocked'); } }), true);
 });
+test('4 임무 결판 상태도 체크포인트에(동기 합류·고정 카드·결판 통과) — 새로고침 뒤 같은 자리', () => {
+  const st = mem();
+  const state = { mission: 'm4', bag: [{ id: 'peer_slant_1_0', key: 'slant_1', peer: true, fixed: true }], supplements: 1, firstTry: false, seed: 4401,
+    needRevealed: true, newIds: [], peer: 'fixed', peerPending: true, showdownPassed: false };
+  Save.checkpoint('prep', state, {}, st);
+  const s = Save.load(st);
+  assert.equal(s.peer, 'fixed'); assert.equal(s.peerPending, true); assert.equal(s.showdownPassed, false);
+  assert.deepEqual(s.bag[0], { id: 'peer_slant_1_0', key: 'slant_1', peer: true, fixed: true });
+  Save.checkpoint('result', { ...state, peer: 'joined', peerPending: false, showdownPassed: true }, {}, st);
+  assert.deepEqual([Save.load(st).peer, Save.load(st).peerPending, Save.load(st).showdownPassed], ['joined', false, true]);
+  // 예전 저장(필드 없음)은 기본값
+  Save.checkpoint('inspect', { mission: 'm1', bag: [], supplements: 0 }, {}, st);
+  assert.deepEqual([Save.load(st).peer, Save.load(st).peerPending, Save.load(st).showdownPassed], ['none', false, false]);
+});

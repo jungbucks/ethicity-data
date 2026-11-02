@@ -124,7 +124,8 @@
   var MISSION_CARDS = [
     ['m1', '1 임무 · 침수 판별', '비 오는 밤, AI는 잠긴 길을 알아볼까?', 'assets/title/mission-m1.webp'],
     ['m2', '2 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
-    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp']
+    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp'],
+    ['m4', '4 임무 · 채점', '맞게 쓴 답에 ✕가 찍힌다면?', 'assets/title/mission-m4.webp']
   ];
   function missionStatus(id) {
     var rec = DR.App && DR.App.records && DR.App.records[id], s = DR.Save.load();
@@ -176,7 +177,22 @@
     return m + ' · ' + (SCREEN_TEXT[s.screen] || '이어서');
   }
 
+  // 타이틀 구석 "도시 n/5"(설계 §7): 점 5개 + 작은 글. 누를 수 없고 포커스도 안 받는다. 0칸이어도 보인다(5칸을 채우는 게임이라는 예고)
+  function renderCityBadge() {
+    var screen = document.getElementById('screen-title');
+    if (!screen || !DR.UI.cityDots) return;
+    var n = DR.App.cityCount();
+    var badge = document.getElementById('title-city');
+    if (!badge) { badge = el('div', { id: 'title-city', class: 'title-city', role: 'img' }); screen.appendChild(badge); }
+    badge.innerHTML = '';
+    badge.setAttribute('aria-label', '도시 복구 5칸 중 ' + n + '칸');
+    badge.dataset.count = String(n);
+    badge.appendChild(DR.UI.cityDots(n));
+    badge.appendChild(el('span', { class: 'title-city-text', 'aria-hidden': 'true', text: '도시 ' + n + '/5' }));
+  }
+
   function renderTitle() {
+    renderCityBadge();
     renderHeroPick();
     renderMissionPick();
     renderGuide();

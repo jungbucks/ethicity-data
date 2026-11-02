@@ -233,3 +233,21 @@ test('dialogue faces are valid', () => {
   for (const l of all) assert.ok(ok.has(l.face), l.who + ' ' + l.face);
   assert.ok(all.filter((l) => l.face).length >= 25, 'most emotional lines carry a face');
 });
+
+// 4 임무 동기 줄기(설계 §5.8): 1~3 임무 도입에 동기의 "이상한 건 빼자" 한 줄씩 — 정답을 말하지 않는다
+test('peer says "leave the odd ones out" once in each of missions 1~3 (never the answer)', () => {
+  const m3 = require('../missions/m3.js');
+  const want = {
+    m1: [m1, '흙탕물처럼 애매한 사진은 그냥 빼자. 이상한 건 AI만 헷갈려.', (i, l) => l[i - 1].who === 'peer' && /자격 딴 동기/.test(l[i - 1].text)],
+    m2: [m2, '찌그러진 페트병 같은 건 빼자. 이상한 건 빼는 게 깔끔하잖아.', (i, l) => l[i - 1].who === 'sorter' && /추가 경보/.test(l[i + 1].text)],
+    m3: [m3, '옛날 사진은 그냥 다 빼면 되겠네. 이상한 건 빼는 게 제일 안전해.', (i, l) => l[i - 1].who === 'peer' && /누가 이런 걸 시킨 거지/.test(l[i - 1].text)]
+  };
+  for (const [id, [m, text, where]] of Object.entries(want)) {
+    const lines = m.story.intro, hits = lines.filter((l) => l.who === 'peer' && /빼/.test(l.text));
+    assert.equal(hits.length, 1, id);
+    assert.equal(hits[0].text, text, id);
+    assert.equal(hits[0].face, 'basic', id);
+    assert.ok(where(lines.indexOf(hits[0]), lines), id + ' position');
+    assert.ok(!lines.some((l) => l.who === 'peer' && /넣자|지키자/.test(l.text)), id + ' never says the answer');
+  }
+});

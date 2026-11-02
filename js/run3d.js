@@ -304,6 +304,22 @@
         if (fc.kind === 'card' && fc.fakeId && qd > 0 && qd <= fakeDist) { S.fakeHintShown = true; showHint(S.mission.fakeHint || '그림이랑 이름표가 맞는지 봐!', 2.5); break; }
       }
     }
+    // 구역 진입 대사(4 임무 선배 한 줄, story.runLines): 첫 달리기에서 그 구역에 들어설 때 한 번. 다른 안내가 떠 있으면 끝난 뒤에
+    var runLines = (S.mission.story && S.mission.story.runLines) || [];
+    if (runLines.length && S.course.zones && !S.course.supplement) {
+      var inZone = S.course.zones.filter(function (zn) { return S.z >= zn.start; }).pop();
+      if (inZone && S.lineZone !== inZone.id) {
+        S.lineZone = inZone.id;
+        var rl = runLines.filter(function (l) { return l.zone === inZone.id; })[0];
+        if (rl) S.pendingLine = rl;
+      }
+      if (S.pendingLine && !S.hintAt) {
+        var pl = S.pendingLine, who = root.DR.Cast[pl.who];
+        S.pendingLine = null;
+        S.linesShown = (S.linesShown || []).concat([pl.zone]);
+        showHint((who ? who.name + ': ' : '') + pl.text, 3);
+      }
+    }
     var r = S.grabber.update({ now: S.t, items: items, runnerZ: S.z, speed: speed, lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, taken: S.taken });
     if (r && r.item) take(r.item, r.perfect);
     else if (r && r.full) root.DR.Sfx.play('full');
@@ -553,7 +569,7 @@
     },
     peek: function () {
       if (!S) return { running: false };
-      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
+      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, linesShown: S.linesShown || [], pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
     }
   };
 

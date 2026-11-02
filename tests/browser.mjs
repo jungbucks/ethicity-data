@@ -17,11 +17,18 @@ export async function openGame(opts = {}) {
   const page = await browser.newPage({ viewport: opts.viewport || { width: 1366, height: 900 }, hasTouch: !!opts.hasTouch });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  // 파일이 없을 때 콘솔의 'Failed to load resource'는 주소가 없어 대신 requestfailed로 어느 파일인지 남긴다.
+  // 도시 복구 그림(assets/city/city-n.webp)은 아직 오지 않아 없는 게 정상(그림 자리를 숨기고 점 5칸) — 그 밖의 빠진 파일은 오류
+  page.on('console', (m) => { if (m.type() === 'error' && !/^Failed to load resource/.test(m.text())) errors.push(m.text()); });
+  page.on('requestfailed', (r) => { if (!/assets\/city\/city-\d\.webp$/.test(r.url())) errors.push('missing file: ' + r.url()); });
   // 자동 일시정지(창 포커스 잃음)는 끈다 — 테스트가 페이지를 여러 개 열면 포커스가 옮겨 달리기가 멈춰 버림. 일시정지 자체는 flow-browser가 키·버튼으로 확인
   if (!opts.autoPause) await page.addInitScript(() => { window.__DR_NO_AUTOPAUSE = true; });
   // 시작 화면을 떠나는 0.55초 전환은 테스트에서 건너뛴다(전환 자체는 title-browser가 titleFx로 확인)
   if (!opts.titleFx) await page.addInitScript(() => { window.__DR_FAST_TITLE = true; });
   await page.goto(pathToFileURL(path.join(DATA_DIR, 'index.html')).href + (opts.query || ''));
   return { browser, page, errors };
+}
+// 도시 복구 화면(깬 직후, 칸이 늘었을 때만)이 떠 있으면 [계속] — 임무 끝 흐름을 지나는 테스트가 쓴다
+export async function passCity(page) {
+  if (await page.locator('#screen-city').isVisible()) await page.locator('#btn-city-next').click();
 }

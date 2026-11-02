@@ -34,7 +34,7 @@
       }
       if (C.isMislabeled(mission, card)) {
         var entry = { source: C.sourceId(mission, card), harm: C.harm(mission, card) };
-        C.scenesForLabel(mission, C.currentLabel(mission, card)).forEach(function (sid) {
+        C.fakeScenes(mission, card).forEach(function (sid) {
           (stacked[sid] = stacked[sid] || []).push(entry);
         });
         return;
@@ -179,7 +179,14 @@
     return out;
   }
 
-  var api = { judge: judge, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
+  // 4 임무 결판: 결판 장면(mission.showdownScene)의 조합이 다 찼나 — 오염은 보지 않는다(설계 §5.6, 결판 보장이 깨지지 않게)
+  function readable(mission, result) {
+    var id = mission.showdownScene;
+    var s = id && result.scenes.filter(function (x) { return x.id === id; })[0];
+    return !!(s && s.missing.length === 0);
+  }
+
+  var api = { judge: judge, readable: readable, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
   root.DR = root.DR || {};
   root.DR.Judge = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

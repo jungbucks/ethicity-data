@@ -24,6 +24,15 @@
       var s = sceneOf(judged, cause.slice('contaminated:'.length));
       return !!(s && s.contaminated && s.contaminated.length);
     }
+    // 'any:가짜id' = 그 가짜가 어떤 이름표로든(원래 이름표 또는 플레이어가 바꾼 틀린 이름표 'mis:가짜id:…') 이 물건의 장면을 오염(4 임무)
+    if (cause.indexOf('any:') === 0) {
+      var fid = cause.slice('any:'.length), any = false;
+      judged.scenes.forEach(function (s) {
+        if (sceneId && s.id !== sceneId) return;
+        (s.contaminated || []).forEach(function (src) { if (src === fid || src.indexOf('mis:' + fid + ':') === 0) any = true; });
+      });
+      return any;
+    }
     var hit = false;
     judged.scenes.forEach(function (s) {
       if (s.missing.indexOf(cause) >= 0) hit = true;

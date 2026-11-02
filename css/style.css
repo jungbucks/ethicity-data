@@ -422,3 +422,62 @@ body { overflow: hidden; word-break: keep-all; }
   .hero-chip, .mission-card, .tl-stage, .title-link { transition: none; }
   .hero-chip:hover, .mission-card:hover { transform: none; }
 }
+
+/* ---------- 4 임무: 숫자 이름표 버튼 · 채점 시연 ---------- */
+/* 동그라미 숫자 하나(48×44 이상). 375px 폰: 48×5 + 8×4 = 272px < 크게 보기 창 안쪽 307px → 한 줄 */
+.labels.digit { flex-wrap: nowrap; gap: 8px; }
+.labels.digit .btn-digit, .relabel.digit .btn-digit { flex: none; width: 48px; min-width: 48px; height: 44px; padding: 0; border-radius: 999px; font-size: 20px; font-weight: 800; justify-content: center; }
+.label-none { margin-top: 8px; }
+.gr-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
+.gr-item { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 8px; animation: gd-in .25s ease-out both; }
+.gr-item.ok { border-color: var(--ok); }
+.gr-item.bad { border-color: var(--danger); }
+.gr-item.hold { border-color: var(--yellow); }
+.gr-art { width: 96px; height: 96px; border-radius: 10px; display: block; }
+.gr-body { position: relative; min-height: 64px; }
+.gr-chose { margin: 0; font-weight: 700; }
+.gr-read { margin: 4px 0 0; }
+.gr-note { margin: 2px 0 0; font-size: 14px; color: var(--ink-2); }
+.gr-stamp { position: absolute; top: 0; right: 4px; font-size: 26px; font-weight: 900; line-height: 1; padding: 2px 6px; border-radius: 8px; }
+.gr-stamp-o { color: var(--ok); }
+.gr-stamp-x { color: var(--danger); }
+.gr-stamp-hold { font-size: 14px; color: #10093a; background: var(--yellow); transform: rotate(-6deg); }
+.gr-item.ok .gr-stamp-x { color: var(--ok); }
+#gr-stop { align-content: end; padding-bottom: 16px; }
+@media (prefers-reduced-motion: reduce) { .gr-item { animation: none; } }
+@media (max-width: 640px) { .gr-item { grid-template-columns: 64px 1fr; } .gr-art { width: 64px; height: 64px; } }
+/* 4 임무 결판: 대화창 위에 선배 답안 한 장(DR.UI.dialogue 줄의 sheet) */
+#screen-story.has-sheet { flex-direction: column; align-items: center; justify-content: flex-end; }
+.story-sheet { position: relative; z-index: 1; margin: 0 0 12px; width: min(300px, 72vw); background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 8px; box-shadow: 0 8px 28px rgba(0, 0, 0, .45); }
+.story-sheet img { display: block; width: 100%; border-radius: 10px; }
+.story-sheet-read { margin: 6px 2px 0; font-weight: 800; font-size: 15px; }
+.story-sheet[data-read="true"] .story-sheet-read { color: var(--ok); }
+.story-sheet[data-read="false"] .story-sheet-read { color: var(--danger); }
+#screen-story.has-sheet .dialog { margin-bottom: 4vh; }
+@media (min-width: 900px) { #screen-story.has-bg.has-sheet { align-items: flex-start; } #screen-story.has-sheet .story-sheet { margin-left: 2vw; } }
+@media (max-height: 700px) { .story-sheet { width: min(200px, 50vw); } }
+.outro-questions { margin: 16px 0 0; padding: 12px 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--panel); }
+.outro-questions h3 { margin: 0 0 6px; font-size: 16px; }
+.outro-questions ol { margin: 0; padding-left: 20px; line-height: 1.7; }
+.bag-peer-fixed { display: block; text-align: center; font-size: 12px; font-weight: 800; color: var(--ok); padding: 6px 4px; }
+
+/* ---------- 도시 복구(설계 §7): 화면 + 타이틀 구석 배지 ---------- */
+.city-dots { display: inline-flex; gap: 6px; align-items: center; }
+.city-dots i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #FFD24A; box-sizing: border-box; transition: background-color .8s ease; }
+.city-dots i.on { background: #FFD24A; }
+.city-dots-big { gap: 10px; margin: 14px 0 6px; }
+.city-dots-big i { width: 18px; height: 18px; border-width: 3px; }
+.city-page { text-align: center; }
+.city-art { position: relative; margin: 8px auto 0; width: min(100%, 40rem); aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #1b1640; border: 2px solid var(--line); }
+.city-art[hidden] { display: none; }
+.city-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.city-after { opacity: 0; transition: opacity .8s ease; }
+.city-after.on { opacity: 1; }
+.city-line { font-size: 19px; font-weight: 800; margin: 6px 0 0; word-break: keep-all; }
+.title-city { position: absolute; top: 16px; left: 16px; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(16, 9, 58, .72); pointer-events: none; }
+.title-city-text { font-size: 13px; font-weight: 800; color: #f4f1ff; }
+@media (prefers-reduced-motion: reduce) { .city-after, .city-dots i { transition: none; } }
+/* 좁은 화면: 왼쪽 위 "도시 n/5" 배지 아래로 AI 봇 안내를 조금 내린다 */
+@media (max-width: 700px) { .title-guide { top: -256px; } }
+.story-sheet[data-read="hold"] .story-sheet-read { color: var(--yellow); }
