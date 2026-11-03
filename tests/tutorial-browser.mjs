@@ -33,6 +33,18 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     await page.locator('#btn-run').click();
 
     assert.ok(await visible('run'), 'run');
+    // 달리는 카드 그림 = 개·고양이 사진(카드 번호 % 8, 개 → d01~d08 · 고양이 → c01~c08), 이름표는 코드가 얹음
+    await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
+    await page.waitForFunction(() => document.querySelectorAll('.run-card:not([hidden]) img').length >= 2, null, { timeout: 30000 });
+    const runCards = await page.evaluate(() => [...document.querySelectorAll('.run-card')].map((c) => {
+      const it = DR.App.course.items.find((i) => i.uid === c.dataset.uid);
+      return { key: it.key, n: +it.uid.slice(1), photo: c.querySelector('img').dataset.photo, label: c.querySelector('.run-card-label').textContent };
+    }));
+    for (const c of runCards) {
+      assert.equal(c.photo, (c.key === 'dog' ? 'd0' : 'c0') + (c.n % 8 + 1), 'run card photo ' + JSON.stringify(c));
+      assert.ok(c.label.length > 0, 'label drawn on top');
+    }
+    await page.screenshot({ path: shotPath('run-tutorial-' + viewport.width) });
     await finishWith({ dog: 8 });
     assert.ok(await visible('result'), 'result after fail');
     assert.ok((await page.locator('#screen-result').innerText()).includes(tut.story.fail[0].text.slice(0, 8)), 'cute fail');

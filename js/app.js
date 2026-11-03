@@ -28,6 +28,8 @@
     if (name === 'title' && DR.Shell) DR.Shell.renderTitle();
     // 달리기 배경음악: 달리기 화면에서만 틀고, 떠나면 서서히 멈춘다(DR.Bgm)
     if (DR.Bgm) DR.Bgm.scene(name);
+    // 튜토리얼 개·고양이 사진: 타이틀·브리핑 때 미리 받아 둔다(한 번만, 기다리지 않음 — 못 받으면 Canvas 그림)
+    if (DR.CardArt && DR.CardArt.preloadPhotos && (name === 'title' || name === 'briefing' || name === 'run')) DR.CardArt.preloadPhotos();
   }
 
   // 체크포인트: 화면 경계(브리핑·검수·결과·보충 준비 진입)에서만 저장 — 달리기 도중은 저장하지 않는다(P4)
@@ -356,4 +358,6 @@
   if (params.get('run')) debugRun(params.get('run'));
   else if (params.get('start')) startMission(params.get('start'));
   else DR.Shell.renderTitle();
+  // 첫 타이틀은 go()를 거치지 않는다 — 사진 미리 받기는 타이틀이 뜬 뒤에(시작 화면을 막지 않게)
+  setTimeout(function () { if (DR.CardArt.preloadPhotos) DR.CardArt.preloadPhotos(); }, 300);
 })(window);

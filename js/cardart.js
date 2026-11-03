@@ -806,6 +806,31 @@
     g.fillStyle = '#1b1b1b';
     g.beginPath(); g.arc(cx - S * 0.07, cy - S * 0.03, S * 0.025, 0, 7); g.arc(cx + S * 0.07, cy - S * 0.03, S * 0.025, 0, 7); g.fill();
   }
+  /* ---------- 동물 사진(튜토리얼 카드, fal C안 '무난한 배경' 384²) ----------
+   * 개·고양이 카드는 사진을 쓴다(아이콘·이름표는 지금처럼 코드가 얹음). 카드 번호 n % 8로 사진을 고른다(같은 코스 = 같은 사진).
+   * 사진이 아직 안 왔거나 못 읽으면 위 Canvas 그림(게임이 멈추지 않게). e01~e03(경계 사진)은 튜토리얼에 "?" 카드가 없어 쓰지 않는다. */
+  var PHOTO_DIR = 'assets/cards/animals/';
+  var PHOTOS = { dog: ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07', 'd08'], cat: ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08'] };
+  var photoImgs = {};
+  function preloadPhotos() {
+    if (typeof Image === 'undefined') return;
+    Object.keys(PHOTOS).forEach(function (k) {
+      PHOTOS[k].forEach(function (id) {
+        if (photoImgs[id]) return;
+        var im = new Image(); im.decoding = 'async'; im.src = PHOTO_DIR + id + '.webp'; photoImgs[id] = im;
+      });
+    });
+  }
+  function photoReady(im) { return !!(im && im.complete && im.naturalWidth > 0); }
+  // 이 카드에 쓸 사진 id(사진 카드가 아니거나 사진을 못 쓰면 '') — n = 카드 번호(uid 'c12' → 12)
+  function photoId(mission, id, n) {
+    var o = artOf(mission, id), list = o.animal && PHOTOS[o.animal];
+    if (!list) return '';
+    var pid = list[((Math.floor(n) || 0) % list.length + list.length) % list.length];
+    return photoReady(photoImgs[pid]) ? pid : '';
+  }
+  function photosReady() { var ids = Object.keys(photoImgs); return ids.length > 0 && ids.every(function (k) { return photoImgs[k].complete; }); }
+
   function shade(hex) { var n = parseInt(hex.slice(1), 16); var f = function (v) { return Math.round(v * 0.7); }; return 'rgb(' + f(n >> 16) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')'; }
 
   /* ---------- 4 임무 손글씨 답안 — 모두 같은 붓(답안지 칸 + 베지어 획 숫자) ----------
@@ -1010,7 +1035,15 @@
   }
 
   /* ---------- 공개 API ---------- */
-  function card(mission, id, variant, size) {
+  // n = 카드 번호(없으면 variant) — 사진 카드(튜토리얼 개·고양이)만 쓴다. 다른 카드 그림은 그대로
+  function card(mission, id, variant, size, n) {
+    var pid = photoId(mission, id, n === undefined ? variant : n);
+    if (pid) return cached('photo|' + pid + '|' + size, function () {
+      var c = canvas(size);
+      c.getContext('2d').drawImage(photoImgs[pid], 0, 0, size, size);
+      c.photo = pid;
+      return c;
+    });
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
       var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
       if (o.animal) drawAnimal(c, o, seed);
@@ -1025,6 +1058,7 @@
 
   function thumb(src, cells) {
     cells = cells || 24;
+    if (src.photo) cells = Math.max(cells, 48); // 사진은 24칸이면 뭉개진다 — 48칸(같은 픽셀 썸네일 방식)
     var k = Math.max(1, Math.floor(src.width / cells));
     var small = canvas(cells), sg = small.getContext('2d');
     sg.drawImage(src, 0, 0, cells, cells);
@@ -1358,7 +1392,7 @@
     else { g.beginPath(); g.moveTo(x, y - r * 0.5); g.lineTo(x, y + r * 0.1); g.stroke(); g.beginPath(); g.arc(x, y + r * 0.4, S * 0.012, 0, 7); g.fill(); }
   }
 
-  var api = { card: card, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, binColors: BIN_COLORS };
+  var api = { card: card, photoId: photoId, preloadPhotos: preloadPhotos, photosReady: photosReady, _photos: photoImgs, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, binColors: BIN_COLORS };
   root.DR = root.DR || {};
   root.DR.CardArt = api;
 })(window);

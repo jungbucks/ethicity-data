@@ -24,14 +24,14 @@
 
   function cardTexture(mission, item) {
     var C = root.DR.Cards, id = C.artId(item);
-    var variant = parseInt(item.uid.slice(1), 10) % 3;
-    var k = id + '|' + variant;
-    if (S.cardTex[k]) return S.cardTex[k];
+    var n = parseInt(item.uid.slice(1), 10), variant = n % 3;
     var A = root.DR.CardArt;
+    var k = id + '|' + variant + '|' + A.photoId(mission, id, n);
+    if (S.cardTex[k]) return S.cardTex[k];
     var icons = C.iconsOf(mission, item);
     var t = canvasTex(400, 540, function (g, w, h) {
       g.fillStyle = '#f4f1ff'; roundRect(g, 0, 0, w, h, 18); g.fill();
-      g.drawImage(A.card(mission, id, variant, 384), 16, 16, 368, 368);
+      g.drawImage(A.card(mission, id, variant, 384, n), 16, 16, 368, 368);
       var size = 60, gap = 8, x0 = (w - (icons.length * size + (icons.length - 1) * gap)) / 2;
       icons.forEach(function (n, i) { g.drawImage(A.icon(n, 64), x0 + i * (size + gap), 400, size, size); });
       g.fillStyle = '#162535'; g.font = 'bold 22px "Malgun Gothic", sans-serif'; g.textAlign = 'center';

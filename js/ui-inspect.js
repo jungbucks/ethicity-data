@@ -10,7 +10,8 @@
   var DR = root.DR;
   function el() { return DR.UI.el.apply(null, arguments); }
 
-  function variantOf(card) { return parseInt(String(card.id).replace(/\D/g, ''), 10) % 3 || 0; }
+  function variantOf(card) { return numOf(card) % 3 || 0; }
+  function numOf(card) { return parseInt(String(card.id).replace(/\D/g, ''), 10) || 0; } // 카드 번호(사진 카드가 사진을 고를 때)
   function cardId(card) { return DR.Cards.artId(card); }
   function ambDef(mission, id) { return mission.ambiguous.filter(function (a) { return a.id === id; })[0]; }
   function labelText(mission, id) { var o = mission.labelOptions.filter(function (x) { return x.id === id; })[0]; return o ? o.text : ''; }
@@ -42,7 +43,7 @@
 
   function thumbUrl(mission, card) {
     var A = DR.CardArt;
-    return A.thumb(A.card(mission, cardId(card), variantOf(card), 192), 24).toDataURL();
+    return A.thumb(A.card(mission, cardId(card), variantOf(card), 192, numOf(card)), 24).toDataURL();
   }
 
   // 장면별 모아 보기의 그림: 붙은 설명표(“?”는 붙인 설명표의 보통 종류)를 쓰는 장면에 놓는다
@@ -165,7 +166,7 @@
       if (zoomCleanup) zoomCleanup();
       zoomed = card;
       var A = DR.CardArt, amb = !!card.ambiguousId, label = cardLabel(mission, card), digit = mission.labelStyle === 'digit';
-      var big = A.card(mission, cardId(card), variantOf(card), 320);
+      var big = A.card(mission, cardId(card), variantOf(card), 320, numOf(card));
       var inner = [
         el('img', { class: 'zoom-art', src: big.toDataURL(), alt: '카드 원본: ' + label }),
         el('p', { class: 'zoom-label' }, [DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)), el('span', { text: label })])

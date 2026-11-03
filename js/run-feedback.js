@@ -30,7 +30,9 @@
       var el = document.createElement('div'); el.className = 'run-card'; el.dataset.uid = item.uid;
       el.style.setProperty('--card-color', DR.Cards.runColor(mission, item));
       var img = document.createElement('img');
-      img.src = DR.CardArt.card(mission, DR.Cards.artId(item), parseInt(item.uid.slice(1), 10) % 3, 384).toDataURL();
+      var n = parseInt(item.uid.slice(1), 10), artId = DR.Cards.artId(item);
+      img.src = DR.CardArt.card(mission, artId, n % 3, 384, n).toDataURL();
+      img.dataset.photo = DR.CardArt.photoId(mission, artId, n); // 사진 카드면 사진 id(테스트용), 아니면 ''
       img.alt = ''; el.appendChild(img);
       var text = document.createElement('span'); text.className = 'run-card-label'; text.textContent = label(mission, item); el.appendChild(text);
       var badge = document.createElement('b'); badge.className = 'catch-badge'; badge.textContent = root.matchMedia('(pointer: coarse)').matches ? '톡! 잡기' : 'Space'; el.appendChild(badge);

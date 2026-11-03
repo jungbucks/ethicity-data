@@ -176,6 +176,53 @@ try {
     return out;
   });
   await page.screenshot({ path: shotPath('cardart-m4') });
+
+  // 튜토리얼 개·고양이 = 사진(assets/cards/animals/, 카드 번호 % 8) · 썸네일 48칸 · 사진을 못 읽으면 Canvas 그림
+  await page.waitForFunction(() => DR.CardArt.photosReady(), null, { timeout: 10000 });
+  const rt = await page.evaluate(async () => {
+    document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
+    const A = DR.CardArt, t = DR.Missions.tutorial;
+    const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
+    const out = {};
+    out.dogs = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => A.card(t, 'dog', n % 3, 256, n).photo);
+    out.cats = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => A.card(t, 'cat', n % 3, 256, n).photo);
+    out.noN = A.card(t, 'dog', 1, 256).photo; // 번호 없이 부르면 variant로 고름
+    out.std = std(A.card(t, 'cat', 0, 256, 3));
+    const th = A.thumb(A.card(t, 'dog', 0, 192, 4), 24);
+    out.thumb = th.width + 'x' + th.height;
+    out.m1NotPhoto = !A.card(DR.Missions.m1, 'day_deep', 0, 256, 5).photo;
+    // 사진을 못 읽음(없는 파일) → 그 번호의 카드는 Canvas 그림(빈 그림 아님), 다른 사진은 그대로
+    const keep = A._photos.d03;
+    const bad = new Image(); A._photos.d03 = bad;
+    await new Promise((res) => { bad.onerror = res; bad.onload = res; bad.src = 'assets/cards/animals/__missing.webp'; });
+    const fb = A.card(t, 'dog', 2, 256, 2);
+    out.fallback = { photo: fb.photo || '', std: std(fb), id: A.photoId(t, 'dog', 2), other: A.card(t, 'dog', 0, 256, 3).photo };
+    A._photos.d03 = keep;
+    // 사람 눈 시트: 사진 16장(384 → 128) + 48칸 썸네일 + 대비용 Canvas 그림
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
+    const add = (c, label, w = 128) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; c.style.imageRendering = 'pixelated'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
+    for (let n = 0; n < 8; n++) add(A.card(t, 'dog', n % 3, 256, n), 'dog n' + n);
+    for (let n = 0; n < 8; n++) add(A.card(t, 'cat', n % 3, 256, n), 'cat n' + n);
+    for (let n = 0; n < 4; n++) add(A.thumb(A.card(t, n % 2 ? 'cat' : 'dog', 0, 192, n), 24), 'thumb48 n' + n, 96);
+    add(fb, 'fallback(Canvas)');
+    document.body.append(sheet);
+    return out;
+  });
+  await page.screenshot({ path: shotPath('cardart-tutorial') });
+  assert.deepEqual(rt.dogs, ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07', 'd08', 'd01'], 'dog photos by card number');
+  assert.deepEqual(rt.cats, ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08'], 'cat photos by card number');
+  assert.equal(rt.noN, 'd02');
+  assert.ok(rt.std > 10, 'photo not blank');
+  assert.equal(rt.thumb, '192x192', 'photo thumb = 48 cells × 4');
+  assert.ok(rt.m1NotPhoto, 'other missions keep Canvas art');
+  assert.equal(rt.fallback.photo, '', 'missing photo → Canvas art');
+  assert.equal(rt.fallback.id, '');
+  assert.ok(rt.fallback.std > 10, 'fallback art drawn');
+  assert.equal(rt.fallback.other, 'd04', 'other photos still used');
+  // 일부러 없앤 사진 파일만 허용
+  for (let i = errors.length - 1; i >= 0; i--) if (/__missing\.webp/.test(errors[i])) errors.splice(i, 1);
   assert.deepEqual(r4.bad, [], 'm4 blank art');
   assert.ok(r4.variantDiff, 'm4 variants differ');
   assert.equal(r4.iconUnique, 7, 'digit icons unique');
