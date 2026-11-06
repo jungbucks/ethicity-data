@@ -111,3 +111,28 @@ test('4 임무 결판 상태도 체크포인트에(동기 합류·고정 카드�
   Save.checkpoint('inspect', { mission: 'm1', bag: [], supplements: 0 }, {}, st);
   assert.deepEqual([Save.load(st).peer, Save.load(st).peerPending, Save.load(st).showdownPassed], ['none', false, false]);
 });
+
+test('hasSave: nothing / bare tutorial checkpoint = no save; progress, tutorialDone or a record = save', () => {
+  const st = mem();
+  assert.equal(Save.hasSave(st), false);
+  Save.checkpoint('briefing', { mission: 'tutorial', bag: [] }, {}, st);
+  assert.equal(Save.hasSave(st), false, 'stopped in the first tutorial');
+  Save.checkpoint('inspect', { mission: 'm1', bag: [] }, {}, st);
+  assert.equal(Save.hasSave(st), true);
+  const st2 = mem();
+  Save.markTutorialDone(st2);
+  assert.equal(Save.hasSave(st2), true);
+  const st3 = mem();
+  Save.setRecord('m1', { cleared: true }, st3);
+  assert.equal(Save.hasSave(st3), true);
+});
+
+test('lost cards count survives a checkpoint, old saves read as 0', () => {
+  const st = mem();
+  Save.checkpoint('inspect', { mission: 'm1', bag: [], lost: 3 }, {}, st);
+  assert.equal(Save.load(st).lost, 3);
+  const raw = JSON.parse(st.getItem(Save.KEY)); delete raw.lost; st.setItem(Save.KEY, JSON.stringify(raw));
+  assert.equal(Save.load(st).lost, 0);
+  assert.equal(Save.KEY, 'ethicity.data.save');
+});
+

@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { rareWallOf, cardsOf } from './walls-helper.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
@@ -125,18 +126,18 @@ test('m3 run: four zones, counts, fakes late in their zone and never in the firs
     for (const it of cards) {
       const z = c.zones.find((zz) => zz.id === it.zoneId);
       if (it.fakeId) { assert.ok(it.z >= c.length * 0.15 && it.z >= (z.start + z.end) / 2 - 1e-9, it.fakeId); }
-      if (m3.cardTypes[it.key]?.rare) assert.ok(c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && Math.abs(w.z - (it.z - cfg.rareWallGap)) < 1e-8), it.key);
+      if (m3.cardTypes[it.key]?.rare) assert.ok(rareWallOf(c, it), it.key);
     }
     assert.deepEqual(c, Stream.build(m3, cfg, { seed }));
   }
 });
 test('m1, m2 and tutorial courses unchanged by m3', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m3.json', import.meta.url)));
-  for (const seed of [1101, 1102, 42]) assert.deepEqual(Stream.build(m1, cfg, { seed }), before['m1_' + seed]);
-  for (const seed of [2201, 2202, 42]) assert.deepEqual(Stream.build(m2, cfg, { seed }), before['m2_' + seed]);
-  assert.deepEqual(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } }), before.m1_sup);
-  assert.deepEqual(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } }), before.m2_sup);
-  assert.deepEqual(Stream.build(tut, cfg, { seed: 7 }), before.tut_7);
+  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
+  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
+  assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
+  assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
+  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7));
 });
 
 // 이야기·잇기

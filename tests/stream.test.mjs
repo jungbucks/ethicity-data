@@ -1,5 +1,6 @@
 // 코스 생성 — 기획서 §4.2·§7.3 카드 흐름
 import test from 'node:test';
+import { rareWallOf } from './walls-helper.mjs';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -29,7 +30,7 @@ test('items sorted by z with unique uids', () => {
 
 test('rare cards sit behind a wall in their lane', () => {
   for (const it of c.items.filter((i) => i.ambiguousId || (i.key && m1.cardTypes[i.key].rare))) {
-    assert.ok(c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && it.z - w.z > 0 && it.z - w.z <= cfg.rareWallGap), it.uid);
+    assert.ok(rareWallOf(c, it), it.uid);
   }
 });
 
@@ -141,7 +142,7 @@ test('no wall right before a fake', () => {
   for (let seed = 1; seed <= 40; seed++) {
     const course = build(m1F, cfg, { seed });
     for (const f of fakesOf(course)) {
-      const wall = course.items.find((w) => w.kind === 'wall' && w.lane === f.lane && w.z < f.z && f.z - w.z <= cfg.rareWallGap);
+      const wall = course.items.find((w) => w.kind === 'wall' && w.lane === f.lane && w.z < f.z && f.z - w.z <= 6);
       assert.equal(wall, undefined, 'seed ' + seed);
     }
   }
@@ -165,3 +166,54 @@ test('missions without fakes unchanged', () => {
   assert.equal(cards(build(plain, cfg, { seed: 1101 })).length, n);
   assert.equal(fakesOf(build(tutorial, cfg, { seed: 7 })).length, 0);
 });
+
+// 2026-11-05 벽 간격 지시서
+const Stream = require('../js/stream.js');
+const all = { tutorial, m1, m2: require('../missions/m2.js'), m3: require('../missions/m3.js'), m4: require('../missions/m4.js') };
+const SEEDS = [1, 2, 3, 7, 8, 42, 99, 999, 1101, 1102, 2201, 2202, 3301, 3302, 3303, 3317, 4401];
+const isRare = (m, it) => !it.fakeId && (it.ambiguousId || m.cardTypes[it.key]?.rare);
+
+test('gap table: seconds shrink along the course, early and middle can be dodged, late cannot', () => {
+  assert.equal(Stream.rareGapSec(cfg, 0), 2.0); assert.equal(Stream.rareGapSec(cfg, 0.39), 2.0);
+  assert.equal(Stream.rareGapSec(cfg, 0.4), 1.2); assert.equal(Stream.rareGapSec(cfg, 0.74), 1.2);
+  assert.equal(Stream.rareGapSec(cfg, 0.75), 0.6); assert.equal(Stream.rareGapSec(cfg, 1), 0.6);
+  const dodge = 2 * cfg.laneMoveSec + cfg.catchLead;
+  assert.ok(2.0 > dodge && 1.2 > dodge, 'room to step aside and come back');
+  assert.ok(0.6 < dodge, 'late walls stay tight');
+});
+
+for (const [id, m] of Object.entries(all)) test(id + ': every rare card has its wall, dodgeable in the early stages', () => {
+  for (const seed of SEEDS) {
+    const course = build(m, cfg, { seed });
+    for (const it of cards(course).filter((i) => isRare(m, i))) {
+      const w = rareWallOf(course, it);
+      assert.ok(w, 'seed ' + seed + ' ' + it.uid);
+      const sec = Stream.rareGapSec(cfg, it.z / course.length), got = (it.z - w.z) / Stream.speedAt(cfg, it.z / course.length);
+      if (Stream.canDodge(cfg, sec)) assert.ok(got >= Stream.dodgeSec(cfg), 'seed ' + seed + ' ' + it.uid + ' gap ' + got);
+      else assert.ok(got < Stream.dodgeSec(cfg), 'late stays tight ' + got);
+    }
+  }
+});
+
+for (const [id, m] of Object.entries(all)) test(id + ': walls keep clear of other cards and never block all three lanes', () => {
+  for (const seed of SEEDS) {
+    const course = build(m, cfg, { seed }), walls = course.items.filter((i) => i.kind === 'wall');
+    for (const w of walls) {
+      assert.ok(!cards(course).some((k) => k.lane === w.lane && Math.abs(k.z - w.z) < 2), 'seed ' + seed + ' ' + w.uid);
+      assert.ok(new Set(walls.filter((o) => Math.abs(o.z - w.z) < 6).map((o) => o.lane)).size < 3, 'seed ' + seed + ' ' + w.uid);
+    }
+  }
+});
+
+test('tutorial: no card right behind a wall in its lane, first wall in an empty lane stretch', () => {
+  const course = build(tutorial, cfg, { seed: tutorial.seed }), cs = cards(course), walls = course.items.filter((i) => i.kind === 'wall');
+  assert.ok(walls.length >= 1);
+  const rows = [...new Set(cs.map((c) => c.z))].sort((a, b) => a - b);
+  for (const w of walls) {
+    const next = rows.find((z) => z > w.z);
+    assert.ok(!cs.some((c) => c.z === next && c.lane === w.lane), w.uid + ' next row');
+  }
+  const prev = rows.filter((z) => z < walls[0].z).pop(), next = rows.find((z) => z > walls[0].z);
+  assert.ok(!cs.some((c) => (c.z === prev || c.z === next) && c.lane === walls[0].lane), 'first wall lane is empty on both sides');
+});
+

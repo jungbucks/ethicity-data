@@ -42,6 +42,7 @@
     grab: function (a) { tone(a, 660, 990, 0.09, 'triangle', 0.18); },
     perfect: function (a) { tone(a, 880, 0, 0.08, 'triangle', 0.16); tone(a, 1320, 0, 0.14, 'triangle', 0.14, 0.06); tone(a, 1760, 0, 0.12, 'sine', 0.08, 0.12); },
     hit: function (a) { noise(a, 0.18, 0.35); tone(a, 140, 70, 0.18, 'square', 0.08); },
+    drop: function (a) { tone(a, 620, 180, 0.32, 'sawtooth', 0.12); tone(a, 310, 110, 0.32, 'triangle', 0.1, 0.04); },
     lane: function (a) { tone(a, 320, 260, 0.04, 'square', 0.04); },
     warn: function (a) { tone(a, 1180, 0, 0.07, 'square', 0.07); tone(a, 1180, 0, 0.07, 'square', 0.07, 0.12); },
     burn: function (a) { noise(a, 0.3, 0.45); tone(a, 220, 60, 0.3, 'sawtooth', 0.1); },

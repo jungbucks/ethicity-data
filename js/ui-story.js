@@ -191,15 +191,51 @@
     root.DR.App.go('briefing');
   }
 
+  // 튜토리얼 실기 미션 안내: 달리기 전에 목표·조작·주의를 한 번에. onStart = [시작], Esc·바깥 누르기는 브리핑으로 돌아간다
+  function tutorialGoal(mission, onStart) {
+    var A = root.DR.CardArt, coarse = root.matchMedia && root.matchMedia('(pointer: coarse)').matches;
+    var needOf = function (key) { return mission.scenes[0].combos.filter(function (c) { return c.keys.indexOf(key) >= 0; })[0].need; };
+    var goal = mission.runGoal.map(function (g) { return g.name + ' 사진 ' + needOf(g.key) + '장'; }).join('과 ');
+    var rows = mission.runGoal.map(function (g) {
+      var slots = [];
+      for (var i = 0; i < needOf(g.key); i++) {
+        slots.push(el('span', { class: 'goal-slot' }, [el('img', { src: A.card(mission, g.key, i % 3, 96, i * 3 + (g.key === 'cat' ? 1 : 0)).toDataURL(), alt: '' })]));
+      }
+      return el('div', { class: 'goal-row', 'data-goal': g.key, role: 'img', 'aria-label': g.name + ' 빈칸 ' + needOf(g.key) + '개' }, [el('b', { class: 'goal-row-name', text: g.name })].concat(slots));
+    });
+    var started = false;
+    var m = root.DR.UI.modal({
+      title: '실기 미션',
+      body: [
+        el('p', { class: 'goal-lead', text: goal + '을 모으세요.' }),
+        el('div', { class: 'goal-slots' }, rows),
+        el('dl', { class: 'goal-notes' }, [
+          el('dt', { text: '조작' }), el('dd', { text: coarse ? '좌우로 밀어 레인 이동 · 화면을 톡 눌러 잡기' : '←/→ 레인 이동 · Space 잡기' }),
+          el('dt', { text: '주의' }), el('dd', { text: '불꽃은 하트 -1 · 분홍 노이즈는 카드 1장 잃음' })
+        ])
+      ],
+      actions: [{ id: 'btn-goal-start', text: '시작', primary: true, onClick: function () { started = true; } }],
+      onClose: function () { if (started) onStart(); }
+    });
+    var btn = m.el.querySelector('#btn-goal-start');
+    btn.focus();
+    // 키를 꾹 누른 채 넘어오면(브리핑의 Enter) 바로 눌리지 않게, Tab은 창 안에서만 돈다(버튼 하나라 제자리)
+    m.el.addEventListener('keydown', function (e) {
+      if (e.repeat && (e.key === 'Enter' || e.key === ' ')) e.preventDefault();
+      if (e.key === 'Tab') { e.preventDefault(); btn.focus(); }
+    });
+  }
+
   // 튜토리얼 결과 한 장: 통과면 [다음], 실패면 귀여운 실패 + [다시 달리기]
   function tutorialResult(mission, result, handlers) {
     var screen = document.getElementById('screen-result');
     var A = root.DR.CardArt, pass = result.allPass;
-    // 실패 대사: 가방이 비었으면 따로, "한쪽만 잔뜩"은 한쪽 0장·다른 쪽 1장 이상일 때만
+    // 실패 대사: 가방이 비었으면 따로, "한쪽만 잔뜩"은 한쪽 0장이거나 한쪽이 목표를 넘겼을 때(그래서 다른 쪽이 모자람), 나머지는 "아직 적어"
     var counts = root.DR.Cards.labelCounts(mission, (root.DR.App.state && root.DR.App.state.bag) || []);
     var sides = Object.keys(mission.cardTypes).map(function (k) { return counts[k] || 0; });
     var empty = sides.every(function (n) { return n === 0; });
-    var oneSide = !empty && sides.some(function (n) { return n === 0; });
+    var need = mission.scenes[0].combos[0].need;
+    var oneSide = !empty && sides.some(function (n) { return n === 0 || n > need; });
     var lines = pass ? mission.story.pass : empty ? mission.story.empty : oneSide ? mission.story.fail : mission.story.failFew;
     screen.innerHTML = '';
     var btn = pass
@@ -301,6 +337,7 @@
   root.DR.UI.dialogue = dialogue;
   root.DR.UI.briefing = briefing;
   root.DR.UI.tutorialResult = tutorialResult;
+  root.DR.UI.tutorialGoal = tutorialGoal;
   root.DR.UI.outro = outro;
   root.DR.UI.prologue = prologue;
 })(window);

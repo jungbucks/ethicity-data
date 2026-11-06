@@ -15,7 +15,7 @@ test('four approved zones, counts, late fakes and rare wall distance', () => {
       const expected = { day_deep:'S1', day_shallow:'S1', day_wet:'S2', day_dry:'S2', q_clean:'S2', night_neon:'S3', night_deep:'S3', q_neon:'S3', night_shallow:'S4', night_muddy:'S4', q_muddy:'S4' }[it.key || it.ambiguousId];
       if (expected) assert.equal(it.zoneId, expected);
       if (it.fakeId) { assert.ok(it.z >= c.length * .5); assert.equal(it.zoneId, it.fakeId === 'f_fridge' ? 'S3' : 'S1'); }
-      if (it.ambiguousId || m.cardTypes[it.key]?.rare) assert.ok(c.items.some(w => w.kind === 'wall' && w.lane === it.lane && Math.abs(w.z - (it.z - cfg.rareWallGap)) < 1e-8));
+      if (it.ambiguousId || m.cardTypes[it.key]?.rare) assert.ok(rareWallOf(c, it), it.uid);
     }
     assert.equal(cards.filter(i => i.key === 'night_wet' && i.zoneId === 'S3').length, 3);
     assert.equal(cards.filter(i => i.key === 'night_wet' && i.zoneId === 'S4').length, 3);
@@ -30,15 +30,16 @@ test('supplements keep the map and fake in matching late zone', () => {
   }
 });
 
-// [3] 구역 배치 일반화: 1 임무·튜토리얼은 코스가 한 글자도 바뀌지 않는다(일반화 전 스냅숏)
+// [3] 구역 배치 일반화: 1 임무·튜토리얼의 카드는 그대로다(일반화 전 스냅숏). 벽은 초 단위 간격으로 옮겨서 카드만 비교
 import fs from 'node:fs';
+import { rareWallOf, cardsOf } from './walls-helper.mjs';
 const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-zones.json', import.meta.url)));
 const tut = require('../missions/tutorial.js');
 test('m1 and tutorial courses identical to before the generalisation', () => {
-  for (const seed of [1101, 1102, 1, 8, 42, 999]) assert.deepEqual(Stream.build(m, cfg, { seed }), before['m1_' + seed], 'm1 ' + seed);
-  assert.deepEqual(Stream.build(m, cfg, { seed: 1102, focusCounts: { night_deep: 2 } }), before.m1_sup_1102);
-  assert.deepEqual(Stream.build(m, cfg, { seed: 1103, focusCounts: { night_shallow: 2, night_muddy: 2, day_wet: 1 } }), before.m1_sup_1103);
-  assert.deepEqual(Stream.build(tut, cfg, { seed: 7 }), before.tut_7, 'tutorial has no zones');
+  for (const seed of [1101, 1102, 1, 8, 42, 999]) assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed })), cardsOf(before['m1_' + seed]), 'm1 ' + seed);
+  assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup_1102));
+  assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1103, focusCounts: { night_shallow: 2, night_muddy: 2, day_wet: 1 } })), cardsOf(before.m1_sup_1103));
+  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7), 'tutorial has no zones');
 });
 
 const m2 = require('../missions/m2.js');
@@ -62,9 +63,9 @@ test('m2: four scene zones, counts kept, late fakes, rare walls', () => {
         assert.ok(it.z >= (z.start + z.end) / 2 - 1e-9, 'fake in the later half of its zone ' + it.fakeId);
         const expect = { f_battery: 'S4', f_receipt: 'S3', f_toothbrush: 'S2', f_cat: 'S2' }[it.fakeId];
         assert.equal(it.zoneId, expect, it.fakeId);
-        assert.ok(!c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && it.z - w.z > 0 && it.z - w.z <= cfg.rareWallGap && Math.abs(w.z - (it.z - cfg.rareWallGap)) < 1e-8), 'no rare wall before a fake');
+        assert.ok(!c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && it.z - w.z > 0 && it.z - w.z <= 6), 'no wall right before a fake');
       }
-      if (m2.cardTypes[it.key]?.rare) assert.ok(c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && Math.abs(w.z - (it.z - cfg.rareWallGap)) < 1e-8), 'wall before rare ' + it.key);
+      if (m2.cardTypes[it.key]?.rare) assert.ok(rareWallOf(c, it), 'wall before rare ' + it.key);
     }
     assert.ok(cards.some((i) => i.key === 'can_drink' && i.zoneId === 'S1') && cards.some((i) => i.key === 'can_drink' && i.zoneId === 'S4'), 'drink cans in both can scenes');
     assert.deepEqual(c, Stream.build(m2, cfg, { seed }));

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
-const { phase, grabber } = require('../js/catch.js');
+const { phase, grabber, dropCards } = require('../js/catch.js');
 
 const card = (z, lane = 1, uid = 'a') => ({ uid, kind: 'card', key: 'day_deep', lane, z });
 const st = (over) => ({ now: 0, items: [], runnerZ: 0, speed: 16, lane: 1, bagCount: 0, bagMax: 30, taken: new Set(), ...over });
@@ -91,3 +91,13 @@ test('perfect works on both sides of contact', () => {
   const g = grabber(cfg); g.press(0);
   assert.equal(g.update(st({ items: [card(-0.8)] })).perfect, true);
 });
+
+test('wall penalty drops the most recent card, nothing from an empty list', () => {
+  const g = [{ uid: 'c1' }, { uid: 'c2' }, { uid: 'c3' }];
+  assert.deepEqual(dropCards(g, { drop: 1, pick: 'last' }).map((c) => c.uid), ['c3']);
+  assert.deepEqual(g.map((c) => c.uid), ['c1', 'c2']);
+  assert.deepEqual(dropCards(g, { drop: 1, pick: 'first' }).map((c) => c.uid), ['c1']);
+  assert.deepEqual(dropCards(g, { drop: 5, pick: 'last' }).map((c) => c.uid), ['c2'], 'no more than the bag holds');
+  assert.deepEqual(dropCards(g, { drop: 1, pick: 'last' }), []);
+});
+

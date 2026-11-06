@@ -13,10 +13,14 @@
     catchLate: 0.12,        // s — 닿은 직후에도 이만큼은 잡힌다(닿는 순간 누르는 손 버릇)
     perfectWindow: 0.08,    // s — 닿는 순간 ± 이 안이면 퍼펙트(연출만)
     grabBuffer: 0.15,       // s — 잡기 입력을 이만큼 들고 있는다(레인 이동 직전·직후 허용)
+    laneMoveSec: 0.12,      // s — 레인 한 칸 옮겨 가는 시간(화면 보간, 벽 간격 계산에도 쓴다)
     wallSlow: { factor: 0.5, seconds: 1 },  // 벽·불꽃 충돌 감속
+    wallPenalty: { drop: 1, pick: 'last', invuln: 0.5 },  // 벽에 부딪히면 가방에서 잃는 카드 — 장 수·고르는 법('last' 최근 / 'first' 처음)·다시 안 잃는 시간 s
     hp: 3,                  // 불꽃에 이만큼 맞으면 연결이 끊겨 그 달리기를 처음부터
     fire: { warn: 1.2, speed: 14, invuln: 1 },  // 경고 s · 날아오는 속도 m/s · 맞은 뒤 무적 s
-    rareWallGap: 6,         // m — 드문 카드 앞 벽까지 최대 거리
+    rareWallGapSec: [[0, 2.0], [0.4, 1.2], [0.75, 0.6]],  // [코스 진행 비율, s] — 드문 카드 앞 벽까지 시간. 그 비율부터 다음 칸 전까지(거리 = 그 지점 속도 × 초)
+    bagFullRush: { speed: 1.5 },  // 가방이 차면 결승선까지 이 배수로 달린다(카드를 잃으면 원래 속도)
+    finish: { gate: 3, slow: 1.2, fade: 0.8, fadeIn: 0.4, flash: 0.5, reducedFade: 0.3, skipAfter: 0.3 },  // s — 결승 게이트 보이는 구간·감속·어두워짐·다음 화면 밝아짐·HP 0 빨간 플래시·움직임 줄이기 페이드·건너뛰기 허용 시작
     swipeMin: 30,           // px
     maxDt: 0.05,            // s — 프레임 간격 상한(탭 전환 뒤 건너뛰기 방지)
     ambiguousWeight: 2,     // 올바르게 분류한 "?" 카드는 2장 몫

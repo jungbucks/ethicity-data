@@ -47,6 +47,7 @@ async function walkInto(page) {
     await page.evaluate(() => { DR.Run.setPaused(true); DR.App.debugFill({ day_deep: 2 }); DR.Run.debugSetHp(1); });
     const firstUid = await page.evaluate(() => DR.App.course.items[0].uid + DR.App.course.items.length);
     await walkInto(page);
+    assert.ok(await stepUntil(page, 'return !p.running;'), 'knockout finishes'); // 빨간 플래시 뒤 페이드(runner-browser)
     await page.locator('#screen-knockout').waitFor({ state: 'visible', timeout: 3000 });
     assert.match(await page.locator('#screen-knockout').innerText(), /연결이 끊겼다/);
     await page.locator('#btn-rerun').click();

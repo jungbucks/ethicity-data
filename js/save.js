@@ -42,6 +42,7 @@
   }
 
   // 저장 내용: 미션 id, 화면, 가방 카드 목록("?" 설명표·동기 카드 고정 포함), 보충 횟수, 튜토리얼 완료, 필요 장수 공개 플래그,
+  //   lost = 직전 달리기에서 노이즈로 잃은 카드 수(검수 화면 한 줄, 없는 옛 저장은 0)
   //   4 임무 결판: peer('none'|'joined'|'fixed')·peerPending(보충 뒤 동기 카드가 들어올 차례)·showdownPassed
   function checkpoint(screen, state, flags, st) {
     st = storage(st);
@@ -50,7 +51,7 @@
       v: 1, screen: screen, mission: state.mission,
       bag: (state.bag || []).map(function (c) { var o = {}; Object.keys(c).forEach(function (k) { if (c[k] !== undefined) o[k] = c[k]; }); return o; }),
       supplements: state.supplements || 0, firstTry: state.firstTry === undefined ? null : state.firstTry,
-      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [], named: state.named || [],
+      seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [], named: state.named || [], lost: state.lost || 0,
       peer: state.peer || 'none', peerPending: !!state.peerPending, showdownPassed: !!state.showdownPassed,
       tutorialDone: !!((flags && flags.tutorialDone) || prev.tutorialDone),
       records: prev.records || {},
@@ -67,9 +68,16 @@
     return {
       mission: o.mission || null, screen: o.screen || null, bag: o.bag || [],
       supplements: o.supplements || 0, firstTry: o.firstTry === undefined ? null : o.firstTry,
-      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], named: o.named || [], tutorialDone: !!o.tutorialDone,
+      seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], named: o.named || [], lost: o.lost || 0, tutorialDone: !!o.tutorialDone,
       peer: o.peer || 'none', peerPending: !!o.peerPending, showdownPassed: !!o.showdownPassed
     };
+  }
+
+  // 지켜야 할 세이브가 있나: 임무 진행·튜토리얼 완료·임무 기록 중 하나라도(튜토리얼 도중에 멈춘 체크포인트만 있으면 없는 것으로 친다)
+  function hasSave(st) {
+    var o = read(storage(st));
+    if (!o) return false;
+    return !!((o.mission && o.mission !== 'tutorial') || o.tutorialDone || (o.records && Object.keys(o.records).length));
   }
 
   function markTutorialDone(st) {
@@ -154,7 +162,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -2,12 +2,15 @@
  * 3D 3레인 달리기(spec §4) — 러너 뒤에서 따라가는 카메라, 자동 전진.
  * 판정(잡기·벽)은 코스 z 좌표로 계산하고, 화면은 그 상태를 그린다. three.js 세계에서 앞쪽은 -z.
  * 테스트·조정용: step(dt)·peek()·setPaused()·finishNow()·course()·isTaken().
+ * 끝맺음: 결승선을 지나면(또는 HP 0) 입력을 잠그고 감속 → 어두워짐 → onEnd → 다음 화면 밝아짐(config.finish). finishNow는 연출 없이 바로 끝난다.
  */
 (function (root) {
   'use strict';
 
-  var VIEW_AHEAD = 150, VIEW_BEHIND = 12, ROAD_LEN = 220, LINE_GAP = 4;
+  var VIEW_AHEAD = 150, VIEW_BEHIND = 12, ROAD_LEN = 220, LINE_GAP = 4, WALL_H = 1.05;
+  var WALL_HINT_SEC = 2, RARE_HINT_LEAD = 1.5; // s — 첫 벽 안내·드문 카드 안내를 띄우는 시점(벽에 닿기 전)
   var S = null; // 현재 달리기 상태(한 번에 하나)
+  var fadeTimer = null;
 
   function cfg() { return root.DR.config; }
   function laneX(l) { return (l - 1) * cfg().laneWidth; }
@@ -170,10 +173,35 @@
       g.userData = { glow: glow, mark: mark };
       g.position.set(laneX(item.lane), 1.1, -item.z);
     } else {
-      var wall = new THREE.Mesh(new THREE.BoxGeometry(cfg().laneWidth * 0.98, 0.45, 0.35), new THREE.MeshBasicMaterial({ map: S.view.wallTex, transparent: true, opacity: 0.55, depthWrite: false }));
-      g.add(wall);
-      g.position.set(laneX(item.lane), 0.28, -item.z);
+      // 서 있는 반투명 노이즈 벽(주인공 허리 높이) + 윗면 띠 — 멀리서도, 뒤 카드와도 구분되게
+      var wall = new THREE.Mesh(new THREE.BoxGeometry(cfg().laneWidth * 0.94, WALL_H, 0.3), new THREE.MeshBasicMaterial({ map: S.view.wallTex, transparent: true, opacity: 0.72, depthWrite: false }));
+      var cap = new THREE.Mesh(new THREE.BoxGeometry(cfg().laneWidth * 0.94, 0.09, 0.34), new THREE.MeshBasicMaterial({ color: 0xffa2d3 }));
+      cap.position.y = WALL_H / 2;
+      g.add(wall); g.add(cap);
+      g.position.set(laneX(item.lane), WALL_H / 2, -item.z);
     }
+    S.view.scene.add(g);
+    return g;
+  }
+
+  // 결승 게이트(코스 끝 z, 마지막 config.finish.gate초 구간부터 보인다)
+  function makeGate() {
+    var W = cfg().laneWidth * 3 + 1.2, H = 5.2, g = new THREE.Group();
+    var post = new THREE.MeshBasicMaterial({ color: 0x7ff9ff });
+    [-1, 1].forEach(function (side) {
+      var p = new THREE.Mesh(new THREE.BoxGeometry(0.3, H, 0.3), post);
+      p.position.set(side * W / 2, H / 2, 0); g.add(p);
+    });
+    var tex = canvasTex(512, 96, function (c, w, h) {
+      for (var x = 0; x < w; x += 24) for (var y = 0; y < h; y += 24) { c.fillStyle = ((x + y) / 24) % 2 ? '#ffffff' : '#1f1652'; c.fillRect(x, y, 24, 24); }
+      c.fillStyle = '#1f1652'; c.fillRect(150, 10, 212, 76);
+      c.fillStyle = '#ffd24a'; c.font = 'bold 60px "Malgun Gothic", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('도착', w / 2, h / 2 + 2);
+    });
+    var banner = new THREE.Mesh(new THREE.PlaneGeometry(W, W * 96 / 512), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+    banner.position.set(0, H, 0); g.add(banner);
+    g.position.set(0, 0, -S.course.length);
+    g.visible = false;
     S.view.scene.add(g);
     return g;
   }
@@ -190,7 +218,14 @@
   /* ---------- 상태 ---------- */
   function currentSpeed() {
     var c = cfg(), progress = Math.min(1, S.z / S.course.length);
-    return c.baseSpeed * (1 + c.speedRamp * progress) * (S.t < S.slowedUntil ? c.wallSlow.factor : 1);
+    if (S.finishing) { var f = S.finishing; return f.speed0 * Math.pow(1 - Math.min(1, f.slow > 0 ? f.t / f.slow : 1), 1.6); } // 끝맺음: 부드럽게 멈춘다
+    var rush = 1 + (c.bagFullRush.speed - 1) * S.rushAmt;
+    return c.baseSpeed * (1 + c.speedRamp * progress) * (S.t < S.slowedUntil ? c.wallSlow.factor : 1) * rush;
+  }
+
+  // 이 카드 앞(같은 레인, 러너와 카드 사이)에 아직 지나지 않은 벽이 있나 — 있으면 카드는 3D로만 그린다(벽이 앞에 보이게)
+  function behindWall(it) {
+    return S.course.items.some(function (w) { return w.kind === 'wall' && w.lane === it.lane && w.z > S.z && w.z < it.z; });
   }
 
   function bagCount() { return S.startBag + S.grabbed.length; }
@@ -232,6 +267,7 @@
     var m = S.meshes[item.uid];
     if (m) removeMesh(item.uid);
     bump(); updateHud();
+    if (bagCount() >= S.bagMax && !S.rush) { S.rush = true; showHint('가방이 꽉 찼어! 결승선까지 달려', 2.5); }
   }
 
   function burst(item) {
@@ -255,7 +291,7 @@
     S.invulnUntil = S.t + cfg().fire.invuln;
     root.DR.Sfx.play('burn');
     updateHud();
-    if (S.hp <= 0) { S.knockedOut = true; end(); }
+    if (S.hp <= 0) { S.knockedOut = true; beginFinish('knockout'); }
   }
 
   function hitWall(w) {
@@ -264,6 +300,16 @@
     S.slowedUntil = S.t + cfg().wallSlow.seconds;
     S.shakeUntil = S.t + 0.3;
     root.DR.Sfx.play('hit');
+    // 페널티: 이번 달리기에 담은 카드만 잃는다(보충 때 들고 들어온 가방은 이미 검수한 것). 잠깐은 또 잃지 않는다
+    if (S.t < S.dropSafeUntil) return;
+    var p = cfg().wallPenalty, lost = root.DR.Catch.dropCards(S.grabbed, p);
+    if (!lost.length) return;
+    S.dropSafeUntil = S.t + p.invuln;
+    S.lost = S.lost.concat(lost);
+    S.feedback.drop(lost, S.t);
+    root.DR.Sfx.play('drop');
+    S.rush = false;
+    updateHud();
   }
 
   /* ---------- 진행 ---------- */
@@ -272,16 +318,19 @@
     dt = Math.min(dt, cfg().maxDt);
     if (!(dt > 0)) return;
     S.t += dt;
+    if (S.finishing) { finishStep(dt); return; }
+    S.rushAmt = Math.max(0, Math.min(1, S.rushAmt + (S.rush ? dt : -dt) * 3)); // 가방 찬 뒤 가속·복귀는 1/3초에 걸쳐
     var speed = currentSpeed();
     var prevZ = S.z;
     S.z += speed * dt;
     var items = S.course.items;
     for (var i = 0; i < items.length; i++) {
       var w = items[i];
+      if (S.finishing) break;
       if (w.kind === 'wall' && w.lane === S.lane && w.z > prevZ && w.z <= S.z && !S.hitWalls.has(w.uid)) hitWall(w);
       else if (w.kind === 'fire' && w.lane === S.lane && w.z > prevZ && w.z <= S.z && !S.hitFires.has(w.uid)) hitFire(w);
     }
-    if (!S.running) return;
+    if (S.finishing) { animate(dt, speed); return; }
     // 경고: 다음 불꽃이 경고 거리 안에 들어오면(레인 무관) 띠·경고음, 첫 불꽃엔 안내 한 줄
     var warnDist = Math.max(speed, cfg().baseSpeed) * cfg().fire.warn, warn = null;
     for (var j = 0; j < items.length; j++) {
@@ -293,9 +342,11 @@
       if (!S.fireHintShown) { S.fireHintShown = true; showHint('불꽃! 레인을 바꿔 피하기', 2); }
     }
     S.warning = warn;
-    if (!S.rareHintShown && items.some(function (it) {
-      return it.kind === 'card' && !it.fakeId && (it.ambiguousId || (S.mission.cardTypes[it.key] || {}).rare) && it.z - S.z > 0 && it.z - S.z < 42;
-    })) { S.rareHintShown = true; showHint('귀한 데이터: 노이즈를 지나야 잡을 수 있음', 3); }
+    rareHint(items, speed);
+    // 첫 벽이 나오기 직전 한 번(튜토리얼 mission.wallHint)
+    if (S.mission.wallHint && !S.wallHintShown && items.some(function (it) { return it.kind === 'wall' && it.z > S.z && it.z - S.z < speed * WALL_HINT_SEC; })) {
+      S.wallHintShown = true; showHint(S.mission.wallHint, 2.5);
+    }
     // 첫 가짜 카드가 판정 구간 가까이 오면 한 번만 안내(맞다/틀리다는 알리지 않는다, spec §3.4)
     if (!S.fakeHintShown) {
       var fakeDist = Math.max(speed, cfg().baseSpeed) * cfg().catchLead * 2;
@@ -326,18 +377,83 @@
     if (S.hintAt && S.t > S.hintUntil) hideHint();
     animate(dt, speed);
     updateHud();
-    if (S.z >= S.course.length) end();
+    if (S.z >= S.course.length) beginFinish('arrive');
+  }
+
+  // 드문 카드 안내는 구간마다 한 번: 벽을 피할 수 있는 구간 / 카드 1장을 내주고 잡을지 고르는 구간. 그 벽이 보이기 시작할 때 띄운다
+  function rareHint(items, speed) {
+    var Stream = root.DR.Stream, c = cfg();
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i], d = it.z - S.z;
+      if (d <= 0 || it.kind !== 'card' || it.fakeId || !(it.ambiguousId || (S.mission.cardTypes[it.key] || {}).rare)) continue;
+      var sec = Stream.rareGapSec(c, it.z / S.course.length);
+      if (d > speed * (sec + RARE_HINT_LEAD)) return; // 코스는 z 순서라 이 뒤는 더 멀다
+      var stage = Stream.canDodge(c, sec) ? 'early' : 'late';
+      if (S.rareHints[stage]) return;
+      S.rareHints[stage] = true;
+      showHint(stage === 'early' ? '귀한 데이터! 노이즈를 피해 돌아 들어가' : '노이즈를 지나면 카드 1장을 잃어. 그래도 잡을까?', 3);
+      return;
+    }
+  }
+
+  /* ---------- 끝맺음(결승선 통과·HP 0) ---------- */
+  function fadeEl() { return document.getElementById('run-fade'); }
+  function hudVisible(on) { var h = document.getElementById('hud'); if (h) h.classList.toggle('hud-off', !on); }
+
+  function beginFinish(kind) {
+    if (!S || !S.running || S.finishing) return;
+    var c = cfg().finish, rm = reducedMotion(), speed0 = currentSpeed();
+    S.finishing = { kind: kind, t: 0, speed0: speed0, slow: rm ? 0 : (kind === 'knockout' ? c.flash : c.slow), fade: rm ? c.reducedFade : c.fade, dark: false };
+    hideHint();
+  }
+
+  function finishStep(dt) {
+    var f = S.finishing;
+    f.t += dt;
+    var speed = currentSpeed();
+    S.z += speed * dt;
+    animate(dt, speed);
+    updateHud();
+    var el = fadeEl();
+    if (!f.dark && f.t >= f.slow) {
+      f.dark = true;
+      hudVisible(false);
+      S.feedback.hide();
+      if (el) {
+        el.hidden = false; el.style.transition = 'none'; el.style.opacity = '0'; el.classList.toggle('fail', f.kind === 'knockout');
+        el.firstChild.textContent = reducedMotion() ? '' : f.kind === 'knockout' ? '연결 끊김' : '도착 · 가방 ' + bagCount() + '/' + S.bagMax;
+      }
+    }
+    if (f.dark && el) el.style.opacity = String(Math.min(1, (f.t - f.slow) / f.fade));
+    if (f.t >= f.slow + f.fade) end();
+  }
+
+  // Space·클릭으로 연출 건너뛰기 — 잡기를 연타하던 손에 바로 넘어가지 않게 잠깐 뒤부터
+  function skipFinish() {
+    if (S && S.finishing && S.finishing.t >= cfg().finish.skipAfter) end();
+  }
+
+  // 어두운 막을 걷어 다음 화면이 밝아진다(onEnd가 화면을 바꾼 뒤에도 막은 남아 있다)
+  function clearFade(sec) {
+    var el = fadeEl();
+    if (!el) return;
+    clearTimeout(fadeTimer);
+    if (el.hidden) return;
+    if (!sec) { el.hidden = true; return; }
+    el.style.transition = 'opacity ' + sec + 's linear'; el.style.opacity = '0';
+    fadeTimer = setTimeout(function () { el.hidden = true; }, sec * 1000 + 30);
   }
 
   function animate(dt, speed) {
     var v = S.view, c = cfg(), rm = reducedMotion();
     // 레인 보간(0.12초) + 기울기
     var tx = laneX(S.lane);
-    var k = Math.min(1, dt / 0.12 * 2.2);
+    var k = Math.min(1, dt / c.laneMoveSec * 2.2);
     S.x += (tx - S.x) * k;
     v.runner.position.set(S.x, 0, -S.z);
     v.runner.rotation.z = -(tx - S.x) * 0.18;
-    var sw = Math.sin(S.t * speed * 0.75);
+    S.stride += dt * speed * 0.75; // 속도가 변해도 걸음이 튀지 않게 쌓아 간다(끝맺음 감속)
+    var sw = Math.sin(S.stride);
     v.limbs.la.rotation.x = sw * 0.9; v.limbs.ra.rotation.x = -sw * 0.9;
     v.limbs.ll.rotation.x = -sw * 0.8; v.limbs.rl.rotation.x = sw * 0.8;
     S.legSwing = v.limbs.ll.rotation.x;
@@ -399,7 +515,7 @@
       if (it.kind !== 'card') continue;
       var active = root.DR.Catch.phase(it, S.z, speed, c) === 'active';
       var mine = active && it.lane === S.lane;
-      m.visible = m.visible && d > 34;
+      m.visible = m.visible && (d > 34 || behindWall(it)); // 34m 안은 화면 카드(run-feedback)가 맡되, 벽 뒤 카드는 벽을 지날 때까지 3D로
       m.userData.frame.material.color.set(root.DR.Cards.runColor(S.mission, it));
       m.userData.face.material.color.setHex(full && active ? 0x888899 : 0xffffff);
       var sc = mine && !full ? 1.12 + 0.04 * Math.sin(S.t * 18) : 1;
@@ -407,7 +523,8 @@
       m.position.y = 1.45 + Math.sin(S.t * 3 + i) * 0.06;
     }
     S.camera.updateMatrixWorld();
-    S.feedback.update({ course: S.course, taken: S.taken, z: S.z, speed: speed, lane: S.lane, full: full, camera: S.camera, t: S.t });
+    v.gate.visible = S.course.length - S.z <= c.baseSpeed * (1 + c.speedRamp) * c.finish.gate;
+    S.feedback.update({ course: S.course, taken: S.taken, grabbed: S.grabbed, behindWall: behindWall, z: S.z, speed: speed, lane: S.lane, full: full, camera: S.camera, t: S.t });
     // 잡은 카드가 가방 쪽(화면 왼쪽 위)으로 날아간다
     S.flying = S.flying.filter(function (f) {
       f.t += dt;
@@ -479,8 +596,17 @@
     if (!S || !S.running) return;
     S.running = false;
     hideHint();
-    var res = { grabbed: S.grabbed.slice(), hits: S.hits, perfects: S.perfects, knockedOut: !!S.knockedOut };
+    var res = { grabbed: S.grabbed.slice(), lost: S.lost.slice(), hits: S.hits, perfects: S.perfects, knockedOut: !!S.knockedOut };
+    var faded = !!S.finishing && !reducedMotion();
     if (S.onEnd) S.onEnd(res);
+    clearFade(faded ? cfg().finish.fadeIn : 0);
+  }
+
+  // 연출 없이 바로 끝낸다(디버그·테스트 — 켜져 있던 막도 바로 걷는다)
+  function finishNow() {
+    if (!S || !S.running) return;
+    S.finishing = null;
+    end();
   }
 
   /* ---------- 공개 API ---------- */
@@ -491,6 +617,7 @@
       startBag: (opts.bag || []).length, bagMax: opts.bagMax,
       t: 0, z: 0, lane: 1, x: 0, camX: 0, slowedUntil: 0, shakeUntil: 0,
       taken: new Set(), hitWalls: new Set(), hitFires: new Set(), grabbed: [], hits: 0, perfects: 0,
+      lost: [], dropSafeUntil: 0, rush: false, rushAmt: 0, finishing: null, stride: 0, rareHints: {}, wallHintShown: false,
       hp: cfg().hp, invulnUntil: 0, warning: null, fireHintShown: false, fakeHintShown: false, knockedOut: false, hintUntil: 3,
       meshes: {}, flying: [], bursts: [], cardTex: {}, disposables: [],
       running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false
@@ -503,21 +630,25 @@
     S.camera = new THREE.PerspectiveCamera(56, 1, 0.1, 400);
     S.heroId = DR.Save ? DR.Save.hero() : 'onyu';
     S.view = buildScene();
+    S.view.gate = makeGate();
     if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view, S.mission);
     S.feedback = root.DR.RunFeedback.create(container, S.mission, S.course);
     // 조작을 막는 건 일시정지 메뉴·도움말 같은 열린 다이얼로그다. S.paused(setPaused)는 시계만 멈춘다 —
     // 테스트가 시계를 멈춘 채 step()으로 한 칸씩 굴리며 키를 누르기 때문(메뉴는 언제나 다이얼로그로 뜬다).
-    function inputBlocked() { return !S || !S.running || !!document.querySelector('dialog[open]'); }
+    function inputBlocked() { return !S || !S.running || !!S.finishing || !!document.querySelector('dialog[open]'); }
     S.unbind = root.DR.Input.bind(container, {
       lane: function (dir) {
         if (inputBlocked()) return;
         var nl = Math.max(0, Math.min(2, S.lane + dir));
         if (nl !== S.lane) { S.lane = nl; root.DR.Sfx.play('lane'); hideHint(); }
       },
-      grab: function () { if (!inputBlocked()) { root.DR.Sfx.unlock(); S.grabber.press(S.t);
+      grab: function () { skipFinish(); if (!inputBlocked()) { root.DR.Sfx.unlock(); S.grabber.press(S.t);
         var available = S.course.items.some(function (it) { return it.kind === 'card' && it.lane === S.lane && !S.taken.has(it.uid) && root.DR.Catch.phase(it, S.z, currentSpeed(), cfg()) === 'active'; });
         if (!available) { S.emptyUntil = S.t + 0.22; var bag = document.getElementById('hud-bag'); bag.classList.remove('empty-grab'); void bag.offsetWidth; bag.classList.add('empty-grab'); } } }
     }, cfg());
+    S.onClick = function () { skipFinish(); };
+    container.addEventListener('click', S.onClick);
+    hudVisible(true); clearFade(0);
     S.onVis = function () { S.hidden = document.hidden; S.last = null; };
     document.addEventListener('visibilitychange', S.onVis);
     S.ro = new ResizeObserver(resize);
@@ -537,6 +668,8 @@
     if (!S) return;
     root.cancelAnimationFrame(S.raf);
     if (S.unbind) S.unbind();
+    S.container.removeEventListener('click', S.onClick);
+    hudVisible(true);
     document.removeEventListener('visibilitychange', S.onVis);
     if (S.ro) S.ro.disconnect();
     var mute = document.getElementById('btn-mute');
@@ -554,7 +687,7 @@
     start: start,
     stop: stop,
     step: step,
-    finishNow: end,
+    finishNow: finishNow,
     setPaused: function (p) { if (S) { S.paused = !!p; S.last = null; } },
     course: function () { return S ? S.course : null; },
     isTaken: function (uid) { return !!(S && S.taken.has(uid)); },
@@ -569,7 +702,7 @@
     },
     peek: function () {
       if (!S) return { running: false };
-      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, linesShown: S.linesShown || [], pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
+      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, lost: S.lost.length, rush: S.rush, finishing: S.finishing ? S.finishing.kind : null, gate: !!(S.view && S.view.gate.visible), running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, linesShown: S.linesShown || [], pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null };
     }
   };
 

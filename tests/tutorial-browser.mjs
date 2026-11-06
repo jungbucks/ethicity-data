@@ -31,6 +31,8 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     assert.ok(!/\d+\s*장|필요/.test(brief), 'no collection list');
     if (viewport.width === 375) await page.screenshot({ path: shotPath('briefing-375') });
     await page.locator('#btn-run').click();
+    await page.locator('#btn-goal-start').click(); // 실기 미션 안내(runner-browser가 내용을 본다)
+    await page.waitForFunction(() => DR.App.screen === 'run');
 
     assert.ok(await visible('run'), 'run');
     // 달리는 카드 그림 = 개·고양이 사진(카드 번호 % 8, 개 → d01~d08 · 고양이 → c01~c08), 이름표는 코드가 얹음
@@ -53,7 +55,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
     assert.equal(await page.evaluate(() => DR.Run.peek().bagCount), 0, 'bag emptied');
 
-    await finishWith({ dog: 3, cat: 3 });
+    await finishWith({ dog: 5, cat: 5 });
     assert.ok(await visible('result'), 'result after pass');
     assert.equal(await page.locator('#btn-retry').count(), 0);
     await page.locator('#btn-next').click();

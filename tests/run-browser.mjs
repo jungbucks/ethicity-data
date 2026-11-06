@@ -77,7 +77,9 @@ try {
   await page.evaluate(() => DR.Run.finishNow());
   const res = await page.evaluate(() => window.__runResult);
   assert.ok(res && Array.isArray(res.grabbed), 'onEnd called');
-  assert.equal(res.grabbed.length, before + 1);
+  // 위에서 일부러 벽에 부딪혔으니 방금 담은 카드 1장을 잃었다(2026-11-05 벽 페널티)
+  assert.equal((await peek()).lost, 1, 'wall took one card');
+  assert.equal(res.grabbed.length, before);
   assert.equal((await peek()).running, false);
   assert.deepEqual(errors, []);
   console.log('PASS run');

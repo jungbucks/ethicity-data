@@ -54,6 +54,7 @@
     function close() { if (d.open) d.close(); }
     (opts.actions || [{ text: '닫기' }]).forEach(function (a) {
       var b = el('button', { class: 'btn' + (a.primary ? ' btn-primary' : ''), type: 'button', text: a.text });
+      if (a.id) b.id = a.id;
       b.addEventListener('click', function () { DR.Sfx.play('ui'); if (!a.onClick || a.onClick() !== false) close(); });
       acts.appendChild(b);
     });
@@ -74,7 +75,7 @@
       el('h3', { text: '조작' }),
       el('p', { text: coarse ? '좌우로 밀어 레인 이동 · 화면을 톡 눌러 잡기 (키보드: ←/→ 레인 이동 · Space 잡기)' : '←/→ 레인 이동 · Space 잡기 (터치: 좌우로 밀기 · 톡 눌러 잡기) · Esc/P 일시정지' }),
       el('h3', { text: '장애물' }),
-      el('p', { text: '불꽃: 맞으면 HP가 줄어요. 빨간 경고가 뜬 레인을 피하세요. · 노이즈 벽: 부딪히면 잠깐 느려져요.' })
+      el('p', { text: '불꽃: 맞으면 HP가 줄어요. 빨간 경고가 뜬 레인을 피하세요. · 노이즈 벽: 부딪히면 잠깐 느려지고, 가장 최근에 담은 카드 1장을 잃어요.' })
     ];
     if (mission) {
       body.push(el('h3', { text: '카드 아이콘' }), legend(mission));

@@ -12,7 +12,8 @@
 
   /* ---------- 일시정지 ---------- */
   var menu = null;
-  function running() { return DR.App.screen === 'run' && DR.Run.peek().running; }
+  // 결승 연출 중에는 일시정지가 없다(버튼·Esc·P·자동 일시정지 모두 여기서 막힌다)
+  function running() { var p = DR.Run.peek(); return DR.App.screen === 'run' && p.running && !p.finishing; }
   function resume() { DR.Run.setPaused(false); }
 
   function openPause() {
@@ -135,7 +136,30 @@
   }
   function missionThumb(m, src) {
     if (src) return src;
-    try { return DR.CardArt.scene(DR.Missions[m], 'S1', 'neutral', 320).toDataURL(); } catch (e) { return ''; } // 썸네일 그림이 없는 임무는 코드 그림
+    return missionThumbScene(m, 'S1'); // 썸네일 그림이 없는 임무는 코드 그림
+  }
+
+  // 연습 카드: 저장된 진행을 건드리지 않고 튜토리얼만(세이브가 없으면 [시작하기]와 같은 처음 흐름). 임무 고르기 맨 앞
+  function practiceCard() {
+    var first = !DR.Save.hasSave(), rec = DR.App.records && DR.App.records.tutorial, s = DR.Save.load();
+    var status = (rec && rec.cleared) || (s && s.tutorialDone) ? '완료' : '아직';
+    var b = el('button', { id: 'btn-practice', class: 'mission-card practice-card' + (first ? ' is-first' : ''), type: 'button', 'aria-label': '연습 · 러너 자격 시험', 'aria-describedby': 'mc-practice-hook mc-practice-status', 'data-status': status }, [
+      el('img', { class: 'mc-thumb', src: missionThumbScene('tutorial', 'T1'), alt: '' }),
+      el('span', { class: 'mc-body' }, [
+        el('b', { class: 'mc-title', text: '연습 · 러너 자격 시험' }),
+        el('span', { id: 'mc-practice-hook', class: 'mc-hook', text: '강아지 5장, 고양이 5장. 달리기 손부터 풀어 볼까?' }),
+        el('span', { id: 'mc-practice-status', class: 'mc-status', text: status }),
+        first ? el('span', { class: 'mc-first', text: '처음이라면 여기부터' }) : null
+      ])
+    ]);
+    b.addEventListener('click', function () {
+      DR.Sfx.unlock(); DR.Sfx.play('ui');
+      leave(first ? DR.App.startTutorial : DR.App.practiceTutorial);
+    });
+    return b;
+  }
+  function missionThumbScene(id, scene) {
+    try { return DR.CardArt.scene(DR.Missions[id], scene, 'neutral', 320).toDataURL(); } catch (e) { return ''; }
   }
 
   // 임무 고르기 — 팀원이 반복해서 볼 때 앞을 다시 하지 않게(spec §6). 고르면 그 임무 도입부터(저장된 진행은 브리핑에서 덮어씀)
@@ -144,6 +168,7 @@
     if (!box) return;
     box.innerHTML = '';
     box.appendChild(el('span', { class: 'title-missions-label', text: '임무 고르기' }));
+    box.appendChild(practiceCard());
     MISSION_CARDS.forEach(function (p) {
       if (!DR.Missions[p[0]]) return;
       var status = missionStatus(p[0]);

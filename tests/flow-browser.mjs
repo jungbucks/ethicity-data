@@ -30,6 +30,7 @@ try {
   await skipTalk(page); // 시험관 대화
   assert.ok(await page.locator('#screen-briefing .legend li').count() >= 2, 'tutorial legend');
   await page.locator('#btn-run').click();
+  await page.locator('#btn-goal-start').click();
   await waitRun(page);
 
   // P1 버그 2: 빈 가방
@@ -50,12 +51,12 @@ try {
   assert.match(t, /너무 적어/);
   // 합격 → 가방 구성 한 줄
   await page.locator('#btn-retry').click(); await waitRun(page);
-  await fillAndFinish(page, { dog: 3, cat: 4 });
+  await fillAndFinish(page, { dog: 5, cat: 5 });
   await page.locator('#btn-next').click();
   await page.locator('#screen-story').waitFor();
   const talk = [];
   for (let i = 0; i < 4 && await page.locator('#screen-story').isVisible(); i++) { talk.push(await page.locator('#screen-story').innerText()); await page.locator('#screen-story .dialog').click(); }
-  assert.ok(talk.some((x) => /개 3장, 고양이 4장/.test(x)), 'pass count line');
+  assert.ok(talk.some((x) => /개 5장, 고양이 5장/.test(x)), 'pass count line');
   assert.equal((await save(page)).tutorialDone, true, 'tutorialDone saved');
   // 도시 복구 0 → 1/5(튜토리얼 마무리 대화 뒤)
   await page.locator('#screen-city').waitFor();

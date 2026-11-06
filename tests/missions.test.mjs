@@ -42,9 +42,9 @@ test('no forbidden copy', () => {
 });
 
 
-test('tutorial needs 3 dogs and 3 cats in a 10-card bag', () => {
+test('tutorial needs 5 dogs and 5 cats in a 10-card bag', () => {
   assert.equal(tutorial.bag, 10);
-  assert.deepEqual(tutorial.scenes[0].combos.map((c) => [c.keys[0], c.need]), [['dog', 3], ['cat', 3]]);
+  assert.deepEqual(tutorial.scenes[0].combos.map((c) => [c.keys[0], c.need]), [['dog', 5], ['cat', 5]]);
 });
 
 test('cast covers every speaker', () => {
@@ -55,7 +55,7 @@ test('cast covers every speaker', () => {
 });
 
 test('config has the tuning keys', () => {
-  for (const k of ['baseSpeed', 'speedRamp', 'laneWidth', 'catchLead', 'perfectWindow', 'grabBuffer', 'wallSlow', 'rareWallGap', 'swipeMin', 'maxDt', 'ambiguousWeight', 'maxSupplements', 'supplementFreeSlots', 'randomSeed']) assert.ok(k in cfg, k);
+  for (const k of ['baseSpeed', 'speedRamp', 'laneWidth', 'catchLead', 'perfectWindow', 'grabBuffer', 'wallSlow', 'wallPenalty', 'rareWallGapSec', 'laneMoveSec', 'bagFullRush', 'finish', 'swipeMin', 'maxDt', 'ambiguousWeight', 'maxSupplements', 'supplementFreeSlots', 'randomSeed']) assert.ok(k in cfg, k);
 });
 
 test('rng is deterministic', () => {

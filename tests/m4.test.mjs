@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { rareWallOf, cardsOf } from './walls-helper.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
@@ -215,7 +216,7 @@ test('m4 run: four zones, counts, fakes late in their own zone, rare walls', () 
         assert.equal(it.zoneId, f.scenes[f.scenes.length - 1], it.fakeId);
         assert.ok(it.z >= c.length * 0.15 && it.z >= (z.start + z.end) / 2 - 1e-9, it.fakeId + ' late');
       }
-      if (it.ambiguousId || m4.cardTypes[it.key]?.rare) assert.ok(c.items.some((w) => w.kind === 'wall' && w.lane === it.lane && Math.abs(w.z - (it.z - cfg.rareWallGap)) < 1e-8), it.uid);
+      if (it.ambiguousId || m4.cardTypes[it.key]?.rare) assert.ok(rareWallOf(c, it), it.uid);
     }
     assert.deepEqual(c, Stream.build(m4, cfg, { seed }));
   }
@@ -257,13 +258,13 @@ test('reach: every needed card can be caught from distinct rows (16 seeds + the 
 
 test('tutorial and missions 1~3 courses unchanged by m4', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m4.json', import.meta.url)));
-  for (const seed of [1101, 1102, 42]) assert.deepEqual(Stream.build(m1, cfg, { seed }), before['m1_' + seed]);
-  for (const seed of [2201, 2202, 42]) assert.deepEqual(Stream.build(m2, cfg, { seed }), before['m2_' + seed]);
-  for (const seed of [3301, 3302, 42]) assert.deepEqual(Stream.build(m3, cfg, { seed }), before['m3_' + seed]);
-  assert.deepEqual(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } }), before.m1_sup);
-  assert.deepEqual(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } }), before.m2_sup);
-  assert.deepEqual(Stream.build(m3, cfg, { seed: 3302, focusCounts: { market_now: 2 } }), before.m3_sup);
-  assert.deepEqual(Stream.build(tut, cfg, { seed: 7 }), before.tut_7);
+  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
+  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
+  for (const seed of [3301, 3302, 42]) assert.deepEqual(cardsOf(Stream.build(m3, cfg, { seed })), cardsOf(before['m3_' + seed]));
+  assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
+  assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
+  assert.deepEqual(cardsOf(Stream.build(m3, cfg, { seed: 3302, focusCounts: { market_now: 2 } })), cardsOf(before.m3_sup));
+  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7));
 });
 
 test('m3 → m4: record line from mission 3, exam name only "새빛 진학 평가"', () => {

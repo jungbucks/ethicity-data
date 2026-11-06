@@ -8,6 +8,8 @@
   var tutorial = {
     id: 'tutorial', title: '러너 자격 시험', cityLine: '데이터 러너가 처음 길을 냈다', bag: 10, runSeconds: 45, seed: 7, fires: 2, fireFrom: 0.55,
     labelOptions: [],
+    runGoal: [{ key: 'dog', name: '강아지' }, { key: 'cat', name: '고양이' }], // 달리는 동안 HUD·시작 전 안내에 보이는 목표(장 수는 조합 need)
+    wallHint: '분홍 노이즈에 부딪히면 카드가 1장 떨어져',
     cardTypes: {
       dog: { icons: ['dog'], art: { animal: 'dog' } },
       cat: { icons: ['cat'], art: { animal: 'cat' } }
@@ -17,8 +19,8 @@
     scenes: [
       { id: 'T1', title: '보호소 입양 안내', art: { place: 'shelter', time: 'day' },
         combos: [
-          { id: 'T1_dog', keys: ['dog'], need: 3, danger: false, what: '강아지 사진' },
-          { id: 'T1_cat', keys: ['cat'], need: 3, danger: false, what: '고양이 사진' }
+          { id: 'T1_dog', keys: ['dog'], need: 5, danger: false, what: '강아지 사진' },
+          { id: 'T1_cat', keys: ['cat'], need: 5, danger: false, what: '고양이 사진' }
         ],
         passLine: '강아지는 강아지로, 고양이는 고양이로. 입양 안내가 다시 돌아간다.',
         cuts: { danger: '', inconvenience: '' } }
@@ -30,7 +32,7 @@
         { who: 'runner', text: '달리기라면 자신 있어요!', face: 'happy' }
       ],
       guideBrief: '이 AI는 보호소에 온 동물이 개인지 고양이인지 구별해서 안내해야 합니다.',
-      // 실패 대사는 가방 모양에 따라: 비었음 / 한쪽만(한쪽 0장·다른 쪽 1장 이상) / 둘 다 있지만 모자람
+      // 실패 대사는 가방 모양에 따라: 비었음 / 한쪽으로 쏠림(한쪽 0장, 또는 한쪽이 목표를 넘겼는데 다른 쪽이 모자람) / 둘 다 모자람
       empty: [
         { who: 'guide', text: '…모르겠습니다. 배운 게 없습니다.', face: 'worried' },
         { who: 'examiner', text: '가방이 비었어. AI는 네가 준 것 이상은 몰라. 다시 달려 봐.', face: 'worried' }
@@ -47,7 +49,7 @@
         { who: 'guide', text: '개입니다. 고양이입니다. 개입니다.', face: 'happy' }
       ],
       // 합격 뒤 시험관이 가방 구성을 짚는 한 줄({dog}·{cat} = 담은 장 수)
-      passCount: '개 {dog}장, 고양이 {cat}장. 운 좋게 맞췄지만 골라 담은 건 아니지?',
+      passCount: '개 {dog}장, 고양이 {cat}장. 말한 대로 골라 담았네. 근데 실제 임무에선 몇 장이 필요한지 아무도 안 알려 줘.',
       outro: [
         { who: 'examiner', text: '합격. 달리기 기록은 최고. 데이터 판단은… 아직.', face: 'happy' },
         { who: 'runner', text: '아직이라니. 그래도 오늘부터 러너다!', face: 'happy' }

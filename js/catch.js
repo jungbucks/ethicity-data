@@ -43,7 +43,14 @@
     };
   }
 
-  var api = { phase: phase, grabber: grabber };
+  // 벽 페널티: grabbed(이번 달리기에 담은 카드, 담은 순서)에서 penalty.drop장을 빼서 돌려준다. 비어 있으면 빈 목록
+  function dropCards(grabbed, penalty) {
+    var lost = [];
+    for (var n = 0; n < penalty.drop && grabbed.length; n++) lost.push(penalty.pick === 'first' ? grabbed.shift() : grabbed.pop());
+    return lost;
+  }
+
+  var api = { phase: phase, grabber: grabber, dropCards: dropCards };
   root.DR = root.DR || {};
   root.DR.Catch = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

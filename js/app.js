@@ -1,6 +1,7 @@
 /*
  * 흐름 상태 기계 — 화면(section) 전환과 임무 진행.
- * 튜토리얼: 프롤로그(프로필·독백) → 대화 → 브리핑 → 달리기 → 결과(실패면 다시) → 시험관 → 1 임무
+ * 튜토리얼: 프롤로그(프로필·독백) → 대화 → 브리핑 → 실기 미션 안내 → 달리기 → 결과(실패면 다시) → 시험관 → 1 임무
+ * 연습(타이틀 연습 카드, 세이브가 있을 때): 브리핑부터, 저장을 건드리지 않고 → 시험관 → 타이틀
  * 1 임무: 대화 → 브리핑 → 달리기 → 검수 → 감독관 → 결과 → (실패) 보충 → … → 선배 → 마무리
  */
 (function (root) {
@@ -33,7 +34,8 @@
   }
 
   // 체크포인트: 화면 경계(브리핑·검수·결과·보충 준비 진입)에서만 저장 — 달리기 도중은 저장하지 않는다(P4)
-  function checkpoint(screen) { DR.Save.checkpoint(screen, App.state, {}); }
+  // 연습(state.practice)은 저장된 진행을 덮어쓰지 않는다
+  function checkpoint(screen) { if (!App.state.practice) DR.Save.checkpoint(screen, App.state, {}); }
 
   function seedFor(m) { return DR.config.randomSeed ? (Date.now() >>> 0) : m.seed; }
 
@@ -60,7 +62,7 @@
           DR.Run.stop();
           // 불꽃에 HP를 다 잃으면 같은 코스를 처음부터(그 판에 잡은 카드는 비움, 시작 가방은 그대로)
           if (r.knockedOut) DR.UI.knockout(function () { runCourse(m, course, bag, onDone, reserve); });
-          else onDone(toBag(r.grabbed));
+          else { App.state.lost = r.lost.length; onDone(toBag(r.grabbed)); } // 잃은 카드는 가방에 없고, 검수 화면에 장 수만 남는다
         }, 0);
       }
     });
@@ -83,9 +85,16 @@
       DR.UI.dialogue(m.story.intro, function () { tutorialBriefing(); });
     });
   }
+  // 연습: 세이브가 있을 때 타이틀 연습 카드 — 프롤로그 없이 브리핑부터, 끝나면 타이틀로
+  function practiceTutorial() {
+    var m = DR.Missions.tutorial;
+    App.state = { mission: 'tutorial', bag: [], supplements: 0, firstTry: null, seed: seedFor(m), practice: true };
+    tutorialBriefing();
+  }
   function tutorialBriefing() {
+    var m = DR.Missions.tutorial;
     checkpoint('briefing');
-    DR.UI.briefing(DR.Missions.tutorial, tutorialRun);
+    DR.UI.briefing(m, function () { DR.UI.tutorialGoal(m, tutorialRun); });
   }
 
   function tutorialRun() {
@@ -109,7 +118,13 @@
           var c = DR.Cards.labelCounts(m, App.state.bag);
           var count = { who: 'examiner', text: m.story.passCount.replace('{dog}', c.dog || 0).replace('{cat}', c.cat || 0), face: 'explain' };
           DR.UI.dialogue([m.story.outro[0], count].concat(m.story.outro.slice(1)), function () {
-            cityScreen(m, step, function () { startMission('m1'); });
+            cityScreen(m, step, function () {
+              if (!App.state.practice) { startMission('m1'); return; }
+              // 연습 끝: 예전 튜토리얼 체크포인트만 남아 있으면 비우고(이어하기가 끝낸 튜토리얼로 돌아가지 않게) 타이틀로
+              var saved = DR.Save.load();
+              if (saved && saved.mission === 'tutorial') DR.Save.finish();
+              go('title');
+            });
           });
         }
       });
@@ -148,7 +163,7 @@
     var m = DR.Missions[save.mission];
     if (!m) { go('title'); return; }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
-      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [],
+      seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [], lost: save.lost || 0,
       peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed };
     if (save.screen === 'briefing') { if (save.mission === 'tutorial') tutorialBriefing(); else missionBriefing(m); }
     else if (save.screen === 'inspect') review(m);
@@ -161,7 +176,7 @@
 
   function review(m) {
     checkpoint('inspect');
-    DR.UI.inspect(m, App.state.bag, function () { askSupervisor(m); }, { newIds: App.state.newIds });
+    DR.UI.inspect(m, App.state.bag, function () { askSupervisor(m); }, { newIds: App.state.newIds, lost: App.state.lost });
   }
 
   function askSupervisor(m) {
@@ -242,6 +257,7 @@
   // 4 임무 동기 카드(peerPending): 달리기 뒤 가방에 NEW로 붙는다 — 부족분 계산엔 미리 넣고, 달리기 가방 칸은 그만큼 비워 둔다
   function prepSupplement(m, r) {
     App.state.newIds = [];
+    App.state.lost = 0; // 달리지 않고 다시 제출하는 길에서 지난 달리기 숫자가 다시 뜨지 않게
     checkpoint('prep');
     var extra = App.state.peerPending ? DR.Showdown.peerCards(m, App.state.bag, App.state.peer === 'fixed') : [];
     // 결판에서 못 읽었는데 보충이 남지 않음(설계 §5.6 '0번') → 달리기 없이 동기 카드를 고정으로 넣고 다시 제출 1회, 보충 횟수 밖
@@ -349,7 +365,7 @@
 
   var App = {
     screen: 'title', state: null, lastJudge: null, course: null, records: DR.Save.records(),
-    go: go, cityCount: cityCount, startTutorial: startTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume,
+    go: go, cityCount: cityCount, startTutorial: startTutorial, practiceTutorial: practiceTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume,
     mission: function () { return App.state ? DR.Missions[App.state.mission] : null; }
   };
   DR.App = App;
