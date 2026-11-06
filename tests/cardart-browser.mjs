@@ -10,39 +10,39 @@ try {
     const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
     const lowerMean = (c) => { const d = px(c), w = c.width, h = c.height; let r = 0, g = 0, b = 0, n = 0; for (let y = Math.floor(h * 2 / 3); y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } return [r / n, g / n, b / n]; };
     const out = { bad: [], sizes: [] };
-    const ids = [...Object.keys(M.m1.cardTypes), ...M.m1.ambiguous.map((a) => a.id), ...M.m1.fakes.map((f) => f.id)];
-    for (const id of ids) { const c = A.card(M.m1, id, 0, 256); out.sizes.push(c.width + 'x' + c.height); if (std(c) <= 10) out.bad.push(id); }
+    const ids = [...Object.keys(M.flood.cardTypes), ...M.flood.ambiguous.map((a) => a.id), ...M.flood.fakes.map((f) => f.id)];
+    for (const id of ids) { const c = A.card(M.flood, id, 0, 256); out.sizes.push(c.width + 'x' + c.height); if (std(c) <= 10) out.bad.push(id); }
     for (const id of Object.keys(M.tutorial.cardTypes)) { const c = A.card(M.tutorial, id, 0, 256); if (std(c) <= 10) out.bad.push(id); }
-    out.variantDiffers = A.card(M.m1, 'day_deep', 0, 256).toDataURL() !== A.card(M.m1, 'day_deep', 1, 256).toDataURL();
-    out.cached = A.card(M.m1, 'day_deep', 0, 256) === A.card(M.m1, 'day_deep', 0, 256);
-    const a = lowerMean(A.card(M.m1, 'day_dry', 0, 256)), b = lowerMean(A.card(M.m1, 'day_deep', 0, 256));
+    out.variantDiffers = A.card(M.flood, 'day_deep', 0, 256).toDataURL() !== A.card(M.flood, 'day_deep', 1, 256).toDataURL();
+    out.cached = A.card(M.flood, 'day_deep', 0, 256) === A.card(M.flood, 'day_deep', 0, 256);
+    const a = lowerMean(A.card(M.flood, 'day_dry', 0, 256)), b = lowerMean(A.card(M.flood, 'day_deep', 0, 256));
     out.waterDiff = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
     const icons = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat'];
     out.iconUnique = new Set(icons.map((n) => A.icon(n, 64).toDataURL())).size;
-    const t = A.thumb(A.card(M.m1, 'night_wet', 0, 256), 24);
+    const t = A.thumb(A.card(M.flood, 'night_wet', 0, 256), 24);
     const k = t.width / 24, d = px(t), cell = [];
     for (let y = 5 * k; y < 6 * k; y++) for (let x = 5 * k; x < 6 * k; x++) { const i = (y * t.width + x) * 4; cell.push(d[i] + ',' + d[i + 1] + ',' + d[i + 2]); }
     out.thumbInt = Number.isInteger(k);
     out.thumbBlock = new Set(cell).size;
     out.scenes = 0;
-    for (const s of M.m1.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(M.m1, s.id, o, 320)) > 10) out.scenes++;
+    for (const s of M.flood.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(M.flood, s.id, o, 320)) > 10) out.scenes++;
     out.tutScene = std(A.scene(M.tutorial, 'T1', 'neutral', 320)) > 10;
     out.clues = 0;
-    for (const q of M.m1.ambiguous) q.clues.forEach((_, i) => { if (std(A.clue(M.m1, q.id, i, 256)) > 5) out.clues++; });
-    out.clueTotal = M.m1.ambiguous.reduce((n, q) => n + q.clues.length, 0);
+    for (const q of M.flood.ambiguous) q.clues.forEach((_, i) => { if (std(A.clue(M.flood, q.id, i, 256)) > 5) out.clues++; });
+    out.clueTotal = M.flood.ambiguous.reduce((n, q) => n + q.clues.length, 0);
 
     // 사람 눈 확인용 시트
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
     const add = (c, label) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = '128px'; c.style.height = '128px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
-    for (const id of ids) add(A.card(M.m1, id, 0, 256), id);
-    for (const id of ['day_deep', 'night_wet']) add(A.card(M.m1, id, 1, 256), id + ' v1');
-    add(A.thumb(A.card(M.m1, 'night_neon', 0, 256), 24), 'thumb neon');
-    for (const f of M.m1.fakes) add(A.thumb(A.card(M.m1, f.id, 0, 256), 24), 'thumb ' + f.id);
+    for (const id of ids) add(A.card(M.flood, id, 0, 256), id);
+    for (const id of ['day_deep', 'night_wet']) add(A.card(M.flood, id, 1, 256), id + ' v1');
+    add(A.thumb(A.card(M.flood, 'night_neon', 0, 256), 24), 'thumb neon');
+    for (const f of M.flood.fakes) add(A.thumb(A.card(M.flood, f.id, 0, 256), 24), 'thumb ' + f.id);
     for (const id of Object.keys(M.tutorial.cardTypes)) add(A.card(M.tutorial, id, 0, 256), id);
     for (const n of icons) add(A.icon(n, 64), n);
-    for (const q of M.m1.ambiguous) q.clues.forEach((_, i) => add(A.clue(M.m1, q.id, i, 256), q.id + ' clue' + i));
-    for (const s of M.m1.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(M.m1, s.id, o, 320), s.id + ' ' + o);
+    for (const q of M.flood.ambiguous) q.clues.forEach((_, i) => add(A.clue(M.flood, q.id, i, 256), q.id + ' clue' + i));
+    for (const s of M.flood.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(M.flood, s.id, o, 320), s.id + ' ' + o);
     add(A.scene(M.tutorial, 'T1', 'neutral', 320), 'T1');
     document.body.append(sheet);
     return out;
@@ -67,7 +67,7 @@ try {
     out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m2, 'S4', o, 320).toDataURL())).size;
     // [2] 1 임무 S1 불편 컷 = 물 없는 옆 골목(물에 잠긴 컷과 아래쪽 색이 다르다)
     const low = (cv) => { const d = px(cv), w = cv.width, h = cv.height; let r = 0, g = 0, b = 0, n = 0; for (let y = Math.floor(h * 2 / 3); y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } return [r / n, g / n, b / n]; };
-    const wet = low(A.scene(M.m1, 'S1', 'danger', 320)), dry = low(A.scene(M.m1, 'S1', 'inconvenience', 320));
+    const wet = low(A.scene(M.flood, 'S1', 'danger', 320)), dry = low(A.scene(M.flood, 'S1', 'inconvenience', 320));
     out.s1Dry = Math.abs(wet[0] - dry[0]) + Math.abs(wet[1] - dry[1]) + Math.abs(wet[2] - dry[2]);
     // 컨베이어 건전지(변형 3·4)는 학습 카드(0~2)와 다른 모양
     out.batteryDiff = [3, 4, 5, 6].every((v) => [0, 1, 2].every((w) => ['battery_aa', 'f_battery'].every((id) => A.card(m2, 'battery_aa', v, 256).toDataURL() !== A.card(m2, id, w, 256).toDataURL())));
@@ -80,7 +80,7 @@ try {
     for (const id of ['paper_news', 'trash_misc']) add(A.card(m2, id, 2, 256), id + ' v2');
     for (const it of m2.conveyor.slice(0, 6)) add(A.card(m2, it.art, it.variant, 256), it.id + ' ' + it.art);
     for (const v of [3, 4]) add(A.card(m2, 'battery_aa', v, 256), 'conveyor battery v' + v);
-    add(A.scene(M.m1, 'S1', 'inconvenience', 320), 'm1 S1 inconvenience', 150);
+    add(A.scene(M.flood, 'S1', 'inconvenience', 320), 'm1 S1 inconvenience', 150);
     // 24칸 썸네일에서 헷갈리기 쉬운 짝: 영수증↔종이, 칫솔↔페트, 건전지↔캔
     for (const id of ['f_receipt', 'paper_news', 'f_toothbrush', 'pet_clear', 'battery_aa', 'can_drink', 'can_tin', 'pack_milk']) add(A.thumb(A.card(m2, id, 0, 256), 24), 'thumb ' + id, 80);
     for (const l of m2.labels) add(A.icon(l.id, 64), l.text, 56);
@@ -191,7 +191,7 @@ try {
     out.std = std(A.card(t, 'cat', 0, 256, 3));
     const th = A.thumb(A.card(t, 'dog', 0, 192, 4), 24);
     out.thumb = th.width + 'x' + th.height;
-    out.m1NotPhoto = !A.card(DR.Missions.m1, 'day_deep', 0, 256, 5).photo;
+    out.m1NotPhoto = !A.card(DR.Missions.flood, 'day_deep', 0, 256, 5).photo;
     // 사진을 못 읽음(없는 파일) → 그 번호의 카드는 Canvas 그림(빈 그림 아님), 다른 사진은 그대로
     const keep = A._photos.d03;
     const bad = new Image(); A._photos.d03 = bad;

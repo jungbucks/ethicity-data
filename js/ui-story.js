@@ -181,7 +181,7 @@
       el('p', { class: 'kicker', text: '브리핑 · ' + mission.title }),
       line({ who: 'guide', text: mission.story.guideBrief }),
       extraLine ? line({ who: 'guide', text: extraLine }) : null,
-      el('h2', { text: '이 AI가 판단해야 할 장면' }),
+      el('h2', { text: mission.briefTitle || '이 AI가 판단해야 할 장면' }),
       scenes,
       root.DR.UI.legend(mission),
       mission.legendNote ? el('p', { class: 'note legend-note', text: mission.legendNote }) : null,
@@ -227,79 +227,6 @@
   }
 
   // 튜토리얼 결과 한 장: 통과면 [다음], 실패면 귀여운 실패 + [다시 달리기]
-  function tutorialResult(mission, result, handlers) {
-    var screen = document.getElementById('screen-result');
-    var A = root.DR.CardArt, pass = result.allPass;
-    // 실패 대사: 가방이 비었으면 따로, "한쪽만 잔뜩"은 한쪽 0장이거나 한쪽이 목표를 넘겼을 때(그래서 다른 쪽이 모자람), 나머지는 "아직 적어"
-    var counts = root.DR.Cards.labelCounts(mission, (root.DR.App.state && root.DR.App.state.bag) || []);
-    var sides = Object.keys(mission.cardTypes).map(function (k) { return counts[k] || 0; });
-    var empty = sides.every(function (n) { return n === 0; });
-    var need = mission.scenes[0].combos[0].need;
-    var oneSide = !empty && sides.some(function (n) { return n === 0 || n > need; });
-    var lines = pass ? mission.story.pass : empty ? mission.story.empty : oneSide ? mission.story.fail : mission.story.failFew;
-    screen.innerHTML = '';
-    var btn = pass
-      ? el('button', { id: 'btn-next', class: 'btn btn-primary', type: 'button', text: '다음', onclick: handlers.onNext })
-      : el('button', { id: 'btn-retry', class: 'btn btn-primary', type: 'button', text: '다시 달리기', onclick: handlers.onRetry });
-    var parts = [
-      el('p', { class: 'kicker', text: '결과 · ' + mission.title }),
-      el('img', { class: 'result-art', src: A.scene(mission, mission.scenes[0].id, pass ? 'pass' : 'neutral', 480).toDataURL(), alt: mission.scenes[0].title })
-    ];
-    lines.forEach(function (l) { parts.push(line(l)); });
-    if (!pass && !empty) root.DR.Judge.missingLines(mission, result).forEach(function (t) { parts.push(el('p', { class: 'missing', text: t })); });
-    parts.push(el('div', { class: 'actions' }, [btn]));
-    screen.appendChild(el('div', { class: 'page' }, parts));
-    root.DR.App.go('result');
-  }
-
-  // 프롤로그: 러너 프로필 카드 + 독백이 한 줄씩 떠오른다(이름표 없는 기울인 글씨)
-  function prologue(data, done) {
-    var screen = document.getElementById('screen-profile');
-    var i = 0, finished = false;
-    var list = el('div', { class: 'mono', role: 'log', 'aria-live': 'polite' });
-    var skip = el('button', { id: 'btn-skip', class: 'btn btn-ghost skip', type: 'button', text: '건너뛰기' });
-    var rows = data.profile.map(function (p) { return el('div', { class: 'profile-row' }, [el('dt', { text: p.label }), el('dd', { text: p.value.replace('{hero}', speakerName('runner')) })]); });
-    var lineAt = 0;
-    screen.innerHTML = '';
-    screen.appendChild(skip);
-    screen.appendChild(el('div', { class: 'page prologue' }, [
-      el('div', { class: 'profile-card' }, [
-        portrait('runner', 88),
-        el('div', { class: 'profile-body' }, [el('p', { class: 'kicker', text: '러너 프로필' }), el('dl', {}, rows)])
-      ]),
-      list,
-      el('p', { class: 'dialog-hint', text: '눌러서 넘기기' })
-    ]));
-    function show() {
-      Array.prototype.forEach.call(list.children, function (p) { p.classList.add('past'); });
-      list.appendChild(el('p', { class: 'mono-line', text: data.lines[i] }));
-      lineAt = Date.now();
-    }
-    // 줄이 떠오르는 중(0.45초)에 누르면 그 줄을 바로 다 보이게 하고, 다 보이면 다음 줄 — 클릭을 버리지 않는다
-    function tap() {
-      var last = list.lastChild;
-      if (last && !last.classList.contains('done') && Date.now() - lineAt < 450) { last.classList.add('done'); return; }
-      next();
-    }
-    function finish() {
-      if (finished) return;
-      finished = true;
-      root.removeEventListener('keydown', onKey);
-      screen.onclick = null;
-      screen.innerHTML = '';
-      done();
-    }
-    function next() { root.DR.Sfx.play('ui'); if (++i >= data.lines.length) finish(); else show(); }
-    function onKey(e) {
-      if (e.target && e.target.tagName === 'BUTTON') return;
-      if (e.code === 'Space' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) tap(); }
-    }
-    screen.onclick = function (e) { if (finished || (e.target.closest && e.target.closest('button'))) return; tap(); };
-    skip.addEventListener('click', function () { root.DR.Sfx.play('ui'); finish(); });
-    root.addEventListener('keydown', onKey);
-    root.DR.App.go('profile');
-    show();
-  }
 
   // 마무리 안내(기획서 §4.7) — 대화 뒤 안내 카드
   // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]), summary: ['이번 판 요약 줄', …] }
@@ -336,8 +263,6 @@
   root.DR.UI.line = line;
   root.DR.UI.dialogue = dialogue;
   root.DR.UI.briefing = briefing;
-  root.DR.UI.tutorialResult = tutorialResult;
   root.DR.UI.tutorialGoal = tutorialGoal;
   root.DR.UI.outro = outro;
-  root.DR.UI.prologue = prologue;
 })(window);

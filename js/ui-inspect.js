@@ -53,7 +53,8 @@
   function comboCount(mission, counts, c) { return c.keys.reduce(function (n, k) { return n + (counts[k] || 0); }, 0); }
   function countText(have, need) { return DR.UI.needRevealed() ? have + ' / ' + need + '장' : '현재 ' + have + '장'; }
   function comboRow(mission, counts, c) {
-    var have = comboCount(mission, counts, c), label = DR.Cards.keyLabel(mission, c.keys[0]);
+    // 1 임무(hideShapes): 첫 결과 전에는 sceneRows가 종류 한 줄로 합치고, 공개 뒤에는 모습 이름으로
+    var have = comboCount(mission, counts, c), label = mission.hideShapes ? mission.cardTypes[c.keys[0]].name : DR.Cards.keyLabel(mission, c.keys[0]);
     var short = DR.UI.needRevealed() && have < c.need;
     // 같은 종류를 다른 장면도 쓰면 '(두 장면 공통)' — 한 카드가 두 장면에 함께 세어진다는 뜻
     var shared = mission.scenes.filter(function (s) { return s.combos.some(function (o) { return o.keys.some(function (k) { return c.keys.indexOf(k) >= 0; }); }); }).length > 1;
@@ -126,7 +127,11 @@
         });
         if (!row.childNodes.length) row.appendChild(el('span', { class: 'empty', text: '이 장면에 해당하는 카드가 보이지 않는다' }));
         var combos = el('ul', { class: 'combo-list' });
-        s.combos.forEach(function (c) { combos.appendChild(comboRow(mission, counts, c)); });
+        if (mission.hideShapes && !DR.UI.needRevealed()) {
+          // 첫 판: 모습을 글로 알려 주지 않는다 — 종류 한 줄 + 아래 사진
+          var total = s.combos.reduce(function (n, c) { return n + comboCount(mission, counts, c); }, 0);
+          combos.appendChild(el('li', { class: 'combo', 'data-combo': s.id }, [el('span', { class: 'combo-label', text: s.title }), el('b', { class: 'combo-count', text: '현재 ' + total + '장' })]));
+        } else s.combos.forEach(function (c) { combos.appendChild(comboRow(mission, counts, c)); });
         scenes.appendChild(el('section', { class: 'scene-sum', 'data-scene': s.id }, [el('h3', { text: s.title }), combos, row]));
       });
       var submit = el('button', { id: 'btn-submit', class: 'btn btn-primary', type: 'button', text: '감독관에게 제출' });
@@ -254,6 +259,8 @@
   /* ---------- 보충 준비 ---------- */
   // 정리한 뒤 모자란 조합이 없으면(가짜만 빼면 되는 경우) 달리지 않고 다시 제출 — done(bag, { resubmit: true }), spec §3.5
   // popts.extra = 보충 달리기 뒤 가방에 들어올 카드(4 임무 동기 카드) — 부족분 계산엔 미리 넣고, 그만큼 칸을 더 비워야 출발
+  // 보충 준비는 결과를 본 뒤라 1 임무도 모습 이름으로 말한다(접힌 우산 부족 2장)
+  function kindName(mission, k) { return mission.hideShapes && mission.cardTypes[k] ? mission.cardTypes[k].name : DR.Cards.keyLabel(mission, k); }
   function supplementPrep(mission, result, bag, done, popts) {
     var extra = (popts && popts.extra) || [];
     var screen = document.getElementById('screen-prep');
@@ -287,7 +294,7 @@
         s.missing.forEach(function (id) {
           var c = comboById[id], have = comboCount(mission, counts, c), filled = have < c.need && comboCount(mission, withPeer, c) >= c.need;
           shorts.appendChild(el('li', { class: 'combo short', 'data-combo': id }, [
-            DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: DR.Cards.keyLabel(mission, c.keys[0]) }),
+            DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: kindName(mission, c.keys[0]) }),
             el('b', { class: 'combo-count', text: filled ? '동기 카드로 채워짐' : have < c.need ? '부족 ' + (c.need - have) + '장' : (mission.changeLog ? '사진을 다시 살펴봐요' : mission.labels ? '이름표를 다시 살펴봐요' : '설명표를 다시 살펴봐요') })
           ]));
         });
@@ -304,11 +311,11 @@
         var extra = needByKey[k] === undefined ? 0 : counts[k] - needByKey[k]; // 어느 조합에도 없는 이름표(4 임무 7·8)는 여유를 말하지 않는다
         var open = !!openKinds[k];
         var minus = el('button', { class: 'btn btn-small', type: 'button', text: open ? '접기' : '1장 빼기', 'aria-expanded': String(open),
-          'aria-label': DR.Cards.keyLabel(mission, k) + (open ? ' 사진 접기' : ' 사진 펼쳐서 1장 고르기') });
+          'aria-label': kindName(mission, k) + (open ? ' 사진 접기' : ' 사진 펼쳐서 1장 고르기') });
         minus.addEventListener('click', function () { DR.Sfx.play('ui'); openKinds[k] = !openKinds[k]; render(); });
         var pick = null;
         if (open) {
-          pick = el('div', { class: 'kind-pick', role: 'group', 'aria-label': DR.Cards.keyLabel(mission, k) + ' — 뺄 사진 고르기' });
+          pick = el('div', { class: 'kind-pick', role: 'group', 'aria-label': kindName(mission, k) + ' — 뺄 사진 고르기' });
           bag.forEach(function (card, n) {
             if (DR.Cards.displayKey(mission, card) !== k || card.fixed) return;
             var b = el('button', { class: 'kind-pick-card', type: 'button', 'data-id': card.id, 'aria-label': '빼기: ' + cardLabel(mission, card) + ' 사진 ' + (n + 1) }, [
@@ -319,7 +326,7 @@
           });
         }
         summary.appendChild(el('li', { class: 'kind', 'data-key': k }, [
-          DR.UI.iconStrip(mission, k, 20), el('span', { class: 'combo-label', text: DR.Cards.keyLabel(mission, k) }),
+          DR.UI.iconStrip(mission, k, 20), el('span', { class: 'combo-label', text: kindName(mission, k) }),
           el('b', { class: 'combo-count', text: counts[k] + '장' + (extra > 0 ? ' · 여유 ' + extra + '장' : '') }), minus, pick
         ]));
       });

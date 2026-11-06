@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { openGame, shotPath } from './browser.mjs';
 for (const width of [1280, 900]) {
-  const { browser, page, errors } = await openGame({ query: '?run=m1', viewport: { width, height: 800 } });
+  const { browser, page, errors } = await openGame({ query: '?run=flood', viewport: { width, height: 800 } });
   try {
     await page.waitForFunction(() => DR.Run.peek().running);
     await page.evaluate(() => { DR.Run.setPaused(true); DR.Run.debugSetHp(99); });
@@ -20,14 +20,14 @@ for (const width of [1280, 900]) {
     }
     await page.evaluate(() => {
       DR.App.state = { needRevealed: true };
-      const course = DR.Stream.build(DR.Missions.m1, DR.config, { seed: 1102, focusCounts: { night_deep: 2 } });
-      DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.m1, course, bag: [{key:'night_wet'}], bagMax:30 }); DR.Run.setPaused(true);
+      const course = DR.Stream.build(DR.Missions.flood, DR.config, { seed: 1102, focusCounts: { night_deep: 2 } });
+      DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.flood, course, bag: [{key:'night_wet'}], bagMax:30 }); DR.Run.setPaused(true);
     });
     assert.match(await page.locator('#hud-progress').innerText(), /\d+\/\d+/);
     await page.screenshot({ path: shotPath('zone-supplement-' + width) });
     await page.evaluate(() => {
-      const course = DR.Stream.build(DR.Missions.m1, DR.config, { seed:1101 });
-      DR.Run.start(document.getElementById('run-stage'), { mission:DR.Missions.m1,course,bag:[],bagMax:30 }); DR.Run.setPaused(true);
+      const course = DR.Stream.build(DR.Missions.flood, DR.config, { seed:1101 });
+      DR.Run.start(document.getElementById('run-stage'), { mission:DR.Missions.flood,course,bag:[],bagMax:30 }); DR.Run.setPaused(true);
     });
     assert.doesNotMatch(await page.locator('#hud-progress').innerText(), /\d+\/\d+/, 'revealed flag alone does not show need in main run');
     assert.deepEqual(errors, []); console.log('PASS four scenes, signs, bars, hidden needs', width);

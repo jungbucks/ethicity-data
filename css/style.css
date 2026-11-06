@@ -521,3 +521,35 @@ body { overflow: hidden; word-break: keep-all; }
 .practice-card.is-first { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(255,210,74,.28); }
 .mc-first { align-self: flex-start; font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: var(--yellow); color: #10093a; }
 @media (max-width: 520px) { .run-goal { top: 104px; font-size: 14px; padding: 5px 10px; } .goal-row { grid-template-columns: 3.2rem repeat(5, minmax(0, 1fr)); } }
+
+/* 오프닝·첫 시험 검수·시연(2026-11-06) */
+.opening { max-width: 44rem; }
+.opening-art { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--panel); margin-bottom: 16px; }
+.opening-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.opening-art.is-missing { display: none; }
+.opening-art.is-missing:has(.opening-overlay) { display: block; aspect-ratio: auto; padding: 12px; }
+.opening-overlay { position: absolute; right: 16px; top: 16px; padding: 4px 14px; border-radius: 8px; background: #111a; color: #fff; font-weight: 800; }
+.opening-art.is-missing .opening-overlay { position: static; display: inline-block; }
+.opening-lead { font-size: 22px; font-weight: 700; line-height: 1.5; margin: 0 0 12px; word-break: keep-all; }
+.opening-line { margin: 0 0 8px; word-break: keep-all; }
+.opening-line b { color: var(--cyan); margin-right: 4px; }
+.opening-note, .opening-info { font-size: 14px; color: var(--ink-2); margin: 8px 0 0; }
+.opening-info { margin: 0 0 10px; }
+.opening-split { display: grid; grid-template-columns: repeat(2, minmax(0, 8rem)); gap: 12px; margin: 0 0 14px; }
+.split-card { margin: 0; text-align: center; }
+.split-card img, .split-card b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); object-fit: cover; font-size: 20px; }
+.split-card figcaption { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+.exam-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.exam-card { position: relative; display: grid; gap: 4px; padding: 6px; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; color: inherit; font: inherit; cursor: pointer; }
+.exam-card img { display: block; width: 100%; border-radius: 6px; }
+.exam-tag { font-weight: 700; }
+.exam-drill { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); max-width: 14rem; }
+.exam-big { display: block; width: min(100%, 18rem); border-radius: 10px; margin: 0 auto 10px; }
+.exam-say { margin: 12px 0; word-break: keep-all; }
+.exam-say b { color: var(--cyan); }
+.exam-pairs { display: grid; gap: 12px; margin-bottom: 16px; }
+.exam-pair { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center; margin: 0; padding: 8px; border: 2px solid var(--line); border-radius: 12px; background: var(--panel); }
+.exam-pair img { width: 100%; display: block; border-radius: 6px; }
+.exam-pair p { margin: 0; word-break: keep-all; }
+.exam-ai { font-size: 18px; font-weight: 800; }
+.exam-check { list-style: none; margin: 0; padding: 0; }

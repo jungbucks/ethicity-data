@@ -40,7 +40,7 @@ for (const viewport of SIZES) {
     }
     // 임무 카드: 접근성 이름 그대로, 썸네일·한 줄·상태
     const cards = await page.locator('#title-missions button').evaluateAll((bs) => bs.map((b) => ({ id: b.id, name: b.getAttribute('aria-label'), img: !!b.querySelector('img'), hook: b.querySelector('.mc-hook')?.textContent, status: b.querySelector('.mc-status')?.textContent })));
-    assert.deepEqual(cards.map((c) => c.name), ['연습 · 러너 자격 시험', '1 임무 · 침수 판별', '2 임무 · 분리배출', '3 임무 · 길 안내', '4 임무 · 채점']);
+    assert.deepEqual(cards.map((c) => c.name), ['연습 · 러너 자격 시험', '1 임무 · 분실물 센터', '2 임무 · 분리배출', '3 임무 · 길 안내', '4 임무 · 채점']);
     assert.ok(cards.every((c) => c.img && c.hook && c.status === '아직'), JSON.stringify(cards));
     // AI 봇: 달릴 주인공 묶음 밖, 고를 수 없음, 말풍선
     assert.equal(await page.locator('#hero-pick img').count(), 2);

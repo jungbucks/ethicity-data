@@ -5,7 +5,7 @@ import { openGame } from './browser.mjs';
 const { browser, page, errors } = await openGame();
 try {
   await page.locator('#btn-start').waitFor({ state: 'visible', timeout: 5000 });
-  assert.equal(await page.evaluate(() => typeof DR.Missions.m1), 'object');
+  assert.equal(await page.evaluate(() => typeof DR.Missions.flood), 'object');
   assert.equal(await page.evaluate(() => typeof DR.Missions.tutorial), 'object');
   assert.equal(await page.evaluate(() => typeof THREE), 'object');
   // 임무 고르기(팀원이 앞을 다시 하지 않게): 처음부터 + 1 임무 + 2 임무

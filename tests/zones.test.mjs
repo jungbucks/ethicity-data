@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const Stream = require('../js/stream.js'), m = require('../missions/m1.js'), cfg = require('../js/config.js');
+const Stream = require('../js/stream.js'), m = require('../missions/legacy-flood.js'), cfg = require('../js/config.js');
 test('four approved zones, counts, late fakes and rare wall distance', () => {
   for (const seed of [1101, 1102, 1, 8, 42, 999]) {
     const c = Stream.build(m, cfg, { seed });
@@ -35,11 +35,11 @@ import fs from 'node:fs';
 import { rareWallOf, cardsOf } from './walls-helper.mjs';
 const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-zones.json', import.meta.url)));
 const tut = require('../missions/tutorial.js');
-test('m1 and tutorial courses identical to before the generalisation', () => {
+test('flood course identical to before the generalisation, tutorial has no zones', () => {
   for (const seed of [1101, 1102, 1, 8, 42, 999]) assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed })), cardsOf(before['m1_' + seed]), 'm1 ' + seed);
   assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup_1102));
   assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1103, focusCounts: { night_shallow: 2, night_muddy: 2, day_wet: 1 } })), cardsOf(before.m1_sup_1103));
-  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7), 'tutorial has no zones');
+  assert.equal(Stream.build(tut, cfg, { seed: 7 }).zones, undefined, 'tutorial has no zones');
 });
 
 const m2 = require('../missions/m2.js');

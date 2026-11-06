@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { openGame, shotPath } from './browser.mjs';
 
-const { browser, page, errors } = await openGame({ query: '?run=m1' });
+const { browser, page, errors } = await openGame({ query: '?run=flood' });
 const peek = () => page.evaluate(() => DR.Run.peek());
 // 일시정지 상태에서 조건이 맞을 때까지 step으로 진행(벽에 안 부딪히게 하려면 avoidWalls)
 const stepUntil = (fnSrc, max = 4000) => page.evaluate(([src, max]) => {

@@ -33,7 +33,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
 
   // 시나리오 A — 흔한 카드만
   {
-    const { browser, page, errors } = await openGame({ viewport, query: '?start=m1' });
+    const { browser, page, errors } = await openGame({ viewport, query: '?start=flood' });
     try {
       await page.locator('#btn-skip').click();
       assert.equal(await page.locator('#screen-briefing .brief-scene').count(), 4);
@@ -56,7 +56,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       const res = await readResults(page);
       // S3 정답은 '젖었을 뿐' — 밤 깊은 침수 예시가 빠져도 길을 막는 불편(m1.js S3_night_deep.fail, judge.test 'S3: …')
       assert.deepEqual(res.map((r) => [r.scene, r.outcome]), [['S1', 'pass'], ['S2', 'inconvenience'], ['S3', 'inconvenience'], ['S4', 'danger']]);
-      const resp = await page.evaluate(() => DR.Missions.m1.story.responsibility);
+      const resp = await page.evaluate(() => DR.Missions.flood.story.responsibility);
       assert.ok(res[3].text.includes(resp), 'responsibility line on danger');
       assert.ok(res.every((r) => !r.text.includes('%')), 'no percent');
       assert.ok(res[3].text.includes('우리가 넣은 데이터에는'), 'cause line');
@@ -67,7 +67,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
 
   // 시나리오 B — "?" 카드를 정하지 않고 제출
   {
-    const { browser, page, errors } = await openGame({ viewport, query: '?start=m1' });
+    const { browser, page, errors } = await openGame({ viewport, query: '?start=flood' });
     try {
       await toRun(page);
       await fillAndFinish(page, { ...ALL2, q_neon: 1 });
@@ -91,7 +91,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
 
   // 시나리오 C — S4만 위험 실패 → 보충
   {
-    const { browser, page, errors } = await openGame({ viewport, query: '?start=m1' });
+    const { browser, page, errors } = await openGame({ viewport, query: '?start=flood' });
     try {
       await toRun(page);
       await fillAndFinish(page, { ...ALL2, night_shallow: 0, night_muddy: 0, day_deep: 11, day_shallow: 9 });
@@ -119,12 +119,10 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       await page.locator('#screen-result .result-scene').waitFor();
       const res2 = await readResults(page);
       assert.ok(res2.every((r) => r.outcome === 'pass'), 'all pass after supplement');
-      const senior = await page.evaluate(() => DR.Missions.m1.story.senior[0].text);
+      const senior = await page.evaluate(() => DR.Missions.flood.story.senior[0].text);
       assert.ok((await page.locator('#screen-story').innerText()).includes(senior), 'senior cameo');
       await page.locator('#btn-skip').click();
-      // 도시 복구 0 → 1(1 임무 첫 클리어)
-      assert.ok(await page.locator('#screen-city').isVisible(), 'city screen after the last dialogue');
-      assert.match(await page.locator('#city-line').innerText(), /도시 1\/5 — 침수 판별 AI가 다시 이어졌다/);
+      // 침수는 검사용 임무라 도시 칸을 세지 않는다(새 1 임무의 도시 복구는 lost-browser)
       await passCity(page);
       await page.locator('#btn-skip').click();
       assert.ok(await page.locator('#screen-outro').isVisible(), 'outro');

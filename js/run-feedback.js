@@ -25,7 +25,7 @@
       var count = document.createElement('b'); count.className = 'zone-count'; cell.appendChild(count); progress.appendChild(cell);
       zoneEls.push({ cell: cell, count: count, zone: zone, need: scene.combos.reduce(function (n, c) { return n + c.need; }, 0) });
     });
-    // 튜토리얼 목표(mission.runGoal): "강아지 n/5 · 고양이 n/5" — 다 차면 금색, 넘치면 주황 + "이미 5장!"(막지는 않는다)
+    // 튜토리얼 목표(mission.runGoal): "개 n/5 · 고양이 n/5" — 다 차면 금색, 넘치면 주황 + "이미 5장!"(막지는 않는다)
     var goal = (mission.runGoal || []).map(function (g) {
       var need = mission.scenes[0].combos.filter(function (c) { return c.keys.indexOf(g.key) >= 0; })[0].need;
       var item = document.createElement('span'); item.className = 'run-goal-item'; item.dataset.goal = g.key;
@@ -41,7 +41,7 @@
     }
     function updateGoal(grabbed) {
       goal.forEach(function (g) {
-        var n = grabbed.filter(function (c) { return c.key === g.key; }).length;
+        var n = grabbed.filter(function (c) { return DR.Cards.truthKey(mission, c) === g.key; }).length; // 목표는 사진 기준(이름표가 틀린 카드도 사진대로 센다)
         var text = g.name + ' ' + n + '/' + g.need + (n > g.need ? ' 이미 ' + g.need + '장!' : '');
         if (g.el.textContent !== text) g.el.textContent = text;
         g.el.classList.toggle('done', n === g.need);

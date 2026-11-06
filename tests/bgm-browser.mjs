@@ -11,7 +11,7 @@ async function readResults(page) {
   while (await page.locator('#screen-result .result-scene').count()) await page.locator('#btn-next').click();
 }
 
-const { browser, page, errors } = await openGame({ query: '?start=m1' });
+const { browser, page, errors } = await openGame({ query: '?start=flood' });
 try {
   // 대화·브리핑: 무음
   await page.locator('#btn-skip').click();
@@ -75,14 +75,14 @@ try {
   assert.equal((await bgm(page)).playing, false, '끄면 바로 멈춤');
   assert.equal(await page.evaluate(() => localStorage.getItem('ethicity.data.bgm')), '0');
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('ethicity.data.save')));
-  assert.equal(save.v, 1); assert.equal(save.mission, 'm1');
+  assert.equal(save.v, 1); assert.equal(save.mission, 'flood');
   assert.equal(await page.evaluate(() => DR.Sfx.muted), false, '효과음은 그대로');
   await page.keyboard.press('KeyP'); // 메뉴 닫고 이어 달리기
   await page.waitForTimeout(800);
   assert.equal((await bgm(page)).playing, false, '꺼진 채 달리기');
 
   // 새로고침 뒤에도 꺼짐(달리기 디버그 진입) → 메뉴에서 다시 켜면 재생
-  await page.goto(page.url().replace(/\?.*$/, '?run=m1'));
+  await page.goto(page.url().replace(/\?.*$/, '?run=flood'));
   await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
   await page.waitForTimeout(1000);
   s = await bgm(page);

@@ -176,7 +176,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m3' });
   try {
     await page.evaluate(() => {
-      DR.App.records.m1 = { cleared: true, passed: true, firstTry: false, supplements: 1, firstFails: [{ scene: 'S4', title: '고가도로 아래 저지대 교차로', kind: 'danger' }] };
+      DR.App.records.m1 = { cleared: true, passed: true, firstTry: false, supplements: 1, firstFails: [{ scene: 'S1', title: '우산', kind: 'inconvenience' }] };
       DR.App.records.m2 = { cleared: true, passed: true, firstTry: true, supplements: 0, firstFails: [] };
     });
     await toRun(page);
@@ -184,7 +184,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await submit(page);
     await throughResults(page);
     const lines = await readDialogue(page);
-    assert.ok(lines.includes("네 1 임무 첫 판 기록도 봤어. '고가도로 아래 저지대 교차로' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어."), lines.join('\n'));
+    assert.ok(lines.includes("네 1 임무 첫 판 기록도 봤어. '우산' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어."), lines.join('\n'));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }
@@ -229,7 +229,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   } finally { await browser.close(); }
 }
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await page.locator('#btn-skip').click();
     await page.locator('#screen-briefing').waitFor({ state: 'visible' });

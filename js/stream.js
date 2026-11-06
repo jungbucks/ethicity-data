@@ -95,6 +95,7 @@
       var singles = shuffle(local.slice(), rng);
       for (var k = 0; di < group.length; k++) singles[k].cards.push(group[di++]);
       keepFakesLate(local, mission.fakeLate === 'zone' ? Math.max((start + end) / 2, length * FAKE_FROM) : length * 0.5, rng);
+      if (mission.rareLate) keepRareLate(local, start + (end - start) * mission.rareLate, mission, rng); // 구역 앞쪽은 흔한 모습부터(1 임무)
       local.forEach(function (r) { r.cards.forEach(function (c) { c.zoneId = zone.id; }); rows.push(r); });
       start = end;
     });
@@ -119,6 +120,25 @@
     var fakes = mission.fakes || [];
     if (fakes.length) deck.push({ fakeId: fakes[Math.abs(seed | 0) % fakes.length].id });
     return deck;
+  }
+
+  // 앞 구간 줄의 드문 카드를 뒤 구간 줄의 흔한 카드와 맞바꾼다(mission.rareLate가 있는 임무만)
+  function keepRareLate(rows, from, mission, rng) {
+    var early = [], late = [];
+    rows.forEach(function (row) {
+      row.cards.forEach(function (c, i) {
+        if (row.z < from && isRare(mission, c)) early.push({ row: row, i: i });
+        if (row.z >= from && !isRare(mission, c)) late.push({ row: row, i: i });
+      });
+    });
+    shuffle(late, rng);
+    early.forEach(function (e, n) {
+      var t = late[n];
+      if (!t) return;
+      var c = e.row.cards[e.i];
+      e.row.cards[e.i] = t.row.cards[t.i];
+      t.row.cards[t.i] = c;
+    });
   }
 
   // 앞 구간 줄의 가짜를 뒤 구간 줄의 가짜 아닌 카드와 맞바꾼다(가짜가 없으면 rng를 쓰지 않아 코스가 그대로)
@@ -207,7 +227,7 @@
     if (zdefs) {
       var layout = zonedRows(deck, mission, length, cfg, rng, zdefs);
       rows = layout.rows; zones = layout.zones; rowCount = rows.length;
-    } else keepFakesLate(rows, length * FAKE_FROM, rng);
+    } else keepFakesLate(rows, length * (mission.fakeFrom || FAKE_FROM), rng); // 첫 시험은 코스 뒤 절반(기본 잡기를 익힌 뒤)
 
     var items = [];
     rows.forEach(function (row) {

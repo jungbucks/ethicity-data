@@ -1,138 +1,98 @@
 /*
- * 1 임무 — 침수 판별 AI(기획서 §7). 장면·조합·카드 수·대사는 모두 여기서 고친다.
- * danger:true = 침수 조합(빠지면 침수를 '안전'으로 통과시키는 위험 실패),
- * danger:false = 정상 조합(빠지면 멀쩡한 길을 막는 불편 실패).
- * what = 빠진 것 이름 — 결과 문구는 가진 개수로 만든다(0장 '…없었다', 모자라면 '…부족했다', DR.Judge.missingLine).
- * boundary:true = 경계 조합 — 일반 드문 카드로도, 올바르게 분류한 "?" 카드(2장 몫)로도 채워진다.
- * fakes = 그림과 이름표가 안 맞는 가짜(도로 사진이 아닌 것, spec §4). label = 붙은 이름표(카드 종류 key),
- * truth = 진짜 종류(없으면 null). 한 장면에 2장 이상 쌓이면 그 장면이 오염된다(config.fakeLimit).
+ * 1 임무 — 분실물 센터 AI(docs/specs/2026-11-06-m1-lost-found.md). 장면·조합·카드 수·대사는 모두 여기서 고친다.
+ * 배우는 것: 이름표가 전부 맞아도 자료에 빠진 모습이 있으면 AI는 그 모습을 못 알아본다.
+ * 카드 이름표는 두 모습 모두 같은 종류(우산·지갑·스마트폰)다 — 달리는 동안·첫 검수에선 모습을 글로 알려 주지 않고 사진으로 본다(hideShapes).
+ * 조합(모습)은 따로 판정한다: 접힌 우산만 모자라면 접힌 우산만 '분류 보류' 칸으로 간다. 물건은 보관함에 그대로 있다.
+ * 가짜 카드·"?" 카드는 넣지 않는다(이번 임무의 난점은 빠진 모습 하나).
+ * 카드 그림 6장은 자료 묶음을 대표하는 그림이다. 같은 그림이 반복돼도 서로 다른 실물 사진을 모았다고 설명하지 않는다.
  */
 (function (root) {
   'use strict';
 
   var m1 = {
-    id: 'm1', title: '침수 판별 AI', next: 'm2', cityLine: '침수 판별 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 6,
-    // 달리기 구역(코스 순서 — 사용자 승인: 물청소 → 고가 아래 → 밤 번화가 → 주택가 골목)
+    id: 'm1', title: '분실물 센터 AI', next: 'm2', cityLine: '분실물 센터 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 4,
+    hideShapes: true, rareLate: 0.35, relabel: false, holdBin: 'hold', binWord: '칸', scenery: 'sorting',
+    briefTitle: '오늘 접수대에 들어온 물건',
     zones: [
-      { id: 'S2', title: '물청소 직후의 낮 도로', short: '물청소 도로' },
-      { id: 'S4', title: '고가도로 아래 저지대', short: '고가도로 아래' },
-      { id: 'S3', title: '비 오는 밤 번화가 교차로', short: '밤 번화가' },
-      { id: 'S1', title: '낮 주택가 골목', short: '주택가 골목' }
+      { id: 'S1', title: '우산', short: '우산' },
+      { id: 'S2', title: '지갑', short: '지갑' },
+      { id: 'S3', title: '스마트폰', short: '스마트폰' }
     ],
-    labelOptions: [
-      { id: 'flood_deep', text: '침수(깊음)' },
-      { id: 'flood_shallow', text: '침수(얕음)' },
-      { id: 'wet', text: '정상(젖음)' },
-      { id: 'dry', text: '정상(마름)' }
+    labels: [
+      { id: 'umbrella', text: '우산' },
+      { id: 'wallet', text: '지갑' },
+      { id: 'phone', text: '스마트폰' },
+      { id: 'hold', text: '분류 보류' }
     ],
+    labelOptions: [],
+    legendNote: '카드에는 물건 종류만 적혀 있다. 어떤 모습인지는 사진을 보자.',
     cardTypes: {
-      day_deep:      { icons: ['day', 'flood_deep'],      art: { time: 'day', water: 'deep' } },
-      day_shallow:   { icons: ['day', 'flood_shallow'],   art: { time: 'day', water: 'shallow' } },
-      day_wet:       { icons: ['day', 'wet'],             art: { time: 'day', water: 'wet' } },
-      day_dry:       { icons: ['day', 'dry'],             art: { time: 'day', water: 'dry' } },
-      night_wet:     { icons: ['night', 'wet'],           art: { time: 'night', water: 'wet' } },
-      night_neon:    { icons: ['night', 'wet'],           art: { time: 'night', water: 'wet', variant: 'neon' }, rare: true, variantText: '네온 반사' },
-      night_deep:    { icons: ['night', 'flood_deep'],    art: { time: 'night', water: 'deep' }, rare: true },
-      night_shallow: { icons: ['night', 'flood_shallow'], art: { time: 'night', water: 'shallow' }, rare: true },
-      night_muddy:   { icons: ['night', 'flood_shallow'], art: { time: 'night', water: 'shallow', variant: 'muddy' }, rare: true, variantText: '흙탕물' }
+      umbrella_open:   { label: 'umbrella', icons: ['umbrella'], name: '펼친 우산', art: { photo: 'umbrella-open' } },
+      umbrella_folded: { label: 'umbrella', icons: ['umbrella'], name: '접힌 우산', art: { photo: 'umbrella-folded' }, rare: true },
+      wallet_closed:   { label: 'wallet',   icons: ['wallet'],   name: '닫힌 지갑', art: { photo: 'wallet-closed' } },
+      wallet_open:     { label: 'wallet',   icons: ['wallet'],   name: '열린 지갑', art: { photo: 'wallet-open' }, rare: true },
+      phone_front:     { label: 'phone',    icons: ['phone'],    name: '앞면 스마트폰', art: { photo: 'phone-front' } },
+      phone_back:      { label: 'phone',    icons: ['phone'],    name: '뒷면 스마트폰', art: { photo: 'phone-back' }, rare: true }
     },
-    ambiguous: [
-      { id: 'q_neon', truthKey: 'night_neon', correctLabel: 'wet', icons: ['night', 'unknown'],
-        art: { time: 'night', water: 'wet', variant: 'neon', ambiguity: 'high' },
-        clues: [
-          { type: 'usual_photo', text: '같은 장소, 비 안 오는 밤' },
-          { type: 'sensor', text: '근처 수위 센서: 0 cm' }
-        ] },
-      { id: 'q_muddy', truthKey: 'night_muddy', correctLabel: 'flood_shallow', icons: ['night', 'unknown'],
-        art: { time: 'night', water: 'shallow', variant: 'muddy', ambiguity: 'high' },
-        clues: [
-          { type: 'sensor', text: '수위 센서: 9 cm' },
-          { type: 'wheel', text: '세워 둔 차 바퀴 아래쪽이 물에 잠김' }
-        ] },
-      { id: 'q_clean', truthKey: 'day_wet', correctLabel: 'wet', icons: ['day', 'unknown'],
-        art: { time: 'day', water: 'wet', variant: 'clean', ambiguity: 'high' },
-        clues: [
-          { type: 'time', text: '촬영 시각: 오전 10:12 · 맑음' },
-          { type: 'log', text: '청소차 운행 기록: 10:05 이 도로 물청소' }
-        ] }
-    ],
-    fakes: [
-      { id: 'f_pool', name: '수영장', label: 'day_deep', truth: null, count: 2, art: { place: 'pool', time: 'day' },
-        line: "우리가 넣은 데이터에 수영장 사진이 '깊은 침수'로 섞여 들어갔다." },
-      { id: 'f_fountain', name: '분수 광장', label: 'day_shallow', truth: null, count: 2, art: { place: 'fountain', time: 'day' },
-        line: "우리가 넣은 데이터에 분수 광장 사진이 '얕은 침수'로 섞여 들어갔다." },
-      { id: 'f_fridge', name: '냉장고', label: 'night_wet', truth: null, count: 2, art: { object: 'fridge' },
-        line: "우리가 넣은 데이터에 냉장고 사진이 '비에 젖은 밤 도로'로 섞여 들어갔다." }
-    ],
-    outcomeText: { pass: '제대로 판단했다', inconvenience: '멀쩡한 길을 막았다 · 불편', danger: '잠긴 길을 통과시켰다 · 위험' },
-    counts: {
-      day_deep: 11, day_shallow: 9, day_wet: 4, day_dry: 4, night_wet: 6,
-      night_neon: 3, night_deep: 3, night_shallow: 3, night_muddy: 3
-    },
+    ambiguous: [],
+    outcomeText: { pass: '종류별 목록에 올렸다', inconvenience: '일부 물건이 분류 보류로 남았다', danger: '일부 물건이 분류 보류로 남았다' },
+    counts: { umbrella_open: 8, wallet_closed: 8, phone_front: 8, umbrella_folded: 5, wallet_open: 5, phone_back: 5 },
     scenes: [
-      { id: 'S1', title: '낮 주택가 골목 침수', emphasis: 'normal', art: { place: 'alley', time: 'day', water: 'deep', inconvenience: { water: 'dry' } },
+      { id: 'S1', title: '우산', emphasis: 'normal', art: { place: 'lostfound', focus: ['umbrella_open', 'umbrella_folded'] },
         combos: [
-          { id: 'S1_day_deep', keys: ['day_deep'], need: 2, danger: true, what: '낮에 깊게 잠긴 도로' },
-          { id: 'S1_day_shallow', keys: ['day_shallow'], need: 2, danger: true, what: '낮에 얕게 잠긴 도로' }
+          { id: 'S1_open', keys: ['umbrella_open'], need: 3, danger: false, what: '펼친 우산 사진' },
+          { id: 'S1_folded', keys: ['umbrella_folded'], need: 3, danger: false, what: '접힌 우산 사진' }
         ],
-        passLine: '물에 잠긴 낮 골목. 통행을 제대로 막았다.',
-        cuts: {
-          danger: '잠긴 골목이 \'안전\'으로 표시됐다. 들어서려던 차를 감독관이 세웠다.',
-          inconvenience: '물에 잠긴 골목만이 아니라, 물이 없는 옆 골목까지 막혔다. 차들이 빙 돌아간다.'
-        } },
-      { id: 'S2', title: '물청소 직후의 낮 도로', emphasis: 'normal', art: { place: 'street', time: 'day', water: 'wet', variant: 'clean' },
+        passLine: '펼친 우산도, 접어서 묶은 우산도 우산 목록에 떴다.',
+        cuts: { danger: '자료에 없던 모습의 우산이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 우산이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } },
+      { id: 'S2', title: '지갑', emphasis: 'normal', art: { place: 'lostfound', focus: ['wallet_closed', 'wallet_open'] },
         combos: [
-          { id: 'S2_day_wet', keys: ['day_wet'], need: 2, danger: false, what: '물에 젖었을 뿐인 낮 도로' },
-          { id: 'S2_day_dry', keys: ['day_dry'], need: 2, danger: false, what: '마른 낮 도로' }
+          { id: 'S2_closed', keys: ['wallet_closed'], need: 3, danger: false, what: '닫힌 지갑 사진' },
+          { id: 'S2_open', keys: ['wallet_open'], need: 3, danger: false, what: '열린 지갑 사진' }
         ],
-        passLine: '물청소가 막 끝난 길. 젖었을 뿐이라고 알아보고 그대로 열어 두었다.',
-        cuts: {
-          danger: '젖은 길과 잠긴 길을 가리지 못했다.',
-          inconvenience: '물청소만 끝난 길을 침수로 막았다. 버스가 빙 돌아간다.'
-        } },
-      { id: 'S3', title: '비 오는 밤 번화가 교차로', emphasis: 'normal', art: { place: 'crossing', time: 'night', water: 'wet', variant: 'neon' },
+        passLine: '닫힌 지갑도, 카드 칸이 보이게 열린 지갑도 지갑 목록에 떴다.',
+        cuts: { danger: '자료에 없던 모습의 지갑이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 지갑이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } },
+      { id: 'S3', title: '스마트폰', emphasis: 'normal', art: { place: 'lostfound', focus: ['phone_front', 'phone_back'] },
         combos: [
-          { id: 'S3_night_wet', keys: ['night_wet'], need: 2, danger: false, what: '비에 젖은 밤 도로' },
-          { id: 'S3_night_neon', keys: ['night_neon'], need: 2, danger: false, boundary: true, what: '네온 불빛이 비친 밤 도로' },
-          { id: 'S3_night_deep', keys: ['night_deep'], need: 2, danger: true, what: '밤에 깊게 잠긴 도로',
-            // 이 장면의 정답은 '젖었을 뿐'이라, 깊은 침수 예시가 없으면 길을 막는 불편으로 나타난다
-            fail: { kind: 'inconvenience', line: '네온 반사를 깊은 물로 착각해 교차로를 막았다. 밤에 정말 잠긴 도로를 본 적이 없으니 빛과 물을 구분할 기준이 없었다.' } }
+          { id: 'S3_front', keys: ['phone_front'], need: 3, danger: false, what: '앞면 스마트폰 사진' },
+          { id: 'S3_back', keys: ['phone_back'], need: 3, danger: false, what: '뒷면 스마트폰 사진' }
         ],
-        passLine: '네온이 번쩍이는 젖은 교차로. 침수가 아니라고 알아보고 길을 열어 두었다.',
-        cuts: {
-          danger: '젖은 교차로와 잠긴 길을 가리지 못했다.',
-          inconvenience: '젖었을 뿐인 밤 교차로를 침수로 막았다. 버스가 우회하고 길이 막힌다.'
-        } },
-      { id: 'S4', title: '고가도로 아래 저지대 교차로', emphasis: 'low', art: { place: 'overpass', time: 'night', water: 'shallow' },
-        combos: [
-          { id: 'S4_night_shallow', keys: ['night_shallow'], need: 2, danger: true, what: '물에 살짝 잠긴 밤 도로' },
-          { id: 'S4_night_muddy', keys: ['night_muddy'], need: 2, danger: true, boundary: true, what: '흙탕물에 얕게 잠긴 밤 도로' },
-          { id: 'S4_night_wet', keys: ['night_wet'], need: 2, danger: false, what: '비에 젖은 밤 도로',
-            // 이 장면의 정답은 '얕은 침수(막기)'라, 젖은 예시가 없으면 주변 멀쩡한 길까지 막는 불편으로 나타난다
-            fail: { kind: 'inconvenience', line: '얕게 잠긴 길은 막았지만, 옆의 젖기만 한 밤길까지 같이 막았다. 젖은 밤 도로를 본 적이 없으니 어디까지가 잠긴 건지 선을 긋지 못했다.' } }
-        ],
-        passLine: '고가 그림자 아래 얕은 물. 잘 안 보였지만 침수로 알아보고 막았다.',
-        cuts: {
-          danger: '고가 그림자 아래, 얕게 잠긴 길이 \'안전\'으로 떴다. 차가 들어서려는 순간 감독관이 막아 세웠다.',
-          inconvenience: '얕게 잠긴 길과 함께, 멀쩡한 고가 아래 길까지 막아 버렸다. 차들이 멀리 돌아간다.'
-        } }
+        passLine: '화면이 보이는 앞면도, 카메라가 보이는 뒷면도 스마트폰 목록에 떴다.',
+        cuts: { danger: '자료에 없던 모습의 스마트폰이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 스마트폰이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } }
+    ],
+    // 접수대 컨베이어 — 모습마다 2개씩, 지나가는 순서대로. 그 모습의 자료가 모자라면 그 물건만 분류 보류
+    conveyor: [
+      { id: 'cv1', art: 'umbrella_open', variant: 1, scene: 'S1', bin: 'umbrella', wrongBin: 'hold', causes: ['S1_open'] },
+      { id: 'cv2', art: 'wallet_closed', variant: 1, scene: 'S2', bin: 'wallet', wrongBin: 'hold', causes: ['S2_closed'] },
+      { id: 'cv3', art: 'phone_front', variant: 1, scene: 'S3', bin: 'phone', wrongBin: 'hold', causes: ['S3_front'] },
+      { id: 'cv4', art: 'umbrella_folded', variant: 1, scene: 'S1', bin: 'umbrella', wrongBin: 'hold', causes: ['S1_folded'] },
+      { id: 'cv5', art: 'wallet_open', variant: 1, scene: 'S2', bin: 'wallet', wrongBin: 'hold', causes: ['S2_open'] },
+      { id: 'cv6', art: 'phone_back', variant: 1, scene: 'S3', bin: 'phone', wrongBin: 'hold', causes: ['S3_back'] },
+      { id: 'cv7', art: 'wallet_closed', variant: 2, scene: 'S2', bin: 'wallet', wrongBin: 'hold', causes: ['S2_closed'] },
+      { id: 'cv8', art: 'umbrella_folded', variant: 2, scene: 'S1', bin: 'umbrella', wrongBin: 'hold', causes: ['S1_folded'] },
+      { id: 'cv9', art: 'phone_back', variant: 2, scene: 'S3', bin: 'phone', wrongBin: 'hold', causes: ['S3_back'] },
+      { id: 'cv10', art: 'umbrella_open', variant: 2, scene: 'S1', bin: 'umbrella', wrongBin: 'hold', causes: ['S1_open'] },
+      { id: 'cv11', art: 'wallet_open', variant: 2, scene: 'S2', bin: 'wallet', wrongBin: 'hold', causes: ['S2_open'] },
+      { id: 'cv12', art: 'phone_front', variant: 2, scene: 'S3', bin: 'phone', wrongBin: 'hold', causes: ['S3_front'] }
     ],
     story: {
       intro: [
-        { who: 'supervisor', text: '올여름 비는 처음 보는 규모야. 침수 판별 AI가 따라가지 못하고 있어.', face: 'worried' },
-        { who: 'bot', text: '삐빅! 침수 사진 3,000장 확보! 이름표도 제가 다 붙였어요! 임무 완료!', face: 'basic' },
-        { who: 'guide', text: '수거봇 데이터로 복구한 결과입니다. 밤의 젖은 도로 열두 곳을 침수로 판정해 통행을 막았습니다.', face: 'explain' },
-        { who: 'supervisor', text: '3,000장 대부분이 낮의 물웅덩이 사진이네. 멀쩡한 길이 막혔어.', face: 'worried' },
+        { who: 'student', text: '제 우산 여기 있잖아요. 왜 목록에 없어요?' },
+        { who: 'guide', text: '우산 검색 결과입니다. 펼친 우산만 찾았습니다.', face: 'explain' },
+        { who: 'bot', text: '삐빅! 분실물 사진 3,000장 확보! 이름표도 제가 다 붙였어요! 임무 완료!', face: 'basic' },
+        { who: 'supervisor', text: '사진을 펼쳐 보니 펼친 우산, 닫힌 지갑, 화면이 위로 향한 스마트폰이 반복되네.', face: 'worried' },
+        { who: 'supervisor', text: '오늘 들어온 물건도 이 사진들처럼 놓여 있을까?', face: 'explain' },
         { who: 'guide', text: '추가 경보. 데이터 세계에 정체불명의 불꽃이 관측됩니다. 러너를 노리는 방해 세력으로 추정됩니다.', face: 'worried' },
         { who: 'peer', text: '나도 오늘 자격 딴 동기야. 같이 가자! 이번엔 제대로 모아 보자.', face: 'happy' },
-        { who: 'peer', text: '흙탕물처럼 애매한 사진은 그냥 빼자. 이상한 건 AI만 헷갈려.', face: 'basic' },
+        { who: 'peer', text: '이상하게 놓인 사진은 그냥 빼자. 이상한 건 AI만 헷갈려.', face: 'basic' },
         { who: 'supervisor', text: '러너, 출동. 무엇을 가져올지는 너희가 판단해. 넣을지는 내가 승인하고.', face: 'explain' }
       ],
-      guideBrief: '이 AI는 비 오는 날 밤에도 침수 도로와 젖은 도로를 구별해야 합니다. 무엇을 모을지는 러너의 판단 영역입니다.',
-      supervisorQuestion: '브리핑 장면 네 개, 하나씩 다 떠올려 봤어?',
+      guideBrief: '이 AI는 직원이 접수한 물건을 종류별 검색 목록에 올립니다. 물건을 찾는 건 학생입니다. 무엇을 모을지는 러너의 판단 영역입니다.',
+      supervisorQuestion: '접수대에서 본 물건들, 하나씩 다 떠올려 봤어?',
       responsibility: '승인한 건 나니까, 나도 같이 책임질게.',
-      clientPass: [{ who: 'client', text: '덕분에 오늘 밤은 길 걱정을 좀 덜었네요.', face: 'basic' }],
-      clientFail: [{ who: 'client', text: '아직 몇 군데는 불안하네요. 다시 한번 부탁해요.', face: 'worried' }],
+      conveyorIntro: { who: 'supervisor', text: '그럼, 접수대에서 실제로 돌려 보자.', face: 'explain' },
+      clientPass: [{ who: 'student', text: '이제 우산 칸에 떠요!' }],
+      clientFail: [{ who: 'student', text: '아직 목록에 안 뜨는 물건이 있어요. 보관함에는 있는데…' }],
       senior: [
         { who: 'senior', text: '첫날치고 나쁘지 않네.', face: 'happy' },
         { who: 'senior', text: '근데 AI 너무 믿지는 마. AI는 네가 준 것 이상은 절대 몰라.', face: 'explain' }

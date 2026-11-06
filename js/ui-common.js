@@ -11,7 +11,7 @@
 
   var DR = root.DR;
   function el() { return DR.UI.el.apply(null, arguments); }
-  var KNOWN = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat', 'can', 'pet', 'pack', 'paper', 'vinyl', 'battery', 'trash', 'station', 'market', 'river', 'crossing', '1', '2', '3', '4', '5', '7', '8'];
+  var KNOWN = ['day', 'night', 'flood_deep', 'flood_shallow', 'wet', 'dry', 'unknown', 'dog', 'cat', 'umbrella', 'wallet', 'phone', 'hold', 'can', 'pet', 'pack', 'paper', 'vinyl', 'battery', 'trash', 'station', 'market', 'river', 'crossing', '1', '2', '3', '4', '5', '7', '8'];
 
   function iconStrip(mission, keyOrIcons, size) {
     var icons = Array.isArray(keyOrIcons) ? keyOrIcons : ((mission.cardTypes[keyOrIcons] || {}).icons || []);

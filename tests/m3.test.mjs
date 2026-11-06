@@ -12,7 +12,7 @@ const { judge, missingLine } = require('../js/judge.js');
 const Conveyor = require('../js/conveyor.js');
 const Stream = require('../js/stream.js');
 const cast = require('../missions/cast.js');
-const m1 = require('../missions/m1.js'), m2 = require('../missions/m2.js'), tut = require('../missions/tutorial.js');
+const m1 = require('../missions/legacy-flood.js'), m2 = require('../missions/m2.js'), tut = require('../missions/tutorial.js');
 const m3 = require('../missions/m3.js');
 
 const combos = (m) => m.scenes.flatMap((s) => s.combos);
@@ -131,13 +131,12 @@ test('m3 run: four zones, counts, fakes late in their zone and never in the firs
     assert.deepEqual(c, Stream.build(m3, cfg, { seed }));
   }
 });
-test('m1, m2 and tutorial courses unchanged by m3', () => {
+test('flood, m2 courses unchanged by m3', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m3.json', import.meta.url)));
   for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
   for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
   assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
   assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
-  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7));
 });
 
 // 이야기·잇기

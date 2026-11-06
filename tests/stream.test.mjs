@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
 require('../js/rng.js');
-const m1 = require('../missions/m1.js');
+const m1 = require('../missions/legacy-flood.js');
 const tutorial = require('../missions/tutorial.js');
 const { build } = require('../js/stream.js');
 
@@ -164,7 +164,6 @@ test('missions without fakes unchanged', () => {
   const plain = { ...m1, fakes: undefined };
   const n = Object.values(m1.counts).reduce((a, b) => a + b, 0) + m1.ambiguous.length;
   assert.equal(cards(build(plain, cfg, { seed: 1101 })).length, n);
-  assert.equal(fakesOf(build(tutorial, cfg, { seed: 7 })).length, 0);
 });
 
 // 2026-11-05 벽 간격 지시서

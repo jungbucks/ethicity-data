@@ -20,6 +20,7 @@
     return f ? f.name : art;
   }
   function binText(mission, id) { return DR.Cards.labelText(mission, id); }
+  function binWord(mission) { return mission.binWord || '함'; }
   // '비상 정지! {bin} 함에 …' — 건전지가 실제로 들어간 함 이름으로
   function emergencyLine(mission, it) { return { who: mission.story.emergency.who, text: mission.story.emergency.text.replace('{bin}', binText(mission, it.bin)), face: mission.story.emergency.face }; }
 
@@ -69,13 +70,13 @@
     function makeItem(it) {
       var name = nameOf(mission, it.art);
       var e = el('div', { class: 'cv-item', 'data-id': it.id, 'data-bin': it.bin, 'data-correct': String(it.correct) }, [
-        el('img', { src: A.card(mission, it.art, it.variant, 160).toDataURL(), alt: name + ' → ' + binText(mission, it.bin) + ' 함' })
+        el('img', { src: A.card(mission, it.art, it.variant, 160).toDataURL(), alt: name + ' → ' + binText(mission, it.bin) + ' ' + binWord(mission) })
       ]);
       placed[it.id] = e;
       return e;
     }
     function mark(e, it) { e.classList.add(it.correct ? 'ok' : 'bad'); }
-    function say(it) { status.textContent = nameOf(mission, it.art) + ' → ' + binText(mission, it.bin) + ' 함'; }
+    function say(it) { status.textContent = nameOf(mission, it.art) + ' → ' + binText(mission, it.bin) + ' ' + binWord(mission); }
 
     // FLIP: 벨트 위 자리에서 함 안 자리로 날아간다
     function flyTo(e, it, ms) {
@@ -146,7 +147,7 @@
       claw.classList.remove('grab');
       var anyWrong = items.some(function (it) { return !it.correct; });
       var emergency = items.filter(function (it) { return it.emergency; })[0];
-      status.textContent = anyWrong ? '다 분류했다. 빨간 테두리는 우리 AI가 다른 함에 넣은 물건이다.' : '다 분류했다. 모두 제자리에 들어갔다.';
+      status.textContent = anyWrong ? (mission.holdBin ? '다 분류했다. 빨간 테두리는 우리 AI가 알아보지 못해 분류 보류로 보낸 물건이다.' : '다 분류했다. 빨간 테두리는 우리 AI가 다른 함에 넣은 물건이다.') : '다 분류했다. 모두 제자리에 들어갔다.';
       endBox.innerHTML = '';
       if (emergency && !stopShown) {
         // 건너뛰기·움직임 줄이기로 정지 창을 못 봤어도 그 순간은 남긴다

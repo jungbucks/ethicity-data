@@ -89,13 +89,13 @@ test('artId and labelText', () => {
 });
 
 // 카드 라벨·개수(P2·P3) — 언제나 "카드에 붙은 설명표" 기준
-const m1 = require('../missions/m1.js');
+const m1 = require('../missions/legacy-flood.js');
 const tut = require('../missions/tutorial.js');
 test('cardLabel: 시간 · 설명표, 드문 종류는 덧말', () => {
   assert.equal(C.cardLabel(m1, { key: 'night_wet' }), '밤 · 정상(젖음)');
   assert.equal(C.cardLabel(m1, { key: 'day_deep' }), '낮 · 침수(깊음)');
   assert.equal(C.cardLabel(m1, { key: 'night_neon' }), '밤 · 정상(젖음) · 네온 반사');
-  assert.equal(C.cardLabel(tut, { key: 'dog' }), '강아지');
+  assert.equal(C.cardLabel(tut, { key: 'dog' }), '개');
 });
 test('cardLabel: 가짜는 붙은 설명표 그대로(정체를 드러내지 않음)', () => {
   assert.equal(C.cardLabel(m1, { fakeId: 'f_pool' }), '낮 · 침수(깊음)');

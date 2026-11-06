@@ -1,6 +1,6 @@
 // 1단계(P1~P4) 흐름 확인: 튜토리얼(빈 가방·합격) → m1(일시정지·라벨·되돌리기·S3 결과) → 새로고침 이어하기 → 보충(NEW) → 재제출 → 엔딩 → 타이틀
 import assert from 'node:assert/strict';
-import { passCity, openGame, shotPath } from './browser.mjs';
+import { passCity, passExam, openGame, shotPath } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 const { night_deep, ...NO_DEEP } = ALL2;
@@ -26,8 +26,7 @@ try {
   await page.reload();
   assert.equal(await page.locator('#title-actions button').count(), 1, 'fresh title: 시작하기 하나');
   await page.locator('#btn-start').click();
-  await skipTalk(page); // 프롤로그
-  await skipTalk(page); // 시험관 대화
+  await skipTalk(page); // 오프닝
   assert.ok(await page.locator('#screen-briefing .legend li').count() >= 2, 'tutorial legend');
   await page.locator('#btn-run').click();
   await page.locator('#btn-goal-start').click();
@@ -35,24 +34,18 @@ try {
 
   // P1 버그 2: 빈 가방
   await fillAndFinish(page, {});
+  await page.locator('#btn-submit').click();
   let t = await page.locator('#screen-result').innerText();
-  assert.match(t, /배운 게 없습니다/);
   assert.match(t, /가방이 비었어/);
-  assert.doesNotMatch(t, /한쪽 사진만|부족했다|고양이!/, 'empty bag: only the empty-bag lines');
-  // 한쪽만(강아지 2·고양이 0) → "한쪽 사진만 잔뜩"
+  // 한쪽만 → 부족한 사진을 종류별로
   await page.locator('#btn-retry').click(); await waitRun(page);
   await fillAndFinish(page, { dog: 2 });
-  assert.match(await page.locator('#screen-result').innerText(), /한쪽 사진만 잔뜩/);
-  // 둘 다 있지만 모자람 → "한쪽만" 문구 없음
-  await page.locator('#btn-retry').click(); await waitRun(page);
-  await fillAndFinish(page, { dog: 1, cat: 1 });
-  t = await page.locator('#screen-result').innerText();
-  assert.doesNotMatch(t, /한쪽 사진만/);
-  assert.match(t, /너무 적어/);
+  await page.locator('#btn-submit').click();
+  assert.match(await page.locator('#screen-result').innerText(), /개 사진 3장, 고양이 사진 5장이 더 필요해/);
   // 합격 → 가방 구성 한 줄
   await page.locator('#btn-retry').click(); await waitRun(page);
   await fillAndFinish(page, { dog: 5, cat: 5 });
-  await page.locator('#btn-next').click();
+  await passExam(page);
   await page.locator('#screen-story').waitFor();
   const talk = [];
   for (let i = 0; i < 4 && await page.locator('#screen-story').isVisible(); i++) { talk.push(await page.locator('#screen-story').innerText()); await page.locator('#screen-story .dialog').click(); }
@@ -62,7 +55,9 @@ try {
   await page.locator('#screen-city').waitFor();
   await passCity(page);
 
-  // ── m1
+  // ── 침수 임무(검사용): 가짜·"?" 카드 엔진을 그대로 본다. 새 1 임무 흐름은 lost-browser
+  await page.waitForSelector('#btn-skip');
+  await page.evaluate(() => DR.App.startMission('flood'));
   await page.waitForSelector('#btn-skip'); await skipTalk(page);
   await page.locator('#screen-briefing').waitFor();
   assert.equal((await save(page)).screen, 'briefing', 'checkpoint: briefing');

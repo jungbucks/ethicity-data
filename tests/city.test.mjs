@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const Save = require('../js/save.js');
-const tut = require('../missions/tutorial.js'), m1 = require('../missions/m1.js'), m2 = require('../missions/m2.js'), m3 = require('../missions/m3.js'), m4 = require('../missions/m4.js');
+const tut = require('../missions/tutorial.js'), m1 = require('../missions/legacy-flood.js'), m2 = require('../missions/m2.js'), m3 = require('../missions/m3.js'), m4 = require('../missions/m4.js');
 const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
 const C = { cleared: true };
 

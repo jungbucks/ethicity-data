@@ -1,29 +1,31 @@
 /*
- * 프롤로그 — 러너 프로필 + 독백. 왜 데이터 러너가 되었는지(밝고 신나게).
- * 마지막 줄은 튜토리얼 끝 시험관 대사("데이터 판단은… 아직")의 복선.
+ * 오프닝 — 세계관 도입(docs/specs/2026-11-05-opening-tutorial-draft.md §3). 첫 장면 → 사진·이름표 분리 → 학교 삽입 컷 → 데이터 세계 → 자격시험.
+ * 그림 파일(assets/story/opening-*.webp)이 없거나 못 읽어도 글과 버튼으로 진행한다. 글자는 그림에 넣지 않는다.
+ * 학교 삽입 컷은 후반 주제의 복선일 뿐 — 선배와의 관계·시험 이름을 밝히지 않는다.
  */
 (function (root) {
   'use strict';
 
-  var prologue = {
-    profile: [
-      { label: '이름', value: '{hero} · 고2' }, // {hero} = 고른 주인공 이름(온유·다온)
-      { label: '오늘', value: '러너 자격 시험' },
-      { label: '좋아하는 것', value: '데이터 세계에서 달리기, 기록 갱신' },
-      { label: '아직 서툰 것', value: '뭘 가져올지 고르기' }
-    ],
-    lines: [
-      '처음 데이터 세계에 접속한 건 중학교 체험 수업 때였다.',
-      '발밑으로 빛나는 길이 끝없이 뻗어 있었고, 달릴수록 끊어졌던 도시가 하나씩 이어졌다.',
-      '그날부터 꿈은 하나. 저 길을 누구보다 빨리 달리는 것!',
-      '요즘 도시는 너무 빨리 바뀌어서, AI가 아는 세상과 진짜 세상이 자꾸 어긋난다.',
-      '그 끊어진 틈을 달려서 잇는 사람. 그게 데이터 러너다.',
-      '시민 러너 자격 시험만 붙으면 학생도 될 수 있다. 그리고 오늘이 바로 그날이다.',
-      '…뭘 가져와야 하는지는, 솔직히 아직 잘 모르겠지만.'
+  var opening = {
+    beats: [
+      { id: 'shelter', img: 'assets/story/opening-shelter.webp', alt: '도시 보호소에서 직원이 강아지를 안고 안내 단말을 보고 있다',
+        lead: '강아지 앞에서 안내 AI가 말했다. ‘고양이입니다.’',
+        lines: [{ who: '직원', text: '사진을 보고도 왜 틀리는 걸까?' }], action: '무슨 일이 있었지?' },
+      { id: 'split', img: 'assets/story/opening-shelter.webp', alt: '보호소 안내 단말',
+        split: { photo: 'assets/cards/animals/d01.webp', photoAlt: '강아지 사진', label: '고양이' },
+        lead: '안내 단말이 배운 자료를 열어 보니, 사진과 이름표가 따로 있었다.', action: '다음' },
+      { id: 'school', img: 'assets/story/opening-school.webp', alt: '교실 책상 위 태블릿과 손글씨 답안, 학생의 손', overlay: '오답',
+        lines: [{ who: '학생', text: '이유도 썼는데… 왜 틀렸지?' }, { who: '선생님', text: '잠깐, 쓴 문장을 제대로 읽지 못했네. 내가 다시 볼게.' }], action: '다음' },
+      { id: 'world', img: 'assets/story/opening-world.webp', alt: '접속 화면 너머의 보호소와 사진 카드가 흐르는 세 갈래 길',
+        lines: [{ who: '시험관', text: 'AI를 가르칠 때는 사진과 이름표를 함께 써.' }, { who: '시험관', text: '빠진 사진을 채우고, 틀린 이름표를 확인하는 것. 그것도 러너의 일이야.' }],
+        note: '이곳은 도시의 데이터를 길과 카드로 볼 수 있는 가상 공간이다.', action: '시험장으로 접속' },
+      { id: 'gate', img: 'assets/story/opening-gate-{hero}.webp', alt: '출발 게이트 앞에 가방을 멘 주인공과 시험관', info: '{hero} · 고2 · 오늘: 러너 자격시험',
+        lines: [{ who: 'runner', text: '오늘만 통과하면, 나도 정식 러너다.' }, { who: '시험관', text: '가방은 10칸. 개 사진 5장, 고양이 사진 5장을 가져와.' }, { who: '시험관', text: '이름표가 틀린 것도 있어. 돌아오면 사진과 맞는지 확인해.' }, { who: 'runner', text: '달리기라면 자신 있어요. 고르는 건… 해 볼게요!' }],
+        action: '실기 준비' }
     ]
   };
 
   root.DR = root.DR || {};
-  root.DR.Prologue = prologue;
-  if (typeof module !== 'undefined' && module.exports) module.exports = prologue;
+  root.DR.Prologue = { opening: opening };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.DR.Prologue;
 })(typeof window !== 'undefined' ? window : globalThis);

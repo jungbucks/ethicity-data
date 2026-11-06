@@ -186,7 +186,17 @@
     return !!(s && s.missing.length === 0);
   }
 
-  var api = { judge: judge, readable: readable, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
+  // 첫 시험 판정(사진 기준): 개·고양이 수는 실제 사진으로 세고, 이름표가 틀린 카드는 따로 돌려준다. 이름표를 고쳤다고 사진 종류가 바뀌지 않는다
+  function exam(mission, bag) {
+    var C = root.DR.Cards, need = {}, have = {};
+    mission.scenes[0].combos.forEach(function (c) { need[c.keys[0]] = c.need; have[c.keys[0]] = 0; });
+    bag.forEach(function (card) { var t = C.truthKey(mission, card); if (t in have) have[t]++; });
+    var wrong = bag.filter(function (card) { return C.isMislabeled(mission, card); });
+    var short = Object.keys(need).filter(function (k) { return have[k] < need[k]; }).map(function (k) { return { key: k, n: need[k] - have[k] }; });
+    return { have: have, need: need, wrong: wrong, short: short, empty: !bag.length, pass: !short.length && !wrong.length };
+  }
+
+  var api = { judge: judge, exam: exam, readable: readable, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
   root.DR = root.DR || {};
   root.DR.Judge = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

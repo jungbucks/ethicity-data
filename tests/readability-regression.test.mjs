@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const m = require('../missions/m1.js'), cfg = require('../js/config.js');
+const m = require('../missions/legacy-flood.js'), cfg = require('../js/config.js');
 require('../js/cards.js');
 const Stream = require('../js/stream.js'), Judge = require('../js/judge.js');
 const before = JSON.parse(fs.readFileSync(new URL('./fixtures/readability-1101.json', import.meta.url)));

@@ -44,7 +44,7 @@
         var c = byCombo[id], shown = DR.UI.comboCount(mission, counts, c);
         // 문장은 바로 아래 보이는 개수로 고른다 — '없었다'와 '1장'이 같이 나오지 않게
         parts.push(el('p', { class: 'missing', text: DR.Judge.missingLine(mission, id, shown) }));
-        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + DR.Cards.keyLabel(mission, c.keys[0]) + ' ' + shown + '장 / 필요 ' + c.need + '장' }));
+        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + (mission.hideShapes ? c.what : DR.Cards.keyLabel(mission, c.keys[0])) + ' ' + shown + '장 / 필요 ' + c.need + '장' }));
       });
       (notes[s.id] || []).forEach(function (t) { parts.push(el('p', { class: 'missing fixed-note', text: t })); });
       (r.contaminated || []).forEach(function (src) {
@@ -68,6 +68,15 @@
           gr.appendChild(el('figure', null, [el('img', { src: DR.CardArt.card(mission, g.art, g.variant, 160).toDataURL(), alt: mission.cardTypes[g.art].name }), el('figcaption', { text: cap })]));
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '채점 시연에서 잘못 채점한 답안지' }), gr]));
+      } else if (wrong.length && mission.holdBin) {
+        // 1 임무: 보류된 물건 옆에 그 물건의 모습과 제출한 자료를 나란히(모습이 같은 물건은 한 번만)
+        var hold = el('div', { class: 'result-wrong-row' }), seenArt = {};
+        wrong.forEach(function (it) {
+          if (seenArt[it.art]) return; seenArt[it.art] = true;
+          var c = s.combos.filter(function (x) { return x.keys.indexOf(it.art) >= 0; })[0], have = DR.UI.comboCount(mission, counts, c);
+          hold.appendChild(el('figure', null, [el('img', { src: DR.CardArt.card(mission, it.art, it.variant, 160).toDataURL(), alt: mission.cardTypes[it.art].name }), el('figcaption', { text: mission.cardTypes[it.art].name + ' · 제출한 자료 ' + have + '장' })]));
+        });
+        parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '분류 보류로 남은 물건' }), hold]));
       } else if (wrong.length) {
         var row = el('div', { class: 'result-wrong-row' });
         wrong.forEach(function (it) {

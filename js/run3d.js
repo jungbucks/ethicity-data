@@ -348,7 +348,7 @@
       S.wallHintShown = true; showHint(S.mission.wallHint, 2.5);
     }
     // 첫 가짜 카드가 판정 구간 가까이 오면 한 번만 안내(맞다/틀리다는 알리지 않는다, spec §3.4)
-    if (!S.fakeHintShown) {
+    if (!S.fakeHintShown && S.mission.fakeHint !== false) { // 첫 시험은 달리는 동안 알리지 않는다(검수에서 스스로 찾게)
       var fakeDist = Math.max(speed, cfg().baseSpeed) * cfg().catchLead * 2;
       for (var q = 0; q < items.length; q++) {
         var fc = items[q], qd = fc.z - S.z;

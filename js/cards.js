@@ -114,7 +114,7 @@
   /* ---------- 학생에게 보이는 라벨·개수(P2·P3) ----------
    * 언제나 "카드에 붙은 설명표" 기준이다. 가짜 카드의 정체, "?" 카드의 정답 여부는 드러내지 않는다. */
   var TIME_TEXT = { day: '낮', night: '밤' };
-  var ANIMAL_TEXT = { dog: '강아지', cat: '고양이' };
+  var ANIMAL_TEXT = { dog: '개', cat: '고양이' };
 
   function iconText(mission, icon) {
     if (icon === 'unknown') return '?';
@@ -125,7 +125,7 @@
   function keyLabel(mission, key) {
     var t = mission.cardTypes[key];
     if (!t) return labelText(mission, key);
-    if (mission.labels && t.name) return t.name; // 2 임무: 종류 이름(음료 캔·통조림 캔 …), 아이콘이 이름표를 보여 준다
+    if (mission.labels && t.name && !mission.hideShapes) return t.name; // 2 임무: 종류 이름(음료 캔·통조림 캔 …), 아이콘이 이름표를 보여 준다
     var parts = t.icons.map(function (ic) { return TIME_TEXT[ic] || iconText(mission, ic); });
     if (t.variantText) parts.push(t.variantText);
     return parts.join(' · ');
@@ -180,6 +180,8 @@
   var labelColors = { flood_deep: '#527de0', flood_shallow: '#25bdb0', wet: '#d8af32', dry: '#9dc77b', unknown: '#b49ae3',
     // 2 임무 분류함(컨베이어 함 색과 같음)
     can: '#d9534f', pet: '#3a8fd9', pack: '#25bdb0', paper: '#c9a227', vinyl: '#d977a8', battery: '#2fae6b', trash: '#7d8290',
+    // 1 임무 접수대 칸
+    umbrella: '#4fb3ff', wallet: '#d9a066', phone: '#b49ae3', hold: '#8a8f9c',
     // 3 임무 장소
     station: '#d9a066', market: '#e86a5a', river: '#4fb3ff', crossing: '#b0b6c3',
     // 4 임무 선택지 번호(7·8도 보통 번호와 같은 결 — 색으로 정체를 드러내지 않는다)

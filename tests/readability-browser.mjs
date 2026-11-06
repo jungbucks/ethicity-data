@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { openGame, shotPath } from './browser.mjs';
 for (const [width, height] of [[1280, 800], [900, 800], [667, 375]]) {
-  const { browser, page, errors } = await openGame({ query: '?run=m1', viewport: { width, height } });
+  const { browser, page, errors } = await openGame({ query: '?run=flood', viewport: { width, height } });
   try {
     await page.waitForFunction(() => DR.Run.peek().running);
     await page.evaluate(() => DR.Run.setPaused(true));
@@ -35,7 +35,7 @@ for (const [width, height] of [[1280, 800], [900, 800], [667, 375]]) {
       await page.evaluate(id => {
         const item = { uid: 'c0', kind: 'card', lane: 1, z: 9 };
         item[id.startsWith('f_') ? 'fakeId' : 'ambiguousId'] = id;
-        DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.m1, bag: [], bagMax: 30, course: { length: 100, items: [item] } });
+        DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.flood, bag: [], bagMax: 30, course: { length: 100, items: [item] } });
         DR.Run.setPaused(true);
       }, id);
       assert.equal(await page.locator('.run-card-label').innerText(), expected);
@@ -43,7 +43,7 @@ for (const [width, height] of [[1280, 800], [900, 800], [667, 375]]) {
       if (width === 900 && id.startsWith('f_')) await page.screenshot({ path: shotPath('readable-' + id) });
     }
     await page.evaluate(() => {
-      DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.m1, bag: [], bagMax: 30, course: { length: 100, items: [{ uid: 'f0', kind: 'fire', lane: 1, z: 15 }] } });
+      DR.Run.start(document.getElementById('run-stage'), { mission: DR.Missions.flood, bag: [], bagMax: 30, course: { length: 100, items: [{ uid: 'f0', kind: 'fire', lane: 1, z: 15 }] } });
       DR.Run.setPaused(true); DR.Run.step(.02);
     });
     assert.equal(await page.locator('.fire-warning:visible').innerText(), '! 불');

@@ -13,15 +13,11 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
     await page.locator('#hero-pick [data-hero="daon"]').click();
     await page.locator('#btn-start').click();
     await page.locator('#screen-profile').waitFor({ state: 'visible' });
-    assert.match(await page.locator('#screen-profile .profile-card').innerText(), /다온 · 고2/);
     assert.doesNotMatch(await page.locator('#screen-profile').innerText(), /가칭/);
-    assert.equal(await page.locator('#screen-profile .mono-line').count(), 1);
-    await page.mouse.click(20, 780); // 아무 곳(카드 밖) — 첫 줄이 아직 떠오르는 중이면 문장만 완성
-    assert.equal(await page.locator('#screen-profile .mono-line').count(), 1, 'first click completes the line');
-    assert.ok(await page.locator('#screen-profile .mono-line').first().evaluate((e) => e.classList.contains('done')));
-    await page.mouse.click(20, 780);
-    assert.equal(await page.locator('#screen-profile .mono-line').count(), 2, 'next click shows the next line');
-    await page.locator('#btn-skip').click();
+    for (let i = 0; i < 4; i++) await page.locator('#btn-opening-next').click();
+    assert.match(await page.locator('.opening-info').innerText(), /다온 · 고2/);
+    assert.match(await page.locator('#screen-profile').innerText(), /다온 오늘만 통과하면/);
+    await page.evaluate(() => DR.App.startMission('m2')); // 대화창 조작 확인(오프닝은 대화창을 쓰지 않는다)
     await page.locator('#screen-story').waitFor({ state: 'visible' });
     assert.match(await hint(page), /^1 \//);
     await page.mouse.click(20, 20); // 대화창 밖
@@ -35,7 +31,7 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
 
 // 2·4·5·6·8) 1 임무
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await page.locator('#btn-skip').click();
     await page.locator('#screen-briefing').waitFor({ state: 'visible' });
@@ -64,7 +60,7 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
     // 2) 단서 카드 글은 한 번만(캡션) — 그림 칸에는 글을 그리지 않는다
     await page.locator('#inspect-grid .bag-card[data-key="q_neon"] .bag-open').click();
     const clue = await page.evaluate(() => {
-      const m = DR.Missions.m1;
+      const m = DR.Missions.flood;
       const a = DR.CardArt.clue(m, 'q_neon', 1, 256).toDataURL(), b = DR.CardArt.clue(m, 'q_muddy', 0, 256).toDataURL(); // 둘 다 수위 센서, 문구만 다름
       return { same: a === b, captions: [...document.querySelectorAll('#inspect-zoom .clue figcaption')].map((f) => f.textContent) };
     });

@@ -13,8 +13,6 @@ for (const width of [1280, 375]) {
     await page.locator('[data-hero="daon"]').click();
     assert.equal(await page.evaluate(() => DR.Save.hero()), 'daon');
     await page.screenshot({ path: shotPath('portraits-title-' + width) });
-    await page.locator('#btn-start').click();
-    assert.equal(await page.locator('#screen-profile .character-portrait').getAttribute('data-character'), 'daon');
     const mapping = await page.evaluate(() => ['runner','peer','guide','bot'].map(id => { const p=DR.UI.portrait(id,72); return [id,p.dataset.character,p.querySelector('img').style.transform]; }));
     // 수거봇(bot)은 Codex 새 시트 collector
     assert.deepEqual(mapping.map(x=>x[1]), ['daon','onyu','robot','collector']);

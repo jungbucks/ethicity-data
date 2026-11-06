@@ -89,7 +89,7 @@
   }
 
   /* ---------- 날아오는 카드(2D, 같은 cardart 그림) ---------- */
-  var CARD_SET = [['m1', 'day_deep'], ['m2', 'can_drink'], ['m3', 'station_now'], ['m1', 'night_wet'], ['m2', 'battery_aa']];
+  var CARD_SET = [['m1', 'umbrella_open'], ['m2', 'can_drink'], ['m3', 'station_now'], ['m1', 'wallet_closed'], ['m2', 'battery_aa']];
   var fly = null, nextFly = 1.2;
   function cardImg(n) {
     var c = CARD_SET[n % CARD_SET.length], m = DR.Missions[c[0]];

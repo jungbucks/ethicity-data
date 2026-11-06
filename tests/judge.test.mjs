@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
-const m1 = require('../missions/m1.js');
+const m1 = require('../missions/legacy-flood.js');
 const tutorial = require('../missions/tutorial.js');
 const { judge, missingLines } = require('../js/judge.js');
 

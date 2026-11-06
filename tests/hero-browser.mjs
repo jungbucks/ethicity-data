@@ -12,7 +12,7 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem('ethicity.data.hero')), 'daon');
 
   // 같은 브라우저 저장소로 바로 달리기 진입 → 다온 모델
-  await page.goto(page.url().replace(/[?#].*$/, '') + '?run=m1');
+  await page.goto(page.url().replace(/[?#].*$/, '') + '?run=flood');
   await page.waitForFunction(() => window.DR && DR.Run && DR.Run.peek().running, null, { timeout: 15000 });
   await page.waitForTimeout(800);
   const a = await page.evaluate(() => DR.Run.peek());

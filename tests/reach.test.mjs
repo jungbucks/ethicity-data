@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
 require('../js/rng.js');
 const { build } = require('../js/stream.js');
-const missions = { tutorial: require('../missions/tutorial.js'), m1: require('../missions/m1.js'), m2: require('../missions/m2.js'), m3: require('../missions/m3.js'), m4: require('../missions/m4.js') };
+const missions = { tutorial: require('../missions/tutorial.js'), m1: require('../missions/legacy-flood.js'), m2: require('../missions/m2.js'), m3: require('../missions/m3.js'), m4: require('../missions/m4.js') };
 const SEEDS = [1, 2, 3, 7, 8, 42, 99, 999, 1101, 1102, 2201, 2202, 3301, 3302, 3303, 3317, 4401];
 
 // 줄 하나 = 카드 하나. 조합의 필요 장수만큼 '칸'을 만들고, 그 조합 종류의 카드가 있는 줄과 짝짓는다(이분 매칭 — 한 줄은 한 칸만).

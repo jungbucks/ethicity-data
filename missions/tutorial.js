@@ -1,6 +1,7 @@
 /*
- * 튜토리얼 — 러너 자격 시험 실기: 보호소 입양 안내 AI(기획서 §6).
- * 조작 익히기가 목적, 데이터 교훈은 아주 가볍게.
+ * 첫 시험 — 러너 자격시험 실기: 보호소 입양 안내 AI(docs/specs/2026-11-05-opening-tutorial-draft.md §4).
+ * 먼저 조작, 그다음 의심: 코스 중반 뒤에 사진과 이름표가 다른 카드 2장. 달리는 동안 안내하지 않고(fakeHint false), 검수·시연에서 확인한다.
+ * 판정은 DR.Judge.exam(사진 기준 개·고양이 각 5장 + 이름표 일치).
  */
 (function (root) {
   'use strict';
@@ -8,51 +9,41 @@
   var tutorial = {
     id: 'tutorial', title: '러너 자격 시험', cityLine: '데이터 러너가 처음 길을 냈다', bag: 10, runSeconds: 45, seed: 7, fires: 2, fireFrom: 0.55,
     labelOptions: [],
-    runGoal: [{ key: 'dog', name: '강아지' }, { key: 'cat', name: '고양이' }], // 달리는 동안 HUD·시작 전 안내에 보이는 목표(장 수는 조합 need)
+    runGoal: [{ key: 'dog', name: '개' }, { key: 'cat', name: '고양이' }], // 달리는 동안 HUD·시작 전 안내에 보이는 목표(장 수는 조합 need)
     wallHint: '분홍 노이즈에 부딪히면 카드가 1장 떨어져',
+    fakeHint: false, fakeFrom: 0.5,
     cardTypes: {
       dog: { icons: ['dog'], art: { animal: 'dog' } },
       cat: { icons: ['cat'], art: { animal: 'cat' } }
     },
     ambiguous: [],
-    counts: { dog: 8, cat: 8 },
+    // 사진과 이름표가 다른 카드 — 개 8장·고양이 8장 중 각 1장(코스 카드 수는 그대로)
+    fakes: [
+      { id: 'f_dog_as_cat', name: '개', label: 'cat', truth: 'dog', count: 1, art: { animal: 'dog' } },
+      { id: 'f_cat_as_dog', name: '고양이', label: 'dog', truth: 'cat', count: 1, art: { animal: 'cat' } }
+    ],
+    counts: { dog: 7, cat: 7 },
     scenes: [
       { id: 'T1', title: '보호소 입양 안내', art: { place: 'shelter', time: 'day' },
         combos: [
-          { id: 'T1_dog', keys: ['dog'], need: 5, danger: false, what: '강아지 사진' },
+          { id: 'T1_dog', keys: ['dog'], need: 5, danger: false, what: '개 사진' },
           { id: 'T1_cat', keys: ['cat'], need: 5, danger: false, what: '고양이 사진' }
         ],
-        passLine: '강아지는 강아지로, 고양이는 고양이로. 입양 안내가 다시 돌아간다.',
+        passLine: '개는 개로, 고양이는 고양이로. 입양 안내가 다시 돌아간다.',
         cuts: { danger: '', inconvenience: '' } }
     ],
     story: {
-      intro: [
-        { who: 'examiner', text: '러너 자격 시험, 마지막 실기다.', face: 'basic' },
-        { who: 'examiner', text: '보호소 입양 안내 AI에 넣을 사진을 데이터 세계에서 모아 와.', face: 'explain' },
-        { who: 'runner', text: '달리기라면 자신 있어요!', face: 'happy' }
-      ],
-      guideBrief: '이 AI는 보호소에 온 동물이 개인지 고양이인지 구별해서 안내해야 합니다.',
-      // 실패 대사는 가방 모양에 따라: 비었음 / 한쪽으로 쏠림(한쪽 0장, 또는 한쪽이 목표를 넘겼는데 다른 쪽이 모자람) / 둘 다 모자람
-      empty: [
-        { who: 'guide', text: '…모르겠습니다. 배운 게 없습니다.', face: 'worried' },
-        { who: 'examiner', text: '가방이 비었어. AI는 네가 준 것 이상은 몰라. 다시 달려 봐.', face: 'worried' }
-      ],
-      fail: [
-        { who: 'guide', text: '(강아지를 보며) 고양이! …고양이입니다!', face: 'worried' },
-        { who: 'examiner', text: '귀엽긴 한데. 한쪽 사진만 잔뜩 들어갔네. 다시 달려 봐.', face: 'worried' }
-      ],
-      failFew: [
-        { who: 'guide', text: '개…일까요? 고양이…일까요?', face: 'worried' },
-        { who: 'examiner', text: '둘 다 있긴 한데, 아직 너무 적어. 다시 달려 봐.', face: 'explain' }
-      ],
-      pass: [
-        { who: 'guide', text: '개입니다. 고양이입니다. 개입니다.', face: 'happy' }
-      ],
-      // 합격 뒤 시험관이 가방 구성을 짚는 한 줄({dog}·{cat} = 담은 장 수)
-      passCount: '개 {dog}장, 고양이 {cat}장. 말한 대로 골라 담았네. 근데 실제 임무에선 몇 장이 필요한지 아무도 안 알려 줘.',
+      guideBrief: '보호소 AI가 개와 고양이를 구별하도록 사진을 준비하자.',
+      inspectHint: '사진 속 동물과 이름표가 같은지 봐.',
+      wrongLine: '이 사진은 {truth}인데, {given}라고 가르쳤네. 이름표를 다시 확인해 볼까?',
+      goodLine: '사진과 이름표가 잘 맞아.',
+      fixedLine: '이름표를 고치니 AI가 배우는 말도 바뀌었어.',
+      emptyLine: '가방이 비었어. AI는 네가 준 것 이상은 몰라. 다시 수집해 봐.',
+      simNote: '사진과 이름표의 관계를 살펴보는 단순화된 시뮬레이션입니다. 실제 AI가 적은 수의 잘못된 이름표 때문에 반드시 같은 오답을 내는 것은 아닙니다.',
       outro: [
-        { who: 'examiner', text: '합격. 달리기 기록은 최고. 데이터 판단은… 아직.', face: 'happy' },
-        { who: 'runner', text: '아직이라니. 그래도 오늘부터 러너다!', face: 'happy' }
+        { who: 'examiner', text: '개 {dog}장, 고양이 {cat}장. 사진과 이름표도 확인했네.', face: 'happy' },
+        { who: 'examiner', text: '합격. 현장에선 무엇이 얼마나 필요한지도 네가 판단해야 해.', face: 'explain' },
+        { who: 'runner', text: '좋아. 이번엔 진짜 도시로!', face: 'happy' }
       ]
     }
   };

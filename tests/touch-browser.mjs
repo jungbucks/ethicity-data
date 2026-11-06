@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { openGame } from './browser.mjs';
 
-const { browser, page, errors } = await openGame({ query: '?run=m1', viewport: { width: 390, height: 844 }, hasTouch: true });
+const { browser, page, errors } = await openGame({ query: '?run=flood', viewport: { width: 390, height: 844 }, hasTouch: true });
 const warnings = [];
 page.on('console', (m) => { if (m.type() === 'warning' || m.type() === 'error') warnings.push(m.text()); });
 try {

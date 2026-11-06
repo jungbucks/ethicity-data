@@ -12,7 +12,7 @@ const Judge = require('../js/judge.js');
 const { judge } = Judge;
 const Stream = require('../js/stream.js');
 const cast = require('../missions/cast.js');
-const m1 = require('../missions/m1.js'), m2 = require('../missions/m2.js'), m3 = require('../missions/m3.js'), tut = require('../missions/tutorial.js');
+const m1 = require('../missions/legacy-flood.js'), m2 = require('../missions/m2.js'), m3 = require('../missions/m3.js'), tut = require('../missions/tutorial.js');
 const m4 = require('../missions/m4.js');
 
 const combos = (m) => m.scenes.flatMap((s) => s.combos);
@@ -256,7 +256,7 @@ test('reach: every needed card can be caught from distinct rows (16 seeds + the 
   for (const seed of [4401, ...Array.from({ length: 16 }, (_, i) => i + 1)]) assert.ok(reachable(m4, Stream.build(m4, cfg, { seed })), 'seed ' + seed);
 });
 
-test('tutorial and missions 1~3 courses unchanged by m4', () => {
+test('flood, m2, m3 courses unchanged by m4', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m4.json', import.meta.url)));
   for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
   for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
@@ -264,7 +264,6 @@ test('tutorial and missions 1~3 courses unchanged by m4', () => {
   assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
   assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
   assert.deepEqual(cardsOf(Stream.build(m3, cfg, { seed: 3302, focusCounts: { market_now: 2 } })), cardsOf(before.m3_sup));
-  assert.deepEqual(cardsOf(Stream.build(tut, cfg, { seed: 7 })), cardsOf(before.tut_7));
 });
 
 test('m3 → m4: record line from mission 3, exam name only "새빛 진학 평가"', () => {

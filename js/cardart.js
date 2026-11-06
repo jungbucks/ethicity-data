@@ -811,6 +811,8 @@
    * 사진이 아직 안 왔거나 못 읽으면 위 Canvas 그림(게임이 멈추지 않게). e01~e03(경계 사진)은 튜토리얼에 "?" 카드가 없어 쓰지 않는다. */
   var PHOTO_DIR = 'assets/cards/animals/';
   var PHOTOS = { dog: ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07', 'd08'], cat: ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08'] };
+  // 1 임무 분실물 사진: 카드 그림 art.photo = 파일 이름(번호와 상관없이 그 사진 하나)
+  var LOST_DIR = 'assets/cards/lost-found/', LOST = ['umbrella-open', 'umbrella-folded', 'wallet-closed', 'wallet-open', 'phone-front', 'phone-back'];
   var photoImgs = {};
   function preloadPhotos() {
     if (typeof Image === 'undefined') return;
@@ -820,11 +822,16 @@
         var im = new Image(); im.decoding = 'async'; im.src = PHOTO_DIR + id + '.webp'; photoImgs[id] = im;
       });
     });
+    LOST.forEach(function (id) {
+      if (photoImgs[id]) return;
+      var im = new Image(); im.decoding = 'async'; im.src = LOST_DIR + id + '.webp'; photoImgs[id] = im;
+    });
   }
   function photoReady(im) { return !!(im && im.complete && im.naturalWidth > 0); }
   // 이 카드에 쓸 사진 id(사진 카드가 아니거나 사진을 못 쓰면 '') — n = 카드 번호(uid 'c12' → 12)
   function photoId(mission, id, n) {
     var o = artOf(mission, id), list = o.animal && PHOTOS[o.animal];
+    if (o.photo) return photoReady(photoImgs[o.photo]) ? o.photo : '';
     if (!list) return '';
     var pid = list[((Math.floor(n) || 0) % list.length + list.length) % list.length];
     return photoReady(photoImgs[pid]) ? pid : '';
@@ -1046,7 +1053,8 @@
     });
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
       var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
-      if (o.animal) drawAnimal(c, o, seed);
+      if (o.photo) drawLostFallback(c, o);
+      else if (o.animal) drawAnimal(c, o, seed);
       else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
@@ -1180,6 +1188,21 @@
           g.fillStyle = '#f4f1ff'; g.font = 'bold ' + Math.round(S * 0.46) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
           g.fillText(name, m, m + S * 0.03);
           break;
+        case 'umbrella':
+          g.fillStyle = '#4fb3ff'; g.beginPath(); g.arc(m, S * 0.46, S * 0.3, Math.PI, 0); g.fill();
+          g.strokeStyle = '#f4f1ff'; g.lineWidth = S * 0.06; g.beginPath(); g.moveTo(m, S * 0.46); g.lineTo(m, S * 0.74); g.arc(m - S * 0.08, S * 0.74, S * 0.08, 0, Math.PI); g.stroke();
+          break;
+        case 'wallet':
+          g.fillStyle = '#d9a066'; roundRect(g, S * 0.18, S * 0.3, S * 0.64, S * 0.42, S * 0.06); g.fill();
+          g.fillStyle = '#7d5a3c'; g.fillRect(S * 0.58, S * 0.44, S * 0.24, S * 0.14);
+          break;
+        case 'phone':
+          g.fillStyle = '#b49ae3'; roundRect(g, S * 0.32, S * 0.16, S * 0.36, S * 0.68, S * 0.06); g.fill();
+          g.fillStyle = ICON_BG; g.fillRect(S * 0.37, S * 0.24, S * 0.26, S * 0.48);
+          break;
+        case 'hold':
+          g.strokeStyle = '#f4f1ff'; g.lineWidth = S * 0.09; g.beginPath(); g.moveTo(S * 0.28, m); g.lineTo(S * 0.72, m); g.stroke();
+          break;
         default: throw new Error('알 수 없는 아이콘: ' + name);
       }
       return c;
@@ -1246,6 +1269,7 @@
       var s = mission.scenes.filter(function (x) { return x.id === sceneId; })[0];
       var c = canvas(size), g = c.getContext('2d'), S = size, seed = hash(sceneId);
       if (s.art.place === 'sorting') { drawSorting(c, mission, s, outcome, seed); return c; }
+      if (s.art.place === 'lostfound') { drawLostFound(c, mission, s, outcome); return c; }
       if (s.art.view) { drawViewScene(c, mission, s, outcome, seed); return c; }
       if (s.art.exam) { drawExamScene(c, mission, s, outcome, seed); return c; }
       if (s.art.place === 'shelter') {
@@ -1317,6 +1341,27 @@
     }
     g.fillStyle = '#ffd24a';
     for (var k = 0; k < 8; k++) { g.beginPath(); g.arc(x + (r.next() - 0.5) * S * 0.2, y - r.next() * S * 0.18, S * 0.008, 0, 7); g.fill(); }
+  }
+
+  // 사진을 아직 못 읽었을 때의 카드(게임이 멈추지 않게) — 종류별 색 판
+  function drawLostFallback(c, o) {
+    var S = c.width, g = c.getContext('2d'), kind = o.photo.split('-')[0];
+    g.fillStyle = { umbrella: '#4a6f8f', wallet: '#7d5a3c', phone: '#5d5478' }[kind] || '#555'; g.fillRect(0, 0, S, S);
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(S * 0.2, S * 0.2, S * 0.6, S * 0.6);
+  }
+  // 접수대: 그 종류의 두 모습 사진을 나란히. 사진을 못 읽었으면 색 판. 결과는 표시만 덧붙인다
+  function drawLostFound(c, mission, s, outcome) {
+    var S = c.width, g = c.getContext('2d');
+    g.fillStyle = '#39405a'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#6d5a48'; g.fillRect(0, S * 0.78, S, S * 0.22);
+    s.art.focus.forEach(function (key, i) {
+      var o = mission.cardTypes[key].art, x = S * (0.05 + i * 0.47), w = S * 0.43, y = S * 0.26, im = photoImgs[o.photo];
+      if (photoReady(im)) g.drawImage(im, x, y, w, w);
+      else { var t = canvas(Math.round(w)); drawLostFallback(t, o); g.drawImage(t, x, y); }
+      g.strokeStyle = '#f4efe2'; g.lineWidth = S * 0.012; g.strokeRect(x, y, w, w);
+    });
+    if (outcome === 'pass') badge(g, S, '#5be3a1', 'check');
+    else if (outcome === 'inconvenience' || outcome === 'danger') badge(g, S, '#ff9f5a', 'cross');
   }
 
   function drawSorting(c, mission, s, outcome, seed) {

@@ -81,9 +81,7 @@
   function startTutorial() {
     var m = DR.Missions.tutorial;
     App.state = { mission: 'tutorial', bag: [], supplements: 0, firstTry: null, seed: seedFor(m) };
-    DR.UI.prologue(DR.Prologue, function () {
-      DR.UI.dialogue(m.story.intro, function () { tutorialBriefing(); });
-    });
+    DR.UI.opening(DR.Prologue.opening, tutorialBriefing);
   }
   // 연습: 세이브가 있을 때 타이틀 연습 카드 — 프롤로그 없이 브리핑부터, 끝나면 타이틀로
   function practiceTutorial() {
@@ -102,31 +100,37 @@
     var course = DR.Stream.build(m, DR.config, { seed: App.state.seed });
     runCourse(m, course, [], function (bag) {
       App.state.bag = bag;
-      var r = DR.Judge.judge(m, bag, DR.config);
-      App.lastJudge = r;
-      DR.UI.tutorialResult(m, r, {
-        onRetry: function () { DR.Sfx.play('ui'); tutorialRun(); },
-        onNext: function () {
-          DR.Sfx.play('ui');
-          // 도시 복구: 튜토리얼 기록을 남기기 전·후 칸 수(마무리 대화 뒤, 1 임무 도입 전에 0 → 1)
-          var before = cityCount();
-          DR.Save.markTutorialDone();
-          App.records.tutorial = { cleared: true };
-          DR.Save.setRecord('tutorial', App.records.tutorial);
-          var step = DR.Save.cityStep('tutorial', before, cityCount());
-          // 합격 대사에 가방 구성 한 줄(개 n장, 고양이 m장)
-          var c = DR.Cards.labelCounts(m, App.state.bag);
-          var count = { who: 'examiner', text: m.story.passCount.replace('{dog}', c.dog || 0).replace('{cat}', c.cat || 0), face: 'explain' };
-          DR.UI.dialogue([m.story.outro[0], count].concat(m.story.outro.slice(1)), function () {
-            cityScreen(m, step, function () {
-              if (!App.state.practice) { startMission('m1'); return; }
-              // 연습 끝: 예전 튜토리얼 체크포인트만 남아 있으면 비우고(이어하기가 끝낸 튜토리얼로 돌아가지 않게) 타이틀로
-              var saved = DR.Save.load();
-              if (saved && saved.mission === 'tutorial') DR.Save.finish();
-              go('title');
-            });
-          });
-        }
+      App.state.shownWrong = [];
+      // 이름표가 틀린 카드를 하나도 안 가져왔으면 시험관의 연습 카드(가방·개수·판정 밖)로 같은 경험을 준다
+      App.state.drill = bag.some(function (c) { return c.fakeId; }) ? null : { id: 'drill', fakeId: m.fakes[0].id };
+      tutorialInspect();
+    });
+  }
+  function tutorialInspect() {
+    var m = DR.Missions.tutorial, st = App.state;
+    DR.UI.examInspect(m, st.bag, { drill: st.drill, lost: st.lost }, tutorialDemo);
+  }
+  function tutorialDemo() {
+    var m = DR.Missions.tutorial, st = App.state;
+    App.lastJudge = DR.Judge.exam(m, st.bag);
+    DR.UI.examDemo(m, App.lastJudge, st, { onFix: tutorialInspect, onRetry: tutorialRun, onNext: tutorialPass });
+  }
+  function tutorialPass() {
+    var m = DR.Missions.tutorial;
+    // 도시 복구: 튜토리얼 기록을 남기기 전·후 칸 수(마무리 대화 뒤, 1 임무 도입 전에 0 → 1)
+    var before = cityCount();
+    DR.Save.markTutorialDone();
+    App.records.tutorial = { cleared: true };
+    DR.Save.setRecord('tutorial', App.records.tutorial);
+    var step = DR.Save.cityStep('tutorial', before, cityCount());
+    var r = App.lastJudge, lines = m.story.outro.map(function (l) { return Object.assign({}, l, { text: l.text.replace('{dog}', r.have.dog).replace('{cat}', r.have.cat) }); });
+    DR.UI.dialogue(lines, function () {
+      cityScreen(m, step, function () {
+        if (!App.state.practice) { startMission('m1'); return; }
+        // 연습 끝: 예전 튜토리얼 체크포인트만 남아 있으면 비우고(이어하기가 끝낸 튜토리얼로 돌아가지 않게) 타이틀로
+        var saved = DR.Save.load();
+        if (saved && saved.mission === 'tutorial') DR.Save.finish();
+        go('title');
       });
     });
   }
@@ -162,6 +166,10 @@
   function resume(save) {
     var m = DR.Missions[save.mission];
     if (!m) { go('title'); return; }
+    // 옛 1 임무(침수) 도중 저장: 도로 카드를 새 카드로 읽지 않게 새 1 임무 브리핑으로 돌려보낸다(다른 임무 기록은 그대로)
+    if (save.mission === 'm1' && save.bag.some(function (c) { return !c.key || !m.cardTypes[c.key]; })) {
+      save = Object.assign({}, save, { screen: 'briefing', bag: [], supplements: 0, firstTry: null, needRevealed: false, newIds: [], firstFails: [], named: [], seed: undefined });
+    }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
       seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [], lost: save.lost || 0,
       peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed };
@@ -292,7 +300,9 @@
     var hit = null;
     ['m1', 'm2'].forEach(function (id) {
       var rec = App.records[id];
-      if (!hit && rec && rec.firstFails && rec.firstFails.length) hit = { mission: id.slice(1) + ' 임무', scene: rec.firstFails[0].title };
+      // 옛 침수 임무 기록의 장면 이름은 인용하지 않는다(지금 임무에 있는 장면만)
+      var fails = rec && rec.firstFails ? rec.firstFails.filter(function (f) { return DR.Missions[id].scenes.some(function (s) { return s.title === f.title; }); }) : [];
+      if (!hit && fails.length) hit = { mission: id.slice(1) + ' 임무', scene: fails[0].title };
     });
     var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene), face: rv.withRecord.face } : rv.withoutRecord;
     var out = rv.before.concat([mid]).concat(rv.after);

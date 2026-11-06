@@ -1,7 +1,7 @@
 // 2026-11-05 지시서: 노이즈 벽 페널티·벽 간격·연습 카드·실기 미션 안내·달리기 끝맺음·가방 찬 뒤 가속.
 // debugFill 없이 진짜 키로 벽을 피하거나 지나가는 판정, 진짜 시계로 도는 끝맺음 연출을 본다.
 import assert from 'node:assert/strict';
-import { openGame, passCity, shotPath } from './browser.mjs';
+import { openGame, passCity, passExam, shotPath } from './browser.mjs';
 
 const key = (code) => `window.dispatchEvent(new KeyboardEvent('keydown', { code: '${code}', key: '${code === 'Space' ? ' ' : code}' }));`;
 const waitRun = (page) => page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
@@ -32,7 +32,7 @@ const rareOf = (stage) => `(() => { const m = DR.App.mission(), c = DR.App.cours
 
 // 1) 벽: 부딪히면 최근 카드 1장을 잃는다 · 연출 · 무적 · 빈 가방은 감속만 · 검수 숫자
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     // 빈 가방: 감속만
@@ -113,7 +113,7 @@ const rareOf = (stage) => `(() => { const m = DR.App.mission(), c = DR.App.cours
 // 2) 진짜 키: 초반은 벽을 피해 돌아 들어가 잡는다(1임무) / 후반은 벽을 지나면 1장 내주고 잡는다(2임무) → HUD·검수 숫자가 맞는다
 // 1임무 코스는 드문 카드가 진행 0.56 안쪽에만 있어 후반 칸(0.75~)이 없다 — 후반 칸은 2~4임무에서 나온다
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     const early = await page.evaluate(`(${rareOf('early').replace(/^\(\(\)/, '(()')})`);
@@ -187,7 +187,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await dlg.waitFor({ state: 'visible' });
     assert.equal(await page.evaluate(() => DR.App.screen), 'briefing', 'not running yet');
     assert.equal(await dlg.locator('h2').innerText(), '실기 미션');
-    assert.match(await dlg.innerText(), /강아지 사진 5장과 고양이 사진 5장을 모으세요\./);
+    assert.match(await dlg.innerText(), /개 사진 5장과 고양이 사진 5장을 모으세요\./);
     assert.match(await dlg.innerText(), /불꽃은 하트 -1/);
     assert.match(await dlg.innerText(), /분홍 노이즈는 카드 1장 잃음/);
     assert.equal(await dlg.locator('.goal-row[data-goal="dog"] .goal-slot img').count(), 5);
@@ -210,7 +210,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.evaluate(() => { DR.Run.setPaused(true); DR.Run.debugSetHp(99); });
     const goalText = () => page.locator('#run-goal').innerText();
     await page.evaluate(() => DR.Run.step(0.02));
-    assert.match(await goalText(), /강아지 0\/5\s*·\s*고양이 0\/5/);
+    assert.match(await goalText(), /개 0\/5\s*·\s*고양이 0\/5/);
     // 첫 벽 직전 안내, 벽 뒤 같은 레인에 카드 없음
     const wall = await page.evaluate(() => DR.App.course.items.find((i) => i.kind === 'wall'));
     await stepUntil(page, `return ${wall.z} - p.runnerZ < p.speed * 1.9;`);
@@ -222,31 +222,32 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.evaluate(() => { DR.App.debugFill({ dog: 1 }); DR.Run.step(0.02); });
     const over = page.locator('.run-goal-item[data-goal="dog"]');
     assert.match(await over.getAttribute('class'), /\bover\b/);
-    assert.match(await over.innerText(), /강아지 6\/5 이미 5장!/);
+    assert.match(await over.innerText(), /개 6\/5 이미 5장!/);
     assert.equal(await page.evaluate(() => DR.Run.peek().bagCount), 6, 'not blocked');
     await page.screenshot({ path: shotPath('tutorial-over-' + viewport.width) });
     // 한쪽으로 쏠림(6:4) → fail 대사
     await page.evaluate(() => { DR.App.debugFill({ cat: 4 }); DR.Run.finishNow(); });
+    await page.locator('#btn-submit').click();
     await page.locator('#screen-result').waitFor({ state: 'visible', timeout: 5000 });
-    assert.match(await page.locator('#screen-result').innerText(), /한쪽 사진만 잔뜩/);
+    assert.match(await page.locator('#screen-result').innerText(), /고양이 사진 1장이 더 필요해/);
     await page.locator('#btn-retry').click();
     await waitRun(page);
     // 4:4 → failFew
     await page.evaluate(() => { DR.App.debugFill({ dog: 4, cat: 4 }); DR.Run.finishNow(); });
+    await page.locator('#btn-submit').click();
     await page.locator('#screen-result').waitFor({ state: 'visible', timeout: 5000 });
-    assert.match(await page.locator('#screen-result').innerText(), /아직 너무 적어/);
+    assert.match(await page.locator('#screen-result').innerText(), /개 사진 1장, 고양이 사진 1장이 더 필요해/);
     await page.locator('#btn-retry').click();
     await waitRun(page);
     // 5:5 통과, 끝은 진짜 끝맺음으로
     await page.evaluate(() => { DR.App.debugFill({ dog: 5, cat: 5 }); });
     assert.equal(await page.evaluate(() => DR.Run.peek().rush), true);
-    await page.locator('#screen-result').waitFor({ state: 'visible', timeout: 60000 });
-    assert.equal(await page.locator('#btn-retry').count(), 0, 'passed');
-    await page.locator('#btn-next').click();
+    await page.locator('#btn-submit').waitFor({ state: 'visible', timeout: 60000 });
+    await passExam(page);
     await page.locator('#screen-story').waitFor();
     const talk = [];
     for (let i = 0; i < 4 && await page.locator('#screen-story').isVisible(); i++) { talk.push(await page.locator('#screen-story').innerText()); await page.locator('#screen-story .dialog').click(); }
-    assert.ok(talk.some((x) => /개 5장, 고양이 5장\. 말한 대로 골라 담았네/.test(x)), 'new pass line');
+    assert.ok(talk.some((x) => /개 5장, 고양이 5장\. 사진과 이름표도 확인했네/.test(x)), 'new pass line');
     await page.waitForTimeout(200);
     await passCity(page);
     await page.locator('#screen-title').waitFor({ state: 'visible', timeout: 5000 });
@@ -269,12 +270,11 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.locator('#btn-practice').click();
     await page.locator('#screen-profile').waitFor({ state: 'visible', timeout: 5000 });
     await page.locator('#btn-skip').click();
-    await page.locator('#btn-skip').click();
     await page.locator('#btn-run').click();
     await page.locator('#btn-goal-start').click();
     await page.waitForFunction(() => DR.App.screen === 'run' && DR.Run.peek().running, null, { timeout: 8000 });
     await page.evaluate(() => { DR.App.debugFill({ dog: 5, cat: 5 }); DR.Run.finishNow(); });
-    await page.locator('#btn-next').click();
+    await passExam(page);
     await page.locator('#screen-story').waitFor();
     await page.locator('#btn-skip').click();
     await page.waitForTimeout(100);
@@ -336,7 +336,7 @@ for (const id of ['m1', 'm2', 'm3']) {
 }
 // 보충 달리기도 같은 끝맺음
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     await page.evaluate(() => { DR.App.debugFill({ day_deep: 1 }); DR.Run.finishNow(); });
@@ -357,7 +357,7 @@ for (const id of ['m1', 'm2', 'm3']) {
 }
 // Space·클릭 건너뛰기, 두 번 실행 없음
 for (const how of ['space', 'click']) {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     await page.evaluate(() => { let n = 0; const go = DR.App.go; DR.App.go = function (s) { if (s === 'inspect') window.__inspects = ++n; return go.apply(this, arguments); }; });
@@ -375,7 +375,7 @@ for (const how of ['space', 'click']) {
 }
 // 처음 0.3초 안의 Space는 넘기지 않는다(잡기 연타)
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     await nearEnd(page);
@@ -387,7 +387,7 @@ for (const how of ['space', 'click']) {
 }
 // HP 0: 빨간 플래시 뒤 같은 페이드
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     await page.evaluate(() => DR.Run.debugSetHp(1));
@@ -411,7 +411,7 @@ for (const how of ['space', 'click']) {
 }
 // 움직임 줄이기: 0.3초 단순 페이드(감속·글자 없음)
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await startM(page);
@@ -428,7 +428,7 @@ for (const how of ['space', 'click']) {
 
 // 6) 가방이 차면 1.5배, 카드를 잃으면 원래 속도
 {
-  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m1' });
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=flood' });
   try {
     await startM(page);
     const base = await page.evaluate(() => { DR.Run.step(0.02); return DR.Run.peek().speed; });
