@@ -123,7 +123,7 @@
 
   // 임무 카드: 썸네일 + 한 줄 미끼 + 상태(저장에서: 완료 / 진행 중 / 아직). 접근성 이름은 예전 칩 글자 그대로
   var MISSION_CARDS = [
-    ['m1', '1 임무 · 분실물 센터', '보관함에 있는 우산이 왜 목록엔 없을까?', 'assets/cards/lost-found/umbrella-folded.webp'],
+    ['m1', '1 임무 · 분실물 센터', '보관함에 있는 우산이 왜 목록엔 없을까?', 'assets/title/mission-m1.webp'],
     ['m2', '2 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
     ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp'],
     ['m4', '4 임무 · 채점', '맞게 쓴 답에 ✕가 찍힌다면?', 'assets/title/mission-m4.webp']
@@ -144,7 +144,7 @@
     var first = !DR.Save.hasSave(), rec = DR.App.records && DR.App.records.tutorial, s = DR.Save.load();
     var status = (rec && rec.cleared) || (s && s.tutorialDone) ? '완료' : '아직';
     var b = el('button', { id: 'btn-practice', class: 'mission-card practice-card' + (first ? ' is-first' : ''), type: 'button', 'aria-label': '연습 · 러너 자격 시험', 'aria-describedby': 'mc-practice-hook mc-practice-status', 'data-status': status }, [
-      el('img', { class: 'mc-thumb', src: missionThumbScene('tutorial', 'T1'), alt: '' }),
+      el('img', { class: 'mc-thumb', src: 'assets/title/mission-practice.webp', alt: '' }),
       el('span', { class: 'mc-body' }, [
         el('b', { class: 'mc-title', text: '연습 · 러너 자격 시험' }),
         el('span', { id: 'mc-practice-hook', class: 'mc-hook', text: '개 5장, 고양이 5장. 달리기 손부터 풀어 볼까?' }),

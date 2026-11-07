@@ -198,6 +198,10 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     assert.match(await thumb.getAttribute('src'), /^assets\/title\/mission-m3\.webp$/);
     await page.waitForFunction(() => { const i = document.querySelector('#btn-m3 .mc-thumb'); return i.complete && i.naturalWidth === 640; });
     assert.equal(await page.locator('#btn-m3 .mc-hook').innerText(), '몇 년 전 사진으로 길을 알려 준다면?');
+    // 연습·1 임무도 같은 화풍의 Codex 썸네일(2026-11-07)
+    assert.equal(await page.locator('#btn-practice .mc-thumb').getAttribute('src'), 'assets/title/mission-practice.webp');
+    assert.equal(await page.locator('#btn-m1 .mc-thumb').getAttribute('src'), 'assets/title/mission-m1.webp');
+    await page.waitForFunction(() => ['#btn-practice', '#btn-m1'].every((s) => { const i = document.querySelector(s + ' .mc-thumb'); return i.complete && i.naturalWidth === 640; }));
     await page.locator('#title-missions').scrollIntoViewIfNeeded();
     await page.screenshot({ path: shotPath('m3-mission-card-1280') });
     await page.locator('#btn-m3').click();
