@@ -64,8 +64,19 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       await page.evaluate(() => { DR.Run.setPaused(true); DR.Run.debugSetHp(99); });
       assert.equal(await page.locator('.zone-cell').count(), 4, 'zones');
       assert.equal(await page.evaluate(() => DR.Run.peek().scenery.theme), 'city');
-      await page.evaluate(() => { const z = DR.Run.course().zones[1]; while (DR.Run.peek().runnerZ < z.start + 1) DR.Run.step(0.05); });
-      await page.screenshot({ path: shotPath('m3-run-' + w) });
+      // 빛의 다리 낮 버전(2026-11-07): 낮 하늘 그림, 구역마다 색조, 비는 학교 앞(S4)만, 시장 골목(S2)은 저녁빛
+      assert.equal((await page.evaluate(() => DR.Run.peek().world)).time, 'day');
+      assert.ok(await page.evaluate(() => getComputedStyle(document.querySelector('#run-stage .rw-sky')).backgroundImage.includes('bg-sky-day.webp')));
+      const rains = {}, tints = {};
+      for (const [i, id] of (await page.evaluate(() => DR.Run.course().zones.map((z) => z.id))).entries()) {
+        await page.evaluate((id) => { const z = DR.Run.course().zones.find((x) => x.id === id); while (DR.Run.peek().runnerZ < z.start + 1) DR.Run.step(0.05); }, id);
+        rains[id] = (await page.evaluate(() => DR.Run.peek().world)).rain;
+        tints[id] = await page.evaluate(() => getComputedStyle(document.querySelector('#run-stage .rw-tint')).backgroundColor);
+        await page.screenshot({ path: shotPath('bridge-m3-' + id + '-' + w) });
+        if (i === 1) await page.screenshot({ path: shotPath('m3-run-' + w) });
+      }
+      assert.deepEqual(rains, { S1: false, S2: false, S3: false, S4: true });
+      assert.notEqual(tints.S2, tints.S1, 'market keeps its evening light');
       await page.evaluate(() => DR.Run.setPaused(false));
       await fillAndInspect(page, { ...ALL, o_station: 1 });
       // 도시 변경 기록 판(장소 4줄) + 크게 보기: 촬영 날짜·그 장소 기록, 이름표 버튼 없음

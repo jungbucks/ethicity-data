@@ -31,6 +31,8 @@
     if (DR.Bgm) DR.Bgm.scene(name);
     // 튜토리얼 개·고양이 사진: 타이틀·브리핑 때 미리 받아 둔다(한 번만, 기다리지 않음 — 못 받으면 Canvas 그림)
     if (DR.CardArt && DR.CardArt.preloadPhotos && (name === 'title' || name === 'briefing' || name === 'run')) DR.CardArt.preloadPhotos();
+    // 빛의 다리 그림(3 임무 = 낮 세트): 브리핑 때 미리 받기
+    if (name === 'briefing' && App.state && DR.RunWorld) DR.RunWorld.preload(DR.Missions[App.state.mission]);
   }
 
   // 체크포인트: 화면 경계(브리핑·검수·결과·보충 준비 진입)에서만 저장 — 달리기 도중은 저장하지 않는다(P4)

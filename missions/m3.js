@@ -22,7 +22,7 @@
       { id: 'S3', title: '새로 난 강변길', short: '강변길' },
       { id: 'S4', title: '학교 앞 횡단보도', short: '학교 앞' }
     ],
-    fakeLate: 'zone', scenery: 'city', relabel: false,
+    fakeLate: 'zone', scenery: 'city', relabel: false, world: 'bridge', worldTime: 'day',
     fakeHint: '지금도 이런 거리인지 생각해 봐!',
     labels: [
       { id: 'station', text: '역 앞 사거리' },

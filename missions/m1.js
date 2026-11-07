@@ -11,7 +11,7 @@
 
   var m1 = {
     id: 'm1', title: '분실물 센터 AI', next: 'm2', cityLine: '분실물 센터 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 1101, fires: 4,
-    hideShapes: true, rareLate: 0.35, relabel: false, holdBin: 'hold', binWord: '칸', scenery: 'sorting',
+    hideShapes: true, rareLate: 0.35, relabel: false, holdBin: 'hold', binWord: '칸', scenery: 'bridge', world: 'bridge',
     briefTitle: '오늘 접수대에 들어온 물건',
     zones: [
       { id: 'S1', title: '우산', short: '우산' },

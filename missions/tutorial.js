@@ -7,7 +7,7 @@
   'use strict';
 
   var tutorial = {
-    id: 'tutorial', title: '러너 자격 시험', cityLine: '데이터 러너가 처음 길을 냈다', bag: 10, runSeconds: 45, seed: 7, fires: 2, fireFrom: 0.55,
+    id: 'tutorial', title: '러너 자격 시험', cityLine: '데이터 러너가 처음 길을 냈다', bag: 10, runSeconds: 45, seed: 7, fires: 2, fireFrom: 0.55, world: 'bridge',
     labelOptions: [],
     runGoal: [{ key: 'dog', name: '개' }, { key: 'cat', name: '고양이' }], // 달리는 동안 HUD·시작 전 안내에 보이는 목표(장 수는 조합 need)
     wallHint: '분홍 노이즈에 부딪히면 카드가 1장 떨어져',

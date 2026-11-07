@@ -42,6 +42,21 @@ body { overflow: hidden; word-break: keep-all; }
   radial-gradient(ellipse 60% 30% at 50% 42%, rgba(255,95,176,.45), transparent 70%),
   linear-gradient(180deg, #0d0828 0%, #2a1a6e 40%, #120c2e 60%); }
 #run-stage canvas { display: block; width: 100%; height: 100%; }
+/* 빛의 다리(js/run-world.js): 캔버스 뒤 CSS 층 — 하늘·지평선 도시(밑변 = --rw-horizon)·색조·비. 지평선 아래 = 다리 아래 도시의 어둠(바탕) */
+#run-stage.rw-on { isolation: isolate; --rw-horizon: 40%; }
+#run-stage.rw-on.rw-night { background: linear-gradient(180deg, #120c2e 0%, #1a1040 40%, #0e0926 62%, #0a071c 100%); }
+#run-stage.rw-on.rw-day { background: linear-gradient(180deg, #8fc8e8 0%, #cfe4ef 40%, #a9bccb 62%, #7d8fa3 100%); }
+.rw-layer { position: absolute; left: 0; z-index: -1; pointer-events: none; }
+.rw-layer[hidden] { display: none; }
+.rw-sky { top: 0; right: 0; height: calc(var(--rw-horizon) + 2px); background: center bottom / cover no-repeat; }
+.rw-far, .rw-mid { width: 400%; background-repeat: repeat-x; background-size: auto 100%; will-change: transform; }
+.rw-far { top: calc(var(--rw-horizon) - 30vh); height: 30vh; opacity: .85; }
+.rw-mid { top: calc(var(--rw-horizon) - 27vh); height: 27vh; }
+.rw-tint { inset: 0; }
+.rw-rain { inset: -192px 0 0 -96px; animation: rw-rain .5s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='192'%3E%3Cg stroke='%23bcd4ff' stroke-opacity='.22' stroke-width='1.2'%3E%3Cpath d='M12 8l-5 24M44 66l-5 24M74 26l-5 24M88 118l-5 24M26 138l-5 24M58 162l-5 24M6 92l-5 24'/%3E%3C/g%3E%3C/svg%3E"); }
+@keyframes rw-rain { to { transform: translate(-48px, 192px); } }
+.rw-still .rw-rain { animation: none; }
+@media (prefers-reduced-motion: reduce) { .rw-rain { animation: none; } }
 #hud { position: absolute; left: 16px; right: 16px; top: 16px; display: flex; gap: 12px; align-items: center; pointer-events: none; }
 .hud-bag { pointer-events: none; display: flex; align-items: center; gap: 8px; background: rgba(18,12,46,.7); border: 2px solid var(--cyan); border-radius: 999px; padding: 6px 14px; font-size: 20px; }
 .hud-bag-icon { width: 20px; height: 18px; border: 3px solid var(--cyan); border-radius: 4px 4px 7px 7px; }
