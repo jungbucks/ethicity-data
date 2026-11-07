@@ -25,7 +25,12 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.locator('#screen-inspect').waitFor({ state: 'visible' });
     assert.equal(await page.locator('.exam-card').count(), 10);
     assert.equal(await page.locator('#exam-drill').count(), 0, '틀린 카드를 가져왔으면 연습 카드 없음');
-    assert.doesNotMatch(await page.locator('#screen-inspect').innerText(), /틀린|오답|\d장이 잘못/);
+    // 늘 같은 일반 안내(고칠 수 있음)만 — 틀린 카드가 몇 장인지·어느 것인지는 말하지 않는다(2026-11-07 피드백)
+    const HINT = '이름표가 틀린 카드가 있을 수 있어. 카드를 눌러 사진과 이름표를 비교하고, 틀렸으면 고쳐 봐.';
+    const inspectText = await page.locator('#screen-inspect').innerText();
+    assert.ok(inspectText.includes(HINT), '고칠 수 있다는 안내');
+    assert.doesNotMatch(inspectText.replace(HINT, ''), /틀린|오답|\d장이 잘못/);
+    assert.match(await page.locator('.exam-card').first().getAttribute('aria-label'), /^사진 보고 이름표 고치기, 지금 이름표 (개|고양이)$/);
     assert.equal(await page.locator(`.exam-card[data-id="${uid}"] .exam-tag`).innerText(), '고양이');
     await page.screenshot({ path: shotPath('exam-inspect-' + viewport.width) });
     // 그대로 제출 → 시연: 사진은 개, AI는 고양이
@@ -70,6 +75,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.evaluate(() => { DR.App.debugFill({ dog: 5, cat: 5 }); DR.Run.finishNow(); });
     await page.locator('#exam-drill').waitFor();
     assert.equal(await page.locator('#exam-grid .exam-card').count(), 10, '연습 카드는 가방 격자 밖');
+    assert.match(await page.locator('#exam-drill').innerText(), /가방에는 들어가지 않는 카드야\. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐\./);
     await page.locator('#btn-submit').click();
     await page.locator('.exam-pair.wrong').waitFor();
     assert.match(await page.locator('#exam-check').innerText(), /이름표가 맞는 카드 10 \/ 10장/, '연습 카드는 점검 수에 없음');

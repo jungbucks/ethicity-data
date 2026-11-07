@@ -82,7 +82,7 @@
     });
   }
   function cell(m, card, onOpen) {
-    var b = el('button', { class: 'exam-card', type: 'button', 'data-id': card.id, 'aria-label': '사진 크게 보기, 이름표 ' + DR.Cards.cardLabel(m, card) }, [
+    var b = el('button', { class: 'exam-card', type: 'button', 'data-id': card.id, 'aria-label': '사진 보고 이름표 고치기, 지금 이름표 ' + DR.Cards.cardLabel(m, card) }, [
       el('img', { src: photo(m, card, 192), alt: '' }),
       el('span', { class: 'exam-tag', text: DR.Cards.cardLabel(m, card) }),
       card.label !== undefined ? el('span', { class: 'bag-fixed', text: '고침' }) : null
@@ -110,12 +110,12 @@
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: '검수 · ' + m.title }),
         el('h2', { text: '가져온 사진 확인 (' + bag.length + '/' + m.bag + '칸)' }),
-        el('p', { text: bag.length ? '카드를 눌러 사진과 이름표를 봐.' : '가방이 비었어.' }),
+        el('p', { text: bag.length ? '이름표가 틀린 카드가 있을 수 있어. 카드를 눌러 사진과 이름표를 비교하고, 틀렸으면 고쳐 봐.' : '가방이 비었어.' }),
         opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '노이즈로 잃은 카드 ' + opts.lost + '장' }) : null,
         grid,
         opts.drill ? el('section', { id: 'exam-drill', class: 'exam-drill', 'aria-labelledby': 'exam-drill-h' }, [
           el('h3', { id: 'exam-drill-h', text: '시험관의 연습 카드' }),
-          el('p', { text: '가방에는 들어가지 않는 카드야. 사진과 이름표를 봐.' }),
+          el('p', { text: '가방에는 들어가지 않는 카드야. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐.' }),
           cell(m, opts.drill, open)
         ]) : null,
         el('div', { class: 'actions' }, [submit])
