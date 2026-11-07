@@ -553,3 +553,7 @@ body { overflow: hidden; word-break: keep-all; }
 .exam-pair p { margin: 0; word-break: keep-all; }
 .exam-ai { font-size: 18px; font-weight: 800; }
 .exam-check { list-style: none; margin: 0; padding: 0; }
+/* 오프닝: 그림 위에서도 건너뛰기가 보이고 눌리게(375px에서 그림이 버튼을 덮었다) */
+#screen-profile .skip { z-index: 5; background: rgba(16, 9, 58, .78); color: #fff; }
+/* 휴대폰에서 건너뛰기와 겹치지 않게 그림 아래쪽에 */
+.opening-overlay { top: auto; bottom: 12px; right: 12px; }

@@ -21,6 +21,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       assert.equal(await page.locator('#screen-profile .opening').getAttribute('data-beat'), b.id);
       if (b.id === 'split') assert.equal(await page.locator('.split-tag b').innerText(), '고양이');
       if (b.id === 'gate') assert.match(await page.locator('.opening-info').innerText(), /고2 · 오늘: 러너 자격시험/);
+      if (b.img) { await page.waitForFunction(() => { const i = document.querySelector('.opening-art img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 8000 }); if (viewport.width === 375 || b.id === 'gate') await page.screenshot({ path: shotPath('opening-' + b.id + '-' + viewport.width) }); }
       await page.locator('#btn-opening-next').click();
     }
     assert.ok(await visible('briefing'), 'briefing');
