@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cfg = require('../js/config.js');
 require('../js/rng.js');
-const { build } = require('../js/stream.js');
+const { build, speedAt } = require('../js/stream.js');
 // m1 = 지금 1 임무(분실물 센터), flood = 옛 침수 임무(엔진 테스트 자료로 남김)
 const missions = { tutorial: require('../missions/tutorial.js'), m1: require('../missions/m1.js'), flood: require('../missions/legacy-flood.js'), m2: require('../missions/m2.js'), m3: require('../missions/m3.js'), m4: require('../missions/m4.js') };
 const SEEDS = [1, 2, 3, 7, 8, 42, 99, 999, 1101, 1102, 2201, 2202, 3301, 3302, 3303, 3317, 4401];
@@ -18,9 +18,18 @@ const SEEDS = [1, 2, 3, 7, 8, 42, 99, 999, 1101, 1102, 2201, 2202, 3301, 3302, 3
 // 조합별 [짝지은 수, 필요]
 // 빼야 하는 개인정보 카드(2 임무 사람 얼굴)는 가방에 남길 수 없으니 셈에서 뺀다. 가리는 카드는 가린 뒤 그 종류로 센다
 const usable = (m, it) => !(it.privateId && m.privacy.cards.find((d) => d.id === it.privateId).fix === 'remove');
+// 줄 = 앞뒤 간격(cfg.cardStaggerSec, 2026-11-09)만큼만 떨어진 카드 묶음 — 실제로는 둘 다 잡기 쉬워졌지만, 예전처럼 '한 줄 한 장'으로 보수적으로 센다
+function rowsOf(course) {
+  const cs = course.items.filter((it) => it.kind === 'card').sort((a, b) => a.z - b.z), rows = [];
+  for (const it of cs) {
+    const last = rows[rows.length - 1];
+    if (last && it.z - last[0].z <= speedAt(cfg, last[0].z / course.length) * cfg.cardStaggerSec + 1e-6) last.push(it); else rows.push([it]);
+  }
+  return rows;
+}
 function plan(m, course, combos) {
-  const rows = [...new Set(course.items.filter((it) => it.kind === 'card').map((it) => it.z))];
-  const keysAt = rows.map((z) => course.items.filter((it) => it.kind === 'card' && it.z === z && it.key && !it.fakeId && usable(m, it)).map((it) => it.key));
+  const rows = rowsOf(course);
+  const keysAt = rows.map((row) => row.filter((it) => it.key && !it.fakeId && usable(m, it)).map((it) => it.key));
   // 같은 종류(keys)를 쓰는 조합은 한 카드가 여러 장면에 함께 센다(DR.Judge) → 같은 종류 묶음은 큰 need만큼만 칸을 만든다(4 임무 표 안 답 S3·S4)
   const sig = (cb) => cb.keys.slice().sort().join(',');
   const groups = {};
@@ -61,3 +70,11 @@ for (const [id, m] of Object.entries(missions)) {
     }
   });
 }
+
+test('row grouping: staggered pairs count as one row, and rows match the gap-0 layout', () => {
+  const flat = { ...cfg, cardStaggerSec: 0 };
+  for (const m of Object.values(missions)) for (const seed of SEEDS) {
+    const a = build(m, flat, { seed }), b = build(m, cfg, { seed });
+    assert.deepEqual(rowsOf(b).map((r) => r.length), [...new Set(a.items.filter((i) => i.kind === 'card').map((i) => i.z))].map((z) => a.items.filter((i) => i.kind === 'card' && i.z === z).length), m.id + ' ' + seed);
+  }
+});

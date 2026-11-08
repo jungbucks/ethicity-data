@@ -234,6 +234,9 @@ body { overflow: hidden; word-break: keep-all; }
 .run-card-label { display: block; text-align: center; font-size: 15px; line-height: 1.35; font-weight: 700; padding: 6px 0 2px; word-break: keep-all; }
 .catch-badge { display: none; position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); padding: 3px 14px; border-radius: 5px; background: #fff; color: #122b35; font-size: 17px; white-space: nowrap; }
 .catch-active { box-shadow: 0 0 0 3px #fff, 0 0 24px var(--card-color); }
+/* "지지직"(js/glitch.js, 연출만): 효과 그림은 JS가 바꿔 끼운다(밝기 그대로). 움직임 줄이기 = 효과 없이 테두리만 살짝 흐리게 */
+.run-card.glitching[data-glitch="stripe"] img { transform: translateX(2px); }
+.run-card.glitch-soft { border-color: color-mix(in srgb, var(--card-color) 45%, transparent); box-shadow: 0 0 8px color-mix(in srgb, var(--card-color) 55%, transparent), 0 3px 10px #0008; }
 .catch-active .catch-badge { display: block; }
 .caught-flight { z-index: 500 !important; }
 .caught-flight .catch-badge { display: none; }

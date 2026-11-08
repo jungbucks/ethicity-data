@@ -216,3 +216,48 @@ test('tutorial: no card right behind a wall in its lane, first wall in an empty 
   assert.ok(!cs.some((c) => (c.z === prev || c.z === next) && c.lane === walls[0].lane), 'first wall lane is empty on both sides');
 });
 
+
+// 2026-11-08 추가 결정(사용자): 두 카드가 같은 거리에 나란히 오지 않게 앞뒤로 살짝 — 모든 임무, 간격은 config 초 단위
+const lostFound = require('../missions/m1.js');
+const staggerAll = { ...all, lostFound, flood: m1 };
+const timeAt = (course, z) => z / Stream.speedAt(cfg, z / course.length);
+const staggerCourses = (m) => SEEDS.flatMap((seed) => {
+  const out = [build(m, cfg, { seed })];
+  if (m.supplementSeconds) out.push(build(m, cfg, { seed, focusCounts: { [Object.keys(m.counts)[0]]: 2 } }), build(m, cfg, { seed, focusKeys: Object.keys(m.counts).slice(0, 2) }));
+  return out;
+});
+test('stagger gap lives in config (seconds) and is slight', () => {
+  assert.equal(typeof cfg.cardStaggerSec, 'number');
+  assert.ok(cfg.cardStaggerSec > 0 && cfg.cardStaggerSec < 0.5, 'slight');
+});
+for (const [id, m] of Object.entries(staggerAll)) test(id + ': no two cards arrive side by side — at least cardStaggerSec apart (first runs and supplements)', () => {
+  for (const course of staggerCourses(m)) {
+    const cs = cards(course);
+    assert.equal(new Set(cs.map((c) => c.z)).size, cs.length, 'every card has its own distance');
+    for (let i = 1; i < cs.length; i++) {
+      const dt = (cs[i].z - cs[i - 1].z) / Stream.speedAt(cfg, cs[i].z / course.length);
+      assert.ok(dt >= cfg.cardStaggerSec * 0.98, `${id} ${cs[i - 1].uid}→${cs[i].uid} only ${dt.toFixed(3)}s apart`);
+    }
+  }
+});
+for (const [id, m] of Object.entries(staggerAll)) test(id + ': stagger only nudges one card of a row back by speed × seconds (gap 0 = the old layout)', () => {
+  const flat = { ...cfg, cardStaggerSec: 0 };
+  for (const seed of SEEDS) {
+    const a = build(m, flat, { seed }), b = build(m, cfg, { seed });
+    const ka = cards(a), kb = cards(b);
+    assert.equal(ka.length, kb.length);
+    // 간격 0 코스는 줄마다 z가 같은 카드 묶음 — 그 묶음의 첫 카드는 그대로, 나머지는 그 지점 속도 × 초만큼 뒤
+    const sig = (it) => [it.key, it.fakeId, it.ambiguousId, it.zoneId, it.lane].join('|'); // 개인정보 표시는 카드 순서로 붙어 따로(privacy.test)
+    const left = kb.slice();
+    for (const z of [...new Set(ka.map((it) => it.z))]) {
+      const row = ka.filter((it) => it.z === z);
+      const moved = row.map((it) => {
+        const j = left.findIndex((o) => sig(o) === sig(it) && Math.abs(o.z - z) < 1e-9 || sig(o) === sig(it) && Math.abs(o.z - z - Stream.speedAt(cfg, z / a.length) * cfg.cardStaggerSec) < 1e-6);
+        assert.ok(j >= 0, `${id} seed ${seed} ${it.uid} found`);
+        return left.splice(j, 1)[0].z > z + 1e-9;
+      });
+      assert.equal(moved.filter(Boolean).length, row.length - 1, `${id} seed ${seed} row ${z.toFixed(1)}: one stays, the rest move back`);
+    }
+    assert.equal(left.length, 0);
+  }
+});

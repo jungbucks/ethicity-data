@@ -15,7 +15,7 @@
   'use strict';
 
   var m2 = {
-    id: 'm2', title: '분리배출 분류 AI', next: 'm3', cityLine: '분리배출 분류 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 2201, fires: 6,
+    id: 'm2', title: '분리배출 분류 AI', next: 'm3', cityLine: '분리배출 분류 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 2201, fires: 6, glitchRate: 0.15,
     // 달리기 구역(장면 순서) · 가짜는 자기 구역 뒤쪽 절반 · 배경은 선별장(js/run-scenery.js)
     zones: [
       { id: 'S1', title: '음료 캔과 통조림 캔', short: '캔' },

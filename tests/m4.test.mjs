@@ -230,11 +230,13 @@ test('m4 run: four zones, counts, fakes late in their own zone, walls before odd
   }
 });
 
+// 스냅숏은 앞뒤 간격(cardStaggerSec, 2026-11-09) 전 배치 — 간격 0으로 만든 코스와 비교한다(stream.test가 실제 코스와의 관계를 지킨다)
+const flat = { ...cfg, cardStaggerSec: 0 };
 test('flood, m2, m3 courses unchanged by m4', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m4.json', import.meta.url)));
-  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
-  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
-  for (const seed of [3301, 3302, 42]) assert.deepEqual(cardsOf(Stream.build(m3, cfg, { seed })), cardsOf(before['m3_' + seed]));
+  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, flat, { seed })), cardsOf(before['m1_' + seed]));
+  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, flat, { seed })), cardsOf(before['m2_' + seed]));
+  for (const seed of [3301, 3302, 42]) assert.deepEqual(cardsOf(Stream.build(m3, flat, { seed })), cardsOf(before['m3_' + seed]));
 });
 
 test('m3 → m4: record line from mission 3, exam name only "새빛 진학 평가"', () => {

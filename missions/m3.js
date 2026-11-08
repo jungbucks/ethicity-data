@@ -15,7 +15,7 @@
   'use strict';
 
   var m3 = {
-    id: 'm3', title: '길 안내 AI', next: 'm4', cityLine: '길 안내 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 3301, fires: 8,
+    id: 'm3', title: '길 안내 AI', next: 'm4', cityLine: '길 안내 AI가 다시 이어졌다', bag: 30, runSeconds: 90, supplementSeconds: 30, seed: 3301, fires: 8, glitchRate: 0.2,
     zones: [
       { id: 'S1', title: '역 앞 사거리', short: '역 앞' },
       { id: 'S2', title: '시장 골목', short: '시장 골목' },

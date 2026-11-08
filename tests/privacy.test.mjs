@@ -13,7 +13,7 @@ const Judge = require('../js/judge.js');
 const M = { m1: require('../missions/m1.js'), m2: require('../missions/m2.js'), m3: require('../missions/m3.js'), m4: require('../missions/m4.js') };
 const flood = require('../missions/legacy-flood.js'), tut = require('../missions/tutorial.js');
 const SEEDS = [1, 2, 7, 42, 999, 1101, 2201, 3301, 4401];
-const strip = (c) => ({ ...c, items: c.items.map(({ privateId, ...it }) => it) });
+const strip = (c) => ({ ...c, items: c.items.map(({ privateId, glitch, ...it }) => it) }); // 지지직 표시(glitch)는 개인정보 카드를 빼고 고르므로 함께 뺀다 — glitch.test가 따로 지킴
 
 test('every mission 1~4 has 2~3 private cards; on for all four (m1·m2 photos exist)', () => {
   for (const [id, m] of Object.entries(M)) {
@@ -69,7 +69,7 @@ test('course marks private cards: deterministic, outside the first 15%, only on 
     }
     assert.deepEqual(Stream.build(m, cfg, { seed }), c, 'same seed same course');
     const off = { ...m, privacy: { ...m.privacy, on: false } };
-    assert.deepEqual(strip(c), Stream.build(off, cfg, { seed }), 'only privateId was added');
+    assert.deepEqual(strip(c), strip(Stream.build(off, cfg, { seed })), 'only privateId was added');
     const sup = Stream.build(m, cfg, { seed, focusCounts: { [m.privacy.cards[0].key]: 2 } });
     assert.equal(sup.items.filter((it) => it.privateId).length, 0, 'no private cards in a supplement run');
   }

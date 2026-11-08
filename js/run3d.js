@@ -25,12 +25,13 @@
     return t;
   }
 
-  function cardTexture(mission, item) {
+  // label: "지지직" glyph 효과용으로 이름표 글자만 바꿔 그린다(없으면 원래 이름표)
+  function cardTexture(mission, item, label) {
     var C = root.DR.Cards, id = C.artId(item);
     var n = parseInt(item.uid.slice(1), 10), variant = n % 3;
     var A = root.DR.CardArt;
     var word = mission.labelStyle === 'word' && !item.ambiguousId;
-    var k = id + '|' + variant + '|' + A.photoId(mission, id, n) + (mission.labelStyle === 'word' ? '|' + A.wordsReady() + '|' + C.currentLabel(mission, item) : '');
+    var k = id + '|' + variant + '|' + A.photoId(mission, id, n) + (mission.labelStyle === 'word' ? '|' + A.wordsReady() + '|' + C.currentLabel(mission, item) : '') + (label ? '|glyph|' + label : '');
     if (S.cardTex[k]) return S.cardTex[k];
     var icons = C.iconsOf(mission, item);
     var t = canvasTex(400, 540, function (g, w, h) {
@@ -41,14 +42,14 @@
         var lab = C.currentLabel(mission, item), inList = (mission.labels || []).some(function (l) { return l.id === lab; });
         g.fillStyle = C.labelColors[lab] || '#8ab5ce'; roundRect(g, 16, 396, 368, inList ? 128 : 100, 14); g.fill();
         g.fillStyle = '#10093a'; g.font = 'bold 66px "Malgun Gothic", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(C.labelShort(mission, lab), w / 2, inList ? 462 : 448, 340);
+        g.fillText(label || C.labelShort(mission, lab), w / 2, inList ? 462 : 448, 340);
         if (!inList) { g.fillStyle = '#162535'; g.font = 'bold 26px "Malgun Gothic", sans-serif'; g.fillText('보기에 없는 낱말', w / 2, 520); }
         return;
       }
       var size = 60, gap = 8, x0 = (w - (icons.length * size + (icons.length - 1) * gap)) / 2;
       icons.forEach(function (n, i) { g.drawImage(A.icon(n, 64), x0 + i * (size + gap), 400, size, size); });
       g.fillStyle = '#162535'; g.font = 'bold 22px "Malgun Gothic", sans-serif'; g.textAlign = 'center';
-      g.fillText(item.ambiguousId ? '판단 필요' : C.cardLabel(mission, item), w / 2, 508, w - 24);
+      g.fillText(item.ambiguousId ? '판단 필요' : label || C.cardLabel(mission, item), w / 2, 508, w - 24);
     });
     S.cardTex[k] = t;
     return t;
@@ -56,6 +57,38 @@
 
   function roundRect(g, x, y, w, h, r) {
     g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  /* ---------- "지지직"(js/glitch.js — 연출만) ---------- */
+  // 효과 그림 두 장(번갈아)을 처음 켜질 때 한 번 만든다. 원래 그림(base)은 카드 텍스처 그대로
+  function glitchFrames(item) {
+    if (S.glitchTex[item.uid]) return S.glitchTex[item.uid];
+    var G = root.DR.Glitch, base = cardTexture(S.mission, item).image, frames;
+    if (item.glitch === 'glyph') {
+      var label = S.mission.labelStyle === 'word' ? root.DR.Cards.labelShort(S.mission, root.DR.Cards.currentLabel(S.mission, item)) : root.DR.Cards.cardLabel(S.mission, item);
+      frames = [0, 1].map(function (f) { return cardTexture(S.mission, item, G.scramble(label, f, item.uid)); });
+    } else {
+      frames = [0, 1].map(function (f) {
+        var t = new THREE.CanvasTexture(item.glitch === 'rgb' ? G.rgbCanvas(base, f) : G.stripeCanvas(base, f, item.uid));
+        S.disposables.push(t);
+        return t;
+      });
+    }
+    S.glitchTex[item.uid] = frames;
+    return frames;
+  }
+
+  // 멀 때만 효과(period마다 잠깐), clearDist 안으로 한 번 들어오면 계속 선명. 움직임 줄이기 = 효과 없이 테두리만 흐리게
+  function updateGlitch(it, m, d, speed, rm) {
+    var c = cfg(), G = root.DR.Glitch, gl = m.userData.glitch;
+    var far = !S.glitchClear.has(it.uid) && d > G.clearDist(speed, c);
+    if (!far) S.glitchClear.add(it.uid);
+    var frame = far && !rm ? G.burst(S.t, it.uid, c) : -1;
+    var tex = frame < 0 ? gl.base : glitchFrames(it)[frame];
+    if (m.userData.face.material.map !== tex) m.userData.face.material.map = tex;
+    m.userData.face.position.x = frame >= 0 && it.glitch === 'stripe' ? (frame ? 0.12 : -0.12) : 0; // 좌우 밀림
+    m.userData.frame.material.opacity = far && rm ? 0.45 : 0.9;
+    S.glitchNow[it.uid] = { frame: frame, soft: far && rm, far: far };
   }
 
   /* ---------- 장면 만들기 ---------- */
@@ -159,10 +192,12 @@
     var g = new THREE.Group();
     if (item.kind === 'card') {
       var frame = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.1), new THREE.MeshBasicMaterial({ color: 0x3b2f7a, transparent: true, opacity: 0.9 }));
-      var face = new THREE.Mesh(new THREE.PlaneGeometry(2.12, 2.86), new THREE.MeshBasicMaterial({ map: cardTexture(S.mission, item), transparent: true }));
+      var faceTex = cardTexture(S.mission, item);
+      var face = new THREE.Mesh(new THREE.PlaneGeometry(2.12, 2.86), new THREE.MeshBasicMaterial({ map: faceTex, transparent: true }));
       face.position.z = 0.01;
       g.add(frame); g.add(face);
       g.userData = { frame: frame, face: face };
+      if (item.glitch) g.userData.glitch = { base: faceTex };
       g.position.set(laneX(item.lane), 1.45, -item.z);
     } else if (item.kind === 'fire') {
       var flameTex = canvasTex(128, 192, function (g) {
@@ -353,6 +388,7 @@
       if (!S.fireHintShown) { S.fireHintShown = true; showHint('불꽃! 레인을 바꿔 피하기', 2); }
     }
     S.warning = warn;
+    glitchHint(items, speed);
     rareHint(items, speed);
     // 첫 벽이 나오기 직전 한 번(튜토리얼 mission.wallHint)
     if (S.mission.wallHint && !S.wallHintShown && items.some(function (it) { return it.kind === 'wall' && it.z > S.z && it.z - S.z < speed * WALL_HINT_SEC; })) {
@@ -389,6 +425,17 @@
     animate(dt, speed);
     updateHud();
     if (S.z >= S.course.length) beginFinish('arrive');
+  }
+
+  // "지지직" 첫 등장 때 한 번(불꽃 첫 안내처럼): 흔들리는 카드가 선명해지기 2.5초 전쯤 보일 때. 다른 안내가 떠 있으면 끝난 뒤에, 움직임 줄이기면 안 띄움
+  function glitchHint(items, speed) {
+    if (S.glitchHintShown || S.hintAt || reducedMotion()) return;
+    var clear = root.DR.Glitch.clearDist(speed, cfg());
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i], d = it.z - S.z;
+      if (d > clear + speed * 2.5) return; // 코스는 z 순서
+      if (it.glitch && d > clear && !S.taken.has(it.uid) && !S.glitchClear.has(it.uid)) { S.glitchHintShown = true; showHint('데이터 세계가 흔들려. 가까이 가면 또렷해져!', 2.5); return; }
+    }
   }
 
   // 드문 카드 안내는 구간마다 한 번: 벽을 피할 수 있는 구간 / 카드 1장을 내주고 잡을지 고르는 구간. 그 벽이 보이기 시작할 때 띄운다
@@ -534,6 +581,7 @@
       var mine = active && it.lane === S.lane;
       m.visible = m.visible && (d > 34 || behindWall(it)); // 34m 안은 화면 카드(run-feedback)가 맡되, 벽 뒤 카드는 벽을 지날 때까지 3D로
       m.userData.frame.material.color.set(root.DR.Cards.runColor(S.mission, it));
+      if (m.userData.glitch) updateGlitch(it, m, d, speed, rm);
       m.userData.face.material.color.setHex(full && active ? 0x888899 : 0xffffff);
       var sc = mine && !full ? 1.12 + 0.04 * Math.sin(S.t * 18) : 1;
       m.scale.set(sc, sc, sc);
@@ -541,7 +589,7 @@
     }
     S.camera.updateMatrixWorld();
     v.gate.visible = S.course.length - S.z <= c.baseSpeed * (1 + c.speedRamp) * c.finish.gate;
-    S.feedback.update({ course: S.course, taken: S.taken, grabbed: S.grabbed, behindWall: behindWall, z: S.z, speed: speed, lane: S.lane, full: full, camera: S.camera, t: S.t });
+    S.feedback.update({ course: S.course, taken: S.taken, grabbed: S.grabbed, behindWall: behindWall, glitchOf: glitchOf, z: S.z, speed: speed, lane: S.lane, full: full, camera: S.camera, t: S.t });
     // 잡은 카드가 가방 쪽(화면 왼쪽 위)으로 날아간다
     S.flying = S.flying.filter(function (f) {
       f.t += dt;
@@ -561,6 +609,15 @@
       if (b.t > 0.5) { S.view.scene.remove(b.pts); b.pts.geometry.dispose(); b.pts.material.dispose(); return false; }
       return true;
     });
+  }
+
+  // 화면 카드(run-feedback)도 3D와 같은 상태를 쓴다. 3D 메시 상태가 없는 카드는 여기서 같은 규칙으로
+  function glitchOf(it, d, speed) {
+    if (!it.glitch) return null;
+    if (S.glitchNow[it.uid]) return S.glitchNow[it.uid];
+    var c = cfg(), G = root.DR.Glitch, far = !S.glitchClear.has(it.uid) && d > G.clearDist(speed, c), rm = reducedMotion();
+    if (!far) S.glitchClear.add(it.uid);
+    return { frame: far && !rm ? G.burst(S.t, it.uid, c) : -1, soft: far && rm, far: far };
   }
 
   function isFlying(uid) { return S.flying.some(function (f) { return f.uid === uid; }); }
@@ -636,7 +693,7 @@
       taken: new Set(), hitWalls: new Set(), hitFires: new Set(), grabbed: [], hits: 0, perfects: 0,
       lost: [], dropSafeUntil: 0, rush: false, rushAmt: 0, finishing: null, stride: 0, rareHints: {}, wallHintShown: false,
       hp: cfg().hp, invulnUntil: 0, warning: null, fireHintShown: false, fakeHintShown: false, knockedOut: false, hintUntil: 3,
-      meshes: {}, flying: [], bursts: [], cardTex: {}, disposables: [],
+      meshes: {}, flying: [], bursts: [], cardTex: {}, disposables: [], glitchTex: {}, glitchNow: {}, glitchClear: new Set(), glitchHintShown: false,
       running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false
     };
     S.grabber = root.DR.Catch.grabber(cfg());
@@ -714,6 +771,21 @@
     setPaused: function (p) { if (S) { S.paused = !!p; S.last = null; } },
     course: function () { return S ? S.course : null; },
     isTaken: function (uid) { return !!(S && S.taken.has(uid)); },
+    // 테스트용: 3D 물체의 화면 위치(px, 달리기 화면 기준) — 스크린샷을 그 카드 둘레로 자를 때
+    screenOf: function (uid) {
+      var m = S && S.meshes[uid];
+      if (!m) return null;
+      var p = m.getWorldPosition(new THREE.Vector3()).project(S.camera);
+      return { x: (p.x + 1) / 2 * S.container.clientWidth, y: (1 - p.y) / 2 * S.container.clientHeight, visible: m.visible };
+    },
+    // 테스트용: 3D 카드마다 지지직 상태(swapped = 원래 그림이 아닌 그림을 보이는 중, frame = 효과 그림 번호 또는 -1, soft = 움직임 줄이기 흐린 테두리)
+    glitchState: function () {
+      if (!S) return [];
+      return Object.keys(S.meshes).filter(function (uid) { return S.meshes[uid].userData.face; }).map(function (uid) {
+        var m = S.meshes[uid], gl = m.userData.glitch, now = S.glitchNow[uid];
+        return { uid: uid, swapped: gl ? m.userData.face.material.map !== gl.base : false, frame: now ? now.frame : -1, soft: !!(now && now.soft) || m.userData.frame.material.opacity < 0.9 };
+      });
+    },
     // 테스트용: 코스의 카드를 잡은 것으로 처리
     debugSetHp: function (n) { if (S) { S.hp = n; updateHud(); } },
     debugTake: function (uid) {

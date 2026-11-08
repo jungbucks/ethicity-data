@@ -57,9 +57,27 @@
       img.src = DR.CardArt.card(mission, artId, n % 3, 384, n).toDataURL();
       img.dataset.photo = DR.CardArt.photoId(mission, artId, n); // 사진 카드면 사진 id(테스트용), 아니면 ''
       img.alt = ''; el.appendChild(img);
+      if (item.glitch) el._art = { src: img.src, n: n, artId: artId, frames: {} }; // "지지직" 효과 그림은 처음 켜질 때 만든다
       var text = document.createElement('span'); text.className = 'run-card-label'; text.textContent = label(mission, item); el.appendChild(text);
       var badge = document.createElement('b'); badge.className = 'catch-badge'; badge.textContent = root.matchMedia('(pointer: coarse)').matches ? '톡! 잡기' : 'Space'; el.appendChild(badge);
       layer.appendChild(el); cards[item.uid] = el; return el;
+    }
+    // "지지직"(js/glitch.js, 연출만): 3D 카드와 같은 상태(s.glitchOf). 효과 그림·깨진 이름표 ↔ 원래 그대로. 움직임 줄이기 = 테두리만 흐리게
+    function glitchDom(el, it, gs) {
+      el.classList.toggle('glitch-soft', !!(gs && gs.soft));
+      var f = gs ? gs.frame : -1;
+      if (el._gf === f || (el._gf === undefined && f < 0)) return;
+      el._gf = f;
+      el.classList.toggle('glitching', f >= 0);
+      if (f >= 0) el.dataset.glitch = it.glitch; else delete el.dataset.glitch;
+      var img = el.querySelector('img'), text = el.querySelector('.run-card-label');
+      if (it.glitch === 'glyph') { text.textContent = f >= 0 ? DR.Glitch.scramble(label(mission, it), f, it.uid) : label(mission, it); return; }
+      var art = el._art;
+      if (f >= 0 && !art.frames[f]) {
+        var src = DR.CardArt.card(mission, art.artId, art.n % 3, 384, art.n);
+        art.frames[f] = (it.glitch === 'rgb' ? DR.Glitch.rgbCanvas(src, f) : DR.Glitch.stripeCanvas(src, f, it.uid)).toDataURL();
+      }
+      img.src = f >= 0 ? art.frames[f] : art.src;
     }
     function project(pos, camera) {
       var p = pos.clone().project(camera);
@@ -87,6 +105,7 @@
         var d = it.z - s.z, phase = DR.Catch.phase(it, s.z, s.speed, DR.config);
         if (d > 34 || phase === 'passed' || s.behindWall(it)) return; // 벽 뒤 카드는 3D로만 — 큰 카드가 앞의 벽을 가리지 않게
         var el = card(it); seen[it.uid] = true; el.hidden = false;
+        if (it.glitch) glitchDom(el, it, s.glitchOf ? s.glitchOf(it, d, s.speed) : null);
         var p = project(new THREE.Vector3((it.lane - 1) * DR.config.laneWidth, 2.2, -it.z), s.camera);
         var width = Math.min(container.clientWidth < 600 ? 112 : 204, Math.max(96, container.clientHeight - 250), Math.max(150, 4000 / (d + 15)));
         var middle = project(new THREE.Vector3(0, 2.2, -it.z), s.camera);

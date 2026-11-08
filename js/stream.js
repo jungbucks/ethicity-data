@@ -1,6 +1,6 @@
 /*
  * 코스 생성(기획서 §4.2·§7.3) — 같은 seed면 같은 코스.
- * 카드를 섞어 "줄"(같은 z)마다 1~2장씩 놓고, 드문 카드("?" 포함)는 같은 레인 앞에 노이즈 벽을 둔다.
+ * 카드를 섞어 "줄"마다 1~2장씩 놓고(두 번째 카드는 cfg.cardStaggerSec초 뒤 — 나란히 같은 거리에 오지 않게), 드문 카드("?" 포함)는 같은 레인 앞에 노이즈 벽을 둔다.
  * 드문 카드 앞 벽 간격은 초 단위(cfg.rareWallGapSec) — 초반은 옆 레인으로 피했다 돌아와 잡을 수 있게 넉넉히, 후반은 촘촘히.
  *   거리 = 그 지점 속도 × 초. 다른 카드에 겹치면 rareGapRange 안에서 비킨다(카드 자리는 그대로, 벽만 옮긴다).
  * 벽은 그 밖에도 줄 사이에 듬성듬성(카드 수의 약 15%) — 바로 다음 줄에 카드가 있는 레인은 피한다. 세 레인을 모두 막는 일은 없다.
@@ -23,6 +23,11 @@
   function cardsApi() {
     if (root.DR && root.DR.Cards) return root.DR.Cards;
     return require('./cards.js');
+  }
+
+  function glitchApi() {
+    if (root.DR && root.DR.Glitch) return root.DR.Glitch;
+    return require('./glitch.js');
   }
 
   function privacyApi() {
@@ -199,13 +204,17 @@
 
   function rareWallZ(card, length, cards, walls, cfg) {
     var p = card.z / length, sec = rareGapSec(cfg, p), v = speedAt(cfg, p), range = rareGapRange(cfg, sec);
+    var best = null, bestRoom = -1;
     for (var n = 0; n <= 60; n++) {
       var s = sec + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 0.05; // 정해진 간격에서 가까운 순
       if (s < range[0] || s > range[1]) continue;
       var z = card.z - v * s;
       if (z >= cfg.baseSpeed && wallFits(z, card.lane, cards, walls, cfg, card)) return z;
+      // 꼭 맞는 자리가 없으면(후반 드문 카드 둘이 같은 레인에 가까이) 범위 안에서 같은 레인 다른 카드와 가장 먼 자리
+      var room = Math.min.apply(null, cards.filter(function (c) { return c !== card && c.lane === card.lane; }).map(function (c) { return Math.abs(c.z - z); }).concat([Infinity]));
+      if (z >= cfg.baseSpeed && room > bestRoom) { best = z; bestRoom = room; }
     }
-    return card.z - v * sec;
+    return best !== null ? best : card.z - v * sec;
   }
 
   function build(mission, cfg, opts) {
@@ -237,8 +246,13 @@
     var items = [];
     rows.forEach(function (row) {
       var lanes = shuffle([0, 1, 2], rng);
+      // 앞뒤 간격(2026-11-08 사용자 결정): 한 줄의 두 번째 카드는 그 지점 속도 × cfg.cardStaggerSec만큼 뒤에 — 나란히 같은 거리에 오지 않게.
+      //   뒤로만 민다(가짜·드문·개인정보 카드의 '앞쪽엔 두지 않음' 규칙이 그대로 지켜진다). 난수를 쓰지 않아 종류·레인·구역은 그대로
+      //   드문 카드와 흔한 카드가 한 줄이면 흔한 카드를 민다(드문 카드와 그 앞 벽은 원래 자리 — rareWallGapSec 그대로)
+      var behind = speedAt(cfg, row.z / length) * (cfg.cardStaggerSec || 0);
+      var first = row.cards.length > 1 && !isRare(mission, row.cards[0]) && isRare(mission, row.cards[1]) ? 1 : 0;
       row.cards.forEach(function (c, i) {
-        var item = { kind: 'card', lane: lanes[i], z: row.z };
+        var item = { kind: 'card', lane: lanes[i], z: row.z + (i === first ? 0 : behind), row: row };
         if (c.zoneId) item.zoneId = c.zoneId;
         if (c.ambiguousId) item.ambiguousId = c.ambiguousId;
         else if (c.fakeId) item.fakeId = c.fakeId;
@@ -259,10 +273,10 @@
     for (var e = 0; e < extra; e++) {
       var gi = gaps[e], z = (rows[gi].z + rows[gi + 1].z) / 2, first = Math.floor(rng.next() * 3);
       var lanes = [first, (first + 1) % 3, (first + 2) % 3].filter(function (l) { return wallFits(z, l, cardItems, walls, cfg); });
-      var usedBy = function (rowZ, l) { return cardItems.some(function (c) { return c.z === rowZ && c.lane === l; }); };
+      var usedBy = function (row, l) { return cardItems.some(function (c) { return c.row === row && c.lane === l; }); }; // 줄 소속으로(앞뒤 간격으로 z가 조금씩 다르다)
       // 바로 다음 줄에 카드가 없는 레인만, 그중 앞 줄에도 없는 레인을 먼저(자리가 없으면 이 벽은 세우지 않는다)
-      var open = lanes.filter(function (l) { return !usedBy(rows[gi + 1].z, l); });
-      var clear = open.filter(function (l) { return !usedBy(rows[gi].z, l); });
+      var open = lanes.filter(function (l) { return !usedBy(rows[gi + 1], l); });
+      var clear = open.filter(function (l) { return !usedBy(rows[gi], l); });
       if (open.length) addWall(clear.length ? clear[0] : open[0], z);
     }
 
@@ -294,6 +308,8 @@
     if (zones) { course.zones = zones; course.supplement = !!focus; }
     // 목적 밖 개인정보 카드(첫 판만): 이미 놓인 흔한 카드에 privateId만 붙인다 — 자리·uid·벽은 그대로(DR.Privacy.mark)
     if (!focus) privacyApi().mark(mission, course);
+    // "지지직" 연출 대상(흔한 카드만, mission.glitchRate) — 따로 돌리는 난수라 코스는 그대로, 표시 필드 glitch만 붙는다(DR.Glitch.mark)
+    glitchApi().mark(mission, course, opts.seed);
     return course;
   }
 

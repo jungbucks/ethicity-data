@@ -131,12 +131,14 @@ test('m3 run: four zones, counts, fakes late in their zone and never in the firs
     assert.deepEqual(c, Stream.build(m3, cfg, { seed }));
   }
 });
+// 스냅숏은 앞뒤 간격(cardStaggerSec, 2026-11-09) 전 배치 — 간격 0으로 만든 코스와 비교한다. 실제 코스 = 이 배치 + 한 장만 뒤로(stream.test)
+const flat = { ...cfg, cardStaggerSec: 0 };
 test('flood, m2 courses unchanged by m3', () => {
   const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-m3.json', import.meta.url)));
-  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed })), cardsOf(before['m1_' + seed]));
-  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed })), cardsOf(before['m2_' + seed]));
-  assert.deepEqual(cardsOf(Stream.build(m1, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
-  assert.deepEqual(cardsOf(Stream.build(m2, cfg, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
+  for (const seed of [1101, 1102, 42]) assert.deepEqual(cardsOf(Stream.build(m1, flat, { seed })), cardsOf(before['m1_' + seed]));
+  for (const seed of [2201, 2202, 42]) assert.deepEqual(cardsOf(Stream.build(m2, flat, { seed })), cardsOf(before['m2_' + seed]));
+  assert.deepEqual(cardsOf(Stream.build(m1, flat, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup));
+  assert.deepEqual(cardsOf(Stream.build(m2, flat, { seed: 2202, focusCounts: { battery_aa: 2 } })), cardsOf(before.m2_sup));
 });
 
 // 이야기·잇기

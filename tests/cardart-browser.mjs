@@ -195,6 +195,10 @@ try {
     out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m4, 'S4', o, 320).toDataURL())).size;
     for (const q of m4.ambiguous) q.clues.forEach((_, i) => { if (std(A.clue(m4, q.id, i, 256)) > 5) out.clues++; });
     out.sheets = new Set([true, false, 'hold', null].map((x) => A.sheet(m4, 'senior', x, 360).toDataURL())).size;
+    // "?" 카드 번짐 세기(2026-11-09 사용자 결정 — 크게 보기로는 확신하기 어렵게, 단서 둘을 봐야): 답 칸의 선명도(밝기 기울기 평균)를
+    //   같은 낱말·같은 흘림 손글씨의 보통 카드(진짜 종류)와 견준다. 단서(같은 학생 답·글자 확대)는 또렷하게 그대로
+    const sharp = (c) => { const d = px(c), w = c.width; let s = 0, n = 0; for (let y = Math.floor(w * 0.25); y < Math.floor(w * 0.9); y++) for (let x = Math.floor(w * 0.06); x < Math.floor(w * 0.94); x++) { const i = (y * w + x) * 4, l = (d[i] + d[i + 1] + d[i + 2]) / 3, r = (d[i + 4] + d[i + 5] + d[i + 6]) / 3, b = (d[i + w * 4] + d[i + w * 4 + 1] + d[i + w * 4 + 2]) / 3; s += Math.abs(l - r) + Math.abs(l - b); n++; } return s / n; };
+    out.smudge = m4.ambiguous.map((q) => { const card = A.card(m4, q.id, 0, 384), truth = A.card(m4, q.truthKey, 0, 384); return { id: q.id, sharp: +(sharp(card) / sharp(truth)).toFixed(3), diff: +diff(card, truth).toFixed(1), clue0: +(sharp(A.clue(m4, q.id, 0, 384)) / sharp(truth)).toFixed(3) }; });
     // 사람 눈 시트: 큰 그림(크게 보기) · 48칸 썸네일(검수 격자 크기 96px) · 단서 · 결과 컷 · 선배 답안
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
@@ -287,6 +291,14 @@ try {
   assert.equal(r4.outcomesDiffer, 4, 'm4 outcomes differ');
   assert.equal(r4.clues, 4, 'm4 clues');
   assert.equal(r4.sheets, 4, 'senior sheet: unread / ○ / ✕ / person');
+  // 번짐 전(2026-11-08)의 값 SMUDGE_BEFORE보다 세졌다: 선명도 비율 15% 넘게 낮고(실측 0.77→0.59·0.74→0.59) 진짜 종류 카드와의 화소 차이도 더 크다(문지른 띠는 오히려 옅게 해서 차이는 조금만 늚). 단서 '같은 학생 답'은 보통 카드만큼 또렷
+  console.log('smudge', JSON.stringify(r4.smudge));
+  const SMUDGE_BEFORE = { q_ai: { sharp: 0.771, diff: 55.8 }, q_algo: { sharp: 0.738, diff: 50.9 } }; // 2026-11-09 번짐 강화 전 실측
+  for (const q of r4.smudge) {
+    assert.ok(q.sharp <= SMUDGE_BEFORE[q.id].sharp * 0.85, q.id + ' blurrier than before: ' + q.sharp + ' vs ' + SMUDGE_BEFORE[q.id].sharp);
+    assert.ok(q.diff > SMUDGE_BEFORE[q.id].diff, q.id + ' further from the plain card than before: ' + q.diff + ' vs ' + SMUDGE_BEFORE[q.id].diff);
+    assert.ok(q.clue0 >= 0.8, q.id + ' same-student clue stays sharp: ' + q.clue0);
+  }
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
   assert.ok(r.variantDiffers, 'variant');

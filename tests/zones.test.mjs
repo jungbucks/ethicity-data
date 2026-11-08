@@ -35,10 +35,12 @@ import fs from 'node:fs';
 import { rareWallOf, cardsOf } from './walls-helper.mjs';
 const before = JSON.parse(fs.readFileSync(new URL('./fixtures/courses-before-zones.json', import.meta.url)));
 const tut = require('../missions/tutorial.js');
+// 스냅숏은 앞뒤 간격(cardStaggerSec, 2026-11-09) 전 배치 — 간격 0으로 만든 코스와 비교한다(stream.test가 실제 코스와의 관계를 지킨다)
+const flat = { ...cfg, cardStaggerSec: 0 };
 test('flood course identical to before the generalisation, tutorial has no zones', () => {
-  for (const seed of [1101, 1102, 1, 8, 42, 999]) assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed })), cardsOf(before['m1_' + seed]), 'm1 ' + seed);
-  assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup_1102));
-  assert.deepEqual(cardsOf(Stream.build(m, cfg, { seed: 1103, focusCounts: { night_shallow: 2, night_muddy: 2, day_wet: 1 } })), cardsOf(before.m1_sup_1103));
+  for (const seed of [1101, 1102, 1, 8, 42, 999]) assert.deepEqual(cardsOf(Stream.build(m, flat, { seed })), cardsOf(before['m1_' + seed]), 'm1 ' + seed);
+  assert.deepEqual(cardsOf(Stream.build(m, flat, { seed: 1102, focusCounts: { night_deep: 2 } })), cardsOf(before.m1_sup_1102));
+  assert.deepEqual(cardsOf(Stream.build(m, flat, { seed: 1103, focusCounts: { night_shallow: 2, night_muddy: 2, day_wet: 1 } })), cardsOf(before.m1_sup_1103));
   assert.equal(Stream.build(tut, cfg, { seed: 7 }).zones, undefined, 'tutorial has no zones');
 });
 

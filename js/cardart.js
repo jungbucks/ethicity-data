@@ -1107,12 +1107,25 @@
       g.stroke();
       return;
     }
-    c.hwFont = writeWord(g, o, r, variant, x, y, w, h);
-    if (o.smudge) {
-      // 번진 글씨: 같은 낱말을 옆으로 밀어 두 번 더 흐리게 + 문지른 회색 자국 — 어느 낱말인지 한눈에 단정하기 어렵게
-      writeWord(g, o, rng(seed + 1), variant, x, y, w, h, { dx: S * 0.035, alpha: 0.35 });
-      writeWord(g, o, rng(seed + 2), variant, x, y, w, h, { dx: -S * 0.03, alpha: 0.3 });
-      g.fillStyle = 'rgba(150,150,165,.72)'; g.beginPath(); g.ellipse(S * 0.52, y + h * 0.52, S * 0.38, S * 0.13, -0.12, 0, 7); g.fill();
+    if (!o.smudge) { c.hwFont = writeWord(g, o, r, variant, x, y, w, h); return; }
+    // 번진 글씨("?" 카드, 2026-11-09 더 번지게 — 크게 보기로는 확신하기 어렵고 단서 둘을 봐야 알게):
+    //   또렷한 획은 남기지 않는다. 낱말을 따로 그려 사방으로 퍼뜨려 찍고(흐림, ctx.filter 없이 — 어느 브라우저든 같게),
+    //   옆·위아래로 밀린 자국 둘, 가운데 문지른 회색 띠, 글자 아래쪽(받침 자리)을 가로로 문지른 자국. 단서 그림은 이 길을 안 탄다(또렷)
+    var t = canvas(S), tg = t.getContext('2d');
+    c.hwFont = writeWord(tg, o, r, variant, x, y, w, h);
+    [[S * 0.008, 0.2], [S * 0.017, 0.1], [S * 0.027, 0.05]].forEach(function (ring, k) {
+      for (var a = 0; a < 10; a++) {
+        var ang = a / 10 * Math.PI * 2 + k * 0.31;
+        g.globalAlpha = ring[1]; g.drawImage(t, Math.cos(ang) * ring[0], Math.sin(ang) * ring[0] * 0.7);
+      }
+    });
+    g.globalAlpha = 0.24; g.drawImage(t, S * 0.05, S * 0.014);
+    g.globalAlpha = 0.2; g.drawImage(t, -S * 0.045, -S * 0.012);
+    g.globalAlpha = 1;
+    g.fillStyle = 'rgba(150,150,165,.5)'; g.beginPath(); g.ellipse(S * 0.52, y + h * 0.5, S * 0.4, S * 0.11, -0.12, 0, 7); g.fill();
+    for (var n = 0; n < 4; n++) { // 받침 자리를 가로로 문지른 연필 가루 자국
+      g.fillStyle = 'rgba(140,140,156,.42)';
+      g.beginPath(); g.ellipse(x + w * (0.16 + 0.23 * n + (r.next() - 0.5) * 0.05), y + h * (0.64 + (r.next() - 0.5) * 0.08), w * 0.1, h * 0.06, -0.08 + (r.next() - 0.5) * 0.1, 0, 7); g.fill();
     }
   }
 
