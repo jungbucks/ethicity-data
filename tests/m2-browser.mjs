@@ -1,6 +1,6 @@
 // 2 임무 「분리배출 분류 AI」 흐름(spec §5): 이름표 고치기(검수·보충 준비) · 컨베이어 실제 분류 · 임무 잇기
 import assert from 'node:assert/strict';
-import { passCity, openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, openPrepAll, shotPath } from './browser.mjs';
 
 const M2_ALL2 = { can_drink: 2, can_tin: 2, pet_clear: 2, pet_crushed: 2, vinyl_bag: 2, pack_milk: 2, paper_news: 2, trash_misc: 2, battery_aa: 2 };
 
@@ -95,6 +95,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       await page.locator('#screen-prep').waitFor({ state: 'visible', timeout: 4000 });
       assert.equal(await page.locator('#btn-supplement').innerText(), '보충 달리기 출발', 'trash is short before the fix');
       for (let i = 0; i < 2; i++) {
+        await openPrepAll(page); // 카드 전체 격자는 접혀 있다(플레이테스트 13)
         await page.locator('#prep-grid .bag-card[data-key="f_receipt"]:not(.fixed) .bag-open').first().click();
         await page.locator('#prep-zoom [data-relabel="trash"]').click();
         await page.keyboard.press('Escape');

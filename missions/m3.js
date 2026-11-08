@@ -66,14 +66,22 @@
     fakes: [
       { id: 'o_station', name: '철거 전 빌딩', label: 'station', truth: null, count: 3, art: { view: 'station', era: 'old', time: 'day', photo: 'station_old' },
         dates: ['2019년 4월', '2019년 10월', '2020년 6월'],
-        line: '우리가 넣은 데이터에 철거 전 빌딩이 서 있는 옛 역 앞 사진이 섞여 들어갔다.' },
+        line: '우리가 넣은 데이터에 철거 전 빌딩이 서 있는 옛 역 앞 사진이 섞여 들어갔다.',
+        cut: '없어진 빌딩을 기준으로 안내해 엉뚱한 길로 보냈다. 택배 기사가 광장을 몇 바퀴 돈다.' },
       { id: 'o_river', name: '공사 전 공터', label: 'river', truth: null, count: 3, art: { view: 'river', era: 'old', time: 'day', photo: 'river_old' },
         dates: ['2021년 5월', '2021년 11월', '2022년 8월'],
-        line: '우리가 넣은 데이터에 강변길이 생기기 전 공터 사진이 섞여 들어갔다.' },
+        line: '우리가 넣은 데이터에 강변길이 생기기 전 공터 사진이 섞여 들어갔다.',
+        cut: '강변길이 생기기 전 공터를 기준으로 안내해 멀리 돌아가는 큰길로 보냈다.' },
       { id: 'o_crossing', name: '철거 전 육교', label: 'crossing', truth: null, count: 3, harm: 'danger', art: { view: 'crossing', era: 'old', time: 'day', photo: 'crossing_old' },
         dates: ['2020년 9월', '2021년 4월', '2022년 10월'],
-        line: '우리가 넣은 데이터에 철거 전 육교가 있는 옛 학교 앞 사진이 섞여 들어갔다.' }
+        line: '우리가 넣은 데이터에 철거 전 육교가 있는 옛 학교 앞 사진이 섞여 들어갔다.',
+        cut: '"육교로 건너세요" — 지금은 없는 육교로 안내했다. 차도로 내려서려던 학생을 감독관이 멈춰 세웠다.' }
     ],
+    // 결과 문구(플레이테스트 2, DR.ResultLine): 조합 문장(fail.line·cut) 하나 / 여럿이 모자라면 이 틀에 "A와 B" / 옛 사진이 원인이면 그 가짜의 cut
+    cutTemplate: {
+      inconvenience: '{what:을} 알아보지 못해 엉뚱한 길로 안내했다. 택배 기사가 멀리 돌아간다.',
+      danger: '{what:을} 알아보지 못해 차도 쪽으로 안내했다. 감독관이 안내를 멈췄다.'
+    },
     outcomeText: { pass: '제대로 안내했다', inconvenience: '옛길로 안내했다 · 불편', danger: '없는 육교로 안내했다 · 위험' },
     counts: {
       station_now: 8, station_rain: 3, market_now: 2, market_old: 5, market_eve_old: 3,
@@ -82,9 +90,9 @@
     scenes: [
       { id: 'S1', title: '역 앞 사거리', emphasis: 'normal', art: { view: 'station', time: 'day' },
         combos: [
-          { id: 'S1_station_now', keys: ['station_now'], need: 2, danger: false, what: '지금의 역 앞 광장 사진',
+          { id: 'S1_station_now', keys: ['station_now'], need: 2, danger: false, what: '지금의 역 앞 광장 사진', item: '지금의 역 앞 광장',
             fail: { kind: 'inconvenience', line: '지금의 역 앞 광장을 잘 몰라 엉뚱한 길로 안내했다. 택배 기사가 광장을 몇 바퀴 돈다.' } },
-          { id: 'S1_station_rain', keys: ['station_rain'], need: 2, danger: false, boundary: true, what: '비 오는 밤 역 앞 사진',
+          { id: 'S1_station_rain', keys: ['station_rain'], need: 2, danger: false, boundary: true, what: '비 오는 밤 역 앞 사진', item: '비 오는 밤 역 앞',
             fail: { kind: 'inconvenience', line: '비 오는 밤에는 역 앞을 알아보지 못해 엉뚱한 길로 안내했다.' } }
         ],
         passLine: '광장을 가로지르는 길로 안내했다. 택배 기사가 제시간에 도착한다.',
@@ -94,9 +102,9 @@
         } },
       { id: 'S2', title: '시장 골목', emphasis: 'normal', art: { view: 'market', time: 'day' },
         combos: [
-          { id: 'S2_market', keys: ['market_now', 'market_old'], need: 3, danger: false, what: '시장 골목 사진',
+          { id: 'S2_market', keys: ['market_now', 'market_old'], need: 3, danger: false, what: '시장 골목 사진', item: '시장 골목',
             fail: { kind: 'inconvenience', line: '시장 골목을 알아보지 못해 큰길로 빙 돌아가게 안내했다. 시장 골목은 2015년 뒤로 그대로라, 오래전에 찍은 사진도 지금의 시장 골목이다.' } },
-          { id: 'S2_market_eve', keys: ['market_eve_old'], need: 2, danger: false, boundary: true, what: '저녁 시장 골목 사진',
+          { id: 'S2_market_eve', keys: ['market_eve_old'], need: 2, danger: false, boundary: true, what: '저녁 시장 골목 사진', item: '저녁 시장 골목',
             fail: { kind: 'inconvenience', line: '저녁의 시장 골목을 알아보지 못했다. 시장 골목은 2015년 뒤로 그대로라, 오래전에 찍은 저녁 사진도 지금의 시장 골목이다.' } }
         ],
         passLine: '오래된 사진 속 시장 골목도 지금과 같았다. 시장 입구를 바로 알아보고 안내했다.',
@@ -106,9 +114,9 @@
         } },
       { id: 'S3', title: '새로 난 강변길', emphasis: 'normal', art: { view: 'river', time: 'day' },
         combos: [
-          { id: 'S3_river_now', keys: ['river_now'], need: 2, danger: false, what: '새로 난 강변길 사진',
+          { id: 'S3_river_now', keys: ['river_now'], need: 2, danger: false, what: '새로 난 강변길 사진', item: '새로 난 강변길',
             fail: { kind: 'inconvenience', line: '새 강변길을 몰라 멀리 돌아가는 큰길로 안내했다.' } },
-          { id: 'S3_river_night', keys: ['river_night'], need: 2, danger: false, boundary: true, what: '밤 강변길 사진',
+          { id: 'S3_river_night', keys: ['river_night'], need: 2, danger: false, boundary: true, what: '밤 강변길 사진', item: '밤 강변길',
             fail: { kind: 'inconvenience', line: '밤에는 강변길을 알아보지 못해 큰길로 돌아가게 안내했다.' } }
         ],
         passLine: '새로 난 강변길을 알아보고 지름길로 안내했다.',
@@ -118,8 +126,10 @@
         } },
       { id: 'S4', title: '학교 앞 횡단보도', emphasis: 'low', art: { view: 'crossing', time: 'day' },
         combos: [
-          { id: 'S4_crossing_now', keys: ['crossing_now'], need: 2, danger: true, what: '지금의 학교 앞 횡단보도 사진' },
-          { id: 'S4_crossing_rain', keys: ['crossing_rain'], need: 2, danger: false, what: '비 오는 날 학교 앞 사진' }
+          { id: 'S4_crossing_now', keys: ['crossing_now'], need: 2, danger: true, what: '지금의 학교 앞 횡단보도 사진', item: '지금의 학교 앞 횡단보도',
+            cut: '지금의 학교 앞 횡단보도를 알아보지 못해 차도 쪽으로 안내했다. 차도로 내려서려던 학생을 감독관이 멈춰 세웠다.' },
+          { id: 'S4_crossing_rain', keys: ['crossing_rain'], need: 2, danger: false, what: '비 오는 날 학교 앞 사진', item: '비 오는 날 학교 앞',
+            cut: '횡단보도는 알아봤지만, 비 오는 날엔 학교 앞을 못 알아봐 먼 길로 안내했다.' }
         ],
         passLine: '횡단보도 신호를 기다렸다 건너라고 안내했다.',
         cuts: {

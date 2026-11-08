@@ -3,6 +3,7 @@
  * 일시정지: HUD 버튼 · Esc · P, 탭이 숨겨지거나 창이 포커스를 잃으면 자동으로. 메뉴 = 계속하기 / 도움말 / 처음으로(확인 한 번).
  *          달리기 멈춤은 DR.Run.setPaused 하나로(run3d의 S.hidden은 그림만 쉬고, 다시 보여도 메뉴가 열려 있으면 멈춘 채).
  * 타이틀: 저장이 있으면 "이어하기"(기본)와 "처음부터"(확인), 튜토리얼을 끝낸 적이 있으면 "튜토리얼 건너뛰기"를 고를 수 있다.
+ *   진행 중인 임무가 없고 기록이 있으면 "N 임무부터 이어하기"(기록에서 안 깬 첫 임무, 그 카드에 '다음은 여기'), 다 깼으면 "처음부터 다시"(플레이테스트 4).
  */
 (function (root) {
   'use strict';
@@ -169,15 +170,17 @@
     box.innerHTML = '';
     box.appendChild(el('span', { class: 'title-missions-label', text: '임무 고르기' }));
     box.appendChild(practiceCard());
+    var next = nextUp();
     MISSION_CARDS.forEach(function (p) {
       if (!DR.Missions[p[0]]) return;
-      var status = missionStatus(p[0]);
-      var b = el('button', { id: 'btn-' + p[0], class: 'mission-card', type: 'button', 'aria-label': p[1], 'aria-describedby': 'mc-' + p[0] + '-hook mc-' + p[0] + '-status', 'data-status': status }, [
+      var status = missionStatus(p[0]), isNext = next === p[0];
+      var b = el('button', { id: 'btn-' + p[0], class: 'mission-card' + (isNext ? ' is-next' : ''), type: 'button', 'aria-label': p[1], 'aria-describedby': 'mc-' + p[0] + '-hook mc-' + p[0] + '-status' + (isNext ? ' mc-' + p[0] + '-next' : ''), 'data-status': status }, [
         el('img', { class: 'mc-thumb', src: missionThumb(p[0], p[3]), alt: '' }),
         el('span', { class: 'mc-body' }, [
           el('b', { class: 'mc-title', text: p[1] }),
           el('span', { id: 'mc-' + p[0] + '-hook', class: 'mc-hook', text: p[2] }),
-          el('span', { id: 'mc-' + p[0] + '-status', class: 'mc-status', text: status })
+          el('span', { id: 'mc-' + p[0] + '-status', class: 'mc-status', text: status }),
+          isNext ? el('span', { id: 'mc-' + p[0] + '-next', class: 'mc-next', text: '다음은 여기' }) : null
         ])
       ]);
       b.addEventListener('click', function () {
@@ -193,6 +196,13 @@
       });
       box.appendChild(b);
     });
+  }
+
+  // 진행 중인 임무가 없을 때 이어 갈 임무(기록에서 안 깬 첫 임무) — 튜토리얼이나 임무를 하나라도 끝낸 적이 있을 때만. 다 깼거나 처음이면 null
+  function nextUp() {
+    var s = DR.Save.load();
+    if ((s && s.mission) || !DR.Save.hasSave()) return null;
+    return DR.Save.nextMission(DR.App.records || {});
   }
 
   // 이어하기 아래: 지금 어디까지 했는지(예: '2임무 · 검수부터')
@@ -235,6 +245,19 @@
       box.appendChild(cont); box.appendChild(fresh);
       var prog = document.getElementById('title-progress');
       if (prog) { prog.textContent = progressText(s); prog.hidden = false; }
+    } else if (DR.Save.hasSave() && DR.Save.allCleared(DR.App.records || {})) {
+      // 다 깸: 처음부터 다시(확인 창 — 기록이 지워진다)
+      var again = el('button', { id: 'btn-restart', class: 'btn btn-primary', type: 'button', text: '처음부터 다시' });
+      again.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); startChoice(true); });
+      box.appendChild(again);
+    } else if (nextUp()) {
+      // 임무를 끝내고 다시 들어옴: 기록에서 안 깬 첫 임무부터(저장된 진행이 없으니 바로 그 임무 도입)
+      var nid = nextUp();
+      var goNext = el('button', { id: 'btn-resume-next', class: 'btn btn-primary', type: 'button', text: nid.replace(/^m/, '') + ' 임무부터 이어하기' });
+      goNext.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); leave(function () { DR.App.startMission(nid); }); });
+      var fresh2 = el('button', { id: 'btn-fresh', class: 'btn', type: 'button', text: '처음부터' });
+      fresh2.addEventListener('click', function () { DR.Sfx.play('ui'); startChoice(true); });
+      box.appendChild(goNext); box.appendChild(fresh2);
     } else {
       var start = el('button', { id: 'btn-start', class: 'btn btn-primary', type: 'button', text: '시작하기' });
       start.addEventListener('click', function () {

@@ -46,27 +46,35 @@
       ]
     },
     ambiguous: [],
+    // 결과 문구(플레이테스트 2, DR.ResultLine): 조합마다 cut = 그 조합만 모자랄 때, 여럿이 모자라면 이 틀에 이름(item)을 "A와 B"로
+    cutTemplate: { inconvenience: '{what:을} 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' },
     outcomeText: { pass: '종류별 목록에 올렸다', inconvenience: '일부 물건이 분류 보류로 남았다', danger: '일부 물건이 분류 보류로 남았다' },
     counts: { umbrella_open: 8, wallet_closed: 8, phone_front: 8, umbrella_folded: 5, wallet_open: 5, phone_back: 5 },
     scenes: [
       { id: 'S1', title: '우산', emphasis: 'normal', art: { place: 'lostfound', focus: ['umbrella_open', 'umbrella_folded'] },
         combos: [
-          { id: 'S1_open', keys: ['umbrella_open'], need: 3, danger: false, what: '펼친 우산 사진' },
-          { id: 'S1_folded', keys: ['umbrella_folded'], need: 3, danger: false, what: '접힌 우산 사진' }
+          { id: 'S1_open', keys: ['umbrella_open'], need: 3, danger: false, what: '펼친 우산 사진', item: '펼친 우산',
+            cut: '펼친 우산을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' },
+          { id: 'S1_folded', keys: ['umbrella_folded'], need: 3, danger: false, what: '접힌 우산 사진', item: '접힌 우산',
+            cut: '접어서 묶은 우산을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' }
         ],
         passLine: '펼친 우산도, 접어서 묶은 우산도 우산 목록에 떴다.',
         cuts: { danger: '자료에 없던 모습의 우산이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 우산이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } },
       { id: 'S2', title: '지갑', emphasis: 'normal', art: { place: 'lostfound', focus: ['wallet_closed', 'wallet_open'] },
         combos: [
-          { id: 'S2_closed', keys: ['wallet_closed'], need: 3, danger: false, what: '닫힌 지갑 사진' },
-          { id: 'S2_open', keys: ['wallet_open'], need: 3, danger: false, what: '열린 지갑 사진' }
+          { id: 'S2_closed', keys: ['wallet_closed'], need: 3, danger: false, what: '닫힌 지갑 사진', item: '닫힌 지갑',
+            cut: '닫힌 지갑을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' },
+          { id: 'S2_open', keys: ['wallet_open'], need: 3, danger: false, what: '열린 지갑 사진', item: '열린 지갑',
+            cut: '카드 칸이 보이게 열린 지갑을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' }
         ],
         passLine: '닫힌 지갑도, 카드 칸이 보이게 열린 지갑도 지갑 목록에 떴다.',
         cuts: { danger: '자료에 없던 모습의 지갑이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 지갑이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } },
       { id: 'S3', title: '스마트폰', emphasis: 'normal', art: { place: 'lostfound', focus: ['phone_front', 'phone_back'] },
         combos: [
-          { id: 'S3_front', keys: ['phone_front'], need: 3, danger: false, what: '앞면 스마트폰 사진' },
-          { id: 'S3_back', keys: ['phone_back'], need: 3, danger: false, what: '뒷면 스마트폰 사진' }
+          { id: 'S3_front', keys: ['phone_front'], need: 3, danger: false, what: '앞면 스마트폰 사진', item: '앞면 스마트폰',
+            cut: '화면이 위로 향한 스마트폰을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' },
+          { id: 'S3_back', keys: ['phone_back'], need: 3, danger: false, what: '뒷면 스마트폰 사진', item: '뒷면 스마트폰',
+            cut: '카메라가 보이는 뒷면 스마트폰을 알아보지 못해 분류 보류 칸으로 보냈다. 물건은 보관함에 그대로 있다.' }
         ],
         passLine: '화면이 보이는 앞면도, 카메라가 보이는 뒷면도 스마트폰 목록에 떴다.',
         cuts: { danger: '자료에 없던 모습의 스마트폰이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.', inconvenience: '자료에 없던 모습의 스마트폰이 분류 보류 칸으로 갔다. 물건은 보관함에 그대로 있다.' } }

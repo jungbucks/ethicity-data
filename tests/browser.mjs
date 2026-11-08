@@ -52,3 +52,9 @@ export async function passCity(page) {
   await passChapter(page);
   if (await page.locator('#screen-city').isVisible()) await page.locator('#btn-city-next').click();
 }
+// 보충 준비의 카드 전체 그리드는 접혀 있다(플레이테스트 13) — 그 그리드를 누르는 테스트는 먼저 펼친다
+export async function openPrepAll(page) {
+  const b = page.locator('#btn-prep-all');
+  await b.waitFor({ state: 'visible', timeout: 10000 });
+  if ((await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+}

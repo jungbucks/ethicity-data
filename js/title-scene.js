@@ -20,11 +20,20 @@
     '카드에 붙은 이름표가 늘 맞는 건 아니야.',
     '준비되면 아래 버튼을 눌러 줘!'
   ];
+  // 1~4 임무를 다 깬 뒤(플레이테스트 11): 길 헤매던 3 임무 대사 대신
+  var LINES_DONE = [
+    '도시가 다 이어졌어! 같이 달려 줘서 고마워.',
+    '사진은 많이보다, 목적에 맞게 모아야 해!',
+    '이름표 하나, 사진 한 장이 AI의 판단이 돼.',
+    '다시 달리고 싶으면 아래 버튼을 눌러 줘!'
+  ];
+  function lineSetNow() { return DR.Save && DR.App && DR.Save.allCleared(DR.App.records || {}) ? 'done' : 'normal'; }
+  function lines() { return S.lineSet === 'done' ? LINES_DONE : LINES; }
   var ART = ['assets/title/bg-sky.webp', 'assets/title/bg-far.webp', 'assets/title/bg-mid.webp', 'assets/title/bg-road.webp'];
   var LAYERS = [['far', 720], ['mid', 720], ['road', 360]]; // 원본 높이(가로 2560)
 
   var S = { running: false, still: false, disposed: true, hero: null, raf: 0, last: 0, t: 0, offsets: { far: 0, mid: 0, road: 0 },
-    cardsCaught: 0, draws: 0, three: null, artOk: null, mode: '3d', line: 0 };
+    cardsCaught: 0, draws: 0, three: null, artOk: null, mode: '3d', line: 0, lineSet: 'normal' };
 
   function reduced() { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function $(id) { return document.getElementById(id); }
@@ -162,9 +171,10 @@
     if (bot) bot.style.setProperty('--float', (Math.sin(S.t * 2) * 6).toFixed(1) + 'px');
   }
   function setLine(n) {
-    S.line = n % LINES.length;
+    var L = lines();
+    S.line = n % L.length;
     var b = document.querySelector('#title-guide .tl-bubble');
-    if (b) b.textContent = LINES[S.line];
+    if (b) b.textContent = L[S.line];
   }
 
   /* ---------- 루프(30fps) ---------- */
@@ -185,7 +195,10 @@
     var sc = $('title-scene');
     if (!sc) return;
     var heroId = DR.Save ? DR.Save.hero() : 'onyu';
-    if (S.running && S.hero === heroId && !reduced()) return;
+    // 기록이 바뀌어 대사 묶음이 달라지면(다 깸 ↔ 처음부터) 첫 줄부터 — renderGuide가 말풍선을 비웠어도 다시 채운다
+    var set = lineSetNow();
+    if (set !== S.lineSet) S.lineSet = set;
+    if (S.running && S.hero === heroId && !reduced()) { setLine(S.line); return; }
     stop();
     S.hero = heroId; S.disposed = false; S.t = 0;
     loadArt(setArt);
@@ -229,7 +242,7 @@
     state: function () {
       return { running: S.running, still: S.still, disposed: S.disposed, hero: S.hero, fpsCap: FPS, mode: S.mode,
         pixelRatio: S.three ? S.three.renderer.getPixelRatio() / LOW_RES : null, offsets: { far: S.offsets.far, mid: S.offsets.mid, road: S.offsets.road },
-        cardsCaught: S.cardsCaught, line: S.line, draws: S.draws };
+        cardsCaught: S.cardsCaught, line: S.line, lineSet: S.lineSet, draws: S.draws };
     },
     testFallback: function () { S.artOk = false; setArt(false); }
   };

@@ -147,3 +147,17 @@ test('개인정보 카드: 가방의 privateId·가림(masked)과 privCaught를 
   old.setItem(Save.KEY, JSON.stringify({ v: 1, mission: 'm3', screen: 'inspect', bag: [] }));
   assert.deepEqual(Save.load(old).privCaught, []);
 });
+
+// 플레이테스트 4: 다음 임무는 기록(records)만으로 — 새 저장 필드 없음
+test('nextMission: 안 깬 첫 임무 / 다 깼으면 null / 기록이 비면 m1', () => {
+  const S = require('../js/save.js');
+  assert.equal(S.nextMission({}), 'm1');
+  assert.equal(S.nextMission({ tutorial: { cleared: true } }), 'm1');
+  assert.equal(S.nextMission({ tutorial: { cleared: true }, m1: { cleared: true }, m2: { cleared: true } }), 'm3');
+  assert.equal(S.nextMission({ m1: { cleared: true }, m3: { cleared: true } }), 'm2', '건너뛴 임무가 먼저');
+  assert.equal(S.nextMission({ m2: { cleared: false } }), 'm1');
+  assert.equal(S.nextMission({ m1: { cleared: true }, m2: { cleared: true }, m3: { cleared: true }, m4: { cleared: true } }), null);
+  assert.equal(S.allCleared({ m1: { cleared: true }, m2: { cleared: true }, m3: { cleared: true }, m4: { cleared: true } }), true);
+  assert.equal(S.allCleared({ m1: { cleared: true } }), false);
+  assert.equal(S.nextMission(null), 'm1');
+});

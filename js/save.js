@@ -138,6 +138,13 @@
     var tut = !!(recs.tutorial && recs.tutorial.cleared);
     return Math.max(0, Math.min(5, n + (tut ? 1 : 0)));
   }
+  // 타이틀 '다음 임무로 이어하기'(플레이테스트 4): 기록만 보고 안 깬 첫 임무(1~4 순서). 다 깼으면 null — 새 저장 필드 없음
+  function nextMission(recs) {
+    recs = recs || {};
+    for (var i = 0; i < CITY_STAGES.length; i++) if (!(recs[CITY_STAGES[i]] && recs[CITY_STAGES[i]].cleared)) return CITY_STAGES[i];
+    return null;
+  }
+  function allCleared(recs) { return nextMission(recs) === null; }
   // 깬 직후 도시 복구 화면: 칸이 늘었을 때만(다시 깨면 건너뜀). 4 임무 = 도시 재연결, 이야기의 끝이라 늘 →5
   function cityStep(id, before, after) {
     if (id === 'm4') return { from: Math.min(before, 4), to: 5 };
@@ -176,7 +183,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

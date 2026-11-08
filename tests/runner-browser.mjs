@@ -92,7 +92,7 @@ const rareOf = (stage) => `(() => { const m = DR.App.mission(), c = DR.App.cours
     // 검수: 잃은 카드는 가방에 없고 한 줄로 보인다
     await page.evaluate(() => DR.Run.finishNow());
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 5000 });
-    assert.equal(await page.locator('#inspect-lost').innerText(), '노이즈로 잃은 카드 1장');
+    assert.equal(await page.locator('#inspect-lost').innerText(), '이번 달리기에서 노이즈로 잃은 카드 1장');
     assert.match(await page.locator('#screen-inspect h2').first().innerText(), /\(2\/30칸\)/);
     assert.equal(await page.evaluate(() => DR.App.state.bag.some((c) => c.id === 'x')), false);
     const lostUid = r.last;
@@ -100,7 +100,7 @@ const rareOf = (stage) => `(() => { const m = DR.App.mission(), c = DR.App.cours
     // 저장·이어하기: 같은 숫자, 옛 세이브(lost 없음)는 줄 없음
     await page.goto(page.url().split('?')[0]); await page.locator('#btn-continue').click();
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 5000 });
-    assert.equal(await page.locator('#inspect-lost').innerText(), '노이즈로 잃은 카드 1장');
+    assert.equal(await page.locator('#inspect-lost').innerText(), '이번 달리기에서 노이즈로 잃은 카드 1장');
     await page.evaluate(() => { const k = 'ethicity.data.save', o = JSON.parse(localStorage.getItem(k)); delete o.lost; localStorage.setItem(k, JSON.stringify(o)); });
     await page.goto(page.url().split('?')[0]); await page.locator('#btn-continue').click();
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 5000 });
@@ -161,7 +161,7 @@ const rareOf = (stage) => `(() => { const m = DR.App.mission(), c = DR.App.cours
     assert.match(await page.locator('#hud-bag b').innerText(), /^1\/30$/);
     await page.evaluate(() => DR.Run.finishNow());
     await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 5000 });
-    assert.equal(await page.locator('#inspect-lost').innerText(), '노이즈로 잃은 카드 1장');
+    assert.equal(await page.locator('#inspect-lost').innerText(), '이번 달리기에서 노이즈로 잃은 카드 1장');
     assert.match(await page.locator('#screen-inspect h2').first().innerText(), /\(1\/30칸\)/);
     assert.deepEqual(await page.evaluate(() => DR.App.state.bag.map((c) => c.id)), [late.uid]);
     assert.deepEqual(errors, []);

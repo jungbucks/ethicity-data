@@ -1,7 +1,7 @@
 // 달리기 배경음악(js/bgm.js · assets/bgm/arcade-rush.mp3): 달리기에서만 0.14로 재생, 끝나면 서서히 멈춤, 보충 달리기에서 이어서,
 // 일시정지 메뉴 "배경음악" 끄기 → 바로 무음 + 새로고침 뒤에도 꺼짐, 탭 숨김이면 멈춤, file://에서 재생, 콘솔 오류 없음
 import assert from 'node:assert/strict';
-import { openGame } from './browser.mjs';
+import { openGame, openPrepAll } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 const bgm = (page) => page.evaluate(() => DR.Bgm.state());
@@ -58,6 +58,7 @@ try {
   await page.locator('#screen-result .result-scene').waitFor();
   assert.equal((await bgm(page)).playing, false, '결과는 무음');
   await readResults(page);
+  await openPrepAll(page); // 카드 전체 격자는 접혀 있다(플레이테스트 13)
   for (let i = 0; i < 6; i++) await page.locator('#prep-grid .bag-card[data-key="day_deep"] .btn-remove').first().click();
   await page.locator('#btn-supplement').click();
   await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });

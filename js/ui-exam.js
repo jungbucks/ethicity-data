@@ -66,7 +66,7 @@
   function setLabel(m, card, key) {
     if (DR.Cards.originalLabel(m, card) === key) delete card.label; else card.label = key;
   }
-  // 카드 크게 보기: 큰 사진 · 지금 이름표 · 이름표 고르기. 첫 카드에서만 시험관 안내
+  // 카드 크게 보기: 큰 사진 · 지금 이름표 · 이름표 고르기 + '그대로 두기'(Esc 말고도 닫을 수 있게, 플레이테스트 6). 첫 카드에서만 시험관 안내
   function openCard(m, card, first, after) {
     var now = DR.Cards.currentLabel(m, card), body = [];
     if (first) body.push(el('p', { id: 'exam-first-hint', class: 'exam-say' }, [el('b', { text: '시험관 ' }), el('span', { text: m.story.inspectHint })]));
@@ -77,7 +77,7 @@
       body: body,
       actions: m.runGoal.map(function (g) {
         return { id: 'btn-label-' + g.key, text: g.name, primary: g.key === now, onClick: function () { setLabel(m, card, g.key); } };
-      }),
+      }).concat([{ id: 'btn-label-keep', text: '그대로 두기' }]),
       onClose: after
     });
   }
@@ -90,7 +90,7 @@
     b.addEventListener('click', function () { DR.Sfx.play('ui'); onOpen(card); });
     return b;
   }
-  // opts: { drill: 시험관의 연습 카드(가방·개수·합격 판정에 들어가지 않음) · lost: 노이즈로 잃은 장 수 }
+  // opts: { drill: 시험관의 연습 카드(가방 칸·개·고양이 수 밖, 이름표 점검엔 든다 — 플레이테스트 3a) · lost: 이번 달리기에서 노이즈로 잃은 장 수 }
   function examInspect(m, bag, opts, done) {
     var screen = document.getElementById('screen-inspect'), opened = false;
     function open(card) {
@@ -111,11 +111,11 @@
         el('p', { class: 'kicker', text: '검수 · ' + m.title }),
         el('h2', { text: '가져온 사진 확인 (' + bag.length + '/' + m.bag + '칸)' }),
         el('p', { text: bag.length ? '이름표가 틀린 카드가 있을 수 있어. 카드를 눌러 사진과 이름표를 비교하고, 틀렸으면 고쳐 봐.' : '가방이 비었어.' }),
-        opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '노이즈로 잃은 카드 ' + opts.lost + '장' }) : null,
+        opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '이번 달리기에서 노이즈로 잃은 카드 ' + opts.lost + '장' }) : null,
         grid,
         opts.drill ? el('section', { id: 'exam-drill', class: 'exam-drill', 'aria-labelledby': 'exam-drill-h' }, [
           el('h3', { id: 'exam-drill-h', text: '시험관의 연습 카드' }),
-          el('p', { text: '가방에는 들어가지 않는 카드야. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐.' }),
+          el('p', { text: '이 카드도 AI가 배우는 자료야. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐.' }),
           cell(m, opts.drill, open)
         ]) : null,
         el('div', { class: 'actions' }, [submit])
@@ -160,7 +160,9 @@
     m.runGoal.forEach(function (g) {
       check.appendChild(el('li', { 'data-goal': g.key, text: g.name + ' 사진 ' + r.have[g.key] + ' / ' + r.need[g.key] + '장' }));
     });
-    check.appendChild(el('li', { 'data-goal': 'labels', text: '이름표가 맞는 카드 ' + (st.bag.length - r.wrong.length) + ' / ' + st.bag.length + '장' }));
+    // 연습 카드도 AI가 배우는 자료라 이름표 점검에 넣는다(안 고치면 넘어갈 수 없으니 점검표도 그만큼 틀렸다고 말한다)
+    var total = st.bag.length + (st.drill ? 1 : 0), right = total - r.wrong.length - (drillWrong ? 1 : 0);
+    check.appendChild(el('li', { 'data-goal': 'labels', text: '이름표가 맞는 카드 ' + right + ' / ' + total + '장' }));
     kids.push(el('section', { id: 'exam-points', 'aria-labelledby': 'exam-points-h' }, [el('h3', { id: 'exam-points-h', text: '시험용 자료 점검' }), check]));
 
     function examiner(text) { kids.push(el('p', { class: 'exam-say' }, [el('b', { text: '시험관 ' }), el('span', { text: text })])); }

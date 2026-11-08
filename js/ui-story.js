@@ -246,7 +246,7 @@
           el('h3', { text: '이야기해 보자' }),
           el('ol', null, opts.questions.map(function (t) { return el('li', { text: t }); }))
         ]) : null,
-        el('p', { class: 'lead', text: '이 게임의 결과는 실제 AI가 아니라 단순화한 규칙으로 만든 것이다. 실제 AI라면 무엇이 다를지, 우리가 넣는 데이터가 어떤 판단으로 이어지는지 이야기해 보자.' }),
+        // '단순화한 규칙으로 만든 시뮬레이션' 안내는 바로 앞 감독관 마무리 대사(임무 story.outro)에 한 번만 — 완료 화면에서 되풀이하지 않는다(플레이테스트 12)
         el('div', { class: 'actions' }, [next, again])
       ]));
       root.DR.App.go('outro');

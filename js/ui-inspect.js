@@ -54,7 +54,7 @@
   function countText(have, need) { return DR.UI.needRevealed() ? have + ' / ' + need + '장' : '현재 ' + have + '장'; }
   function comboRow(mission, counts, c) {
     // 1 임무(hideShapes): 첫 결과 전에는 sceneRows가 종류 한 줄로 합치고, 공개 뒤에는 모습 이름으로
-    var have = comboCount(mission, counts, c), label = mission.hideShapes ? mission.cardTypes[c.keys[0]].name : DR.Cards.keyLabel(mission, c.keys[0]);
+    var have = comboCount(mission, counts, c), label = DR.Cards.comboName(mission, c); // 여러 종류 조합은 합친 이름(플레이테스트 1)
     var short = DR.UI.needRevealed() && have < c.need;
     // 같은 종류를 다른 장면도 쓰면 '(두 장면 공통)' — 한 카드가 두 장면에 함께 세어진다는 뜻
     var shared = mission.scenes.filter(function (s) { return s.combos.some(function (o) { return o.keys.some(function (k) { return c.keys.indexOf(k) >= 0; }); }); }).length > 1;
@@ -143,9 +143,9 @@
       screen.appendChild(el('div', { class: 'page' }, [
         el('p', { class: 'kicker', text: '검수 · ' + mission.title }),
         el('h2', { text: '가방 확인 (' + bag.length + '/' + mission.bag + '칸)' }),
-        opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '노이즈로 잃은 카드 ' + opts.lost + '장' }) : null,
+        opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '이번 달리기에서 노이즈로 잃은 카드 ' + opts.lost + '장' }) : null, // 직전 달리기 하나 기준(플레이테스트 8)
         changeLogBoard(mission),
-        el('p', { class: 'note', text: mission.inspectNote ? mission.inspectNote : mission.changeLog ? '카드를 누르면 크게 볼 수 있다. 언제 찍은 사진인지 도시 변경 기록과 맞춰 보고, 지금의 거리가 아닌 사진은 뺀다.' : mission.labels ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
+        el('p', { class: 'note', text: mission.inspectNote ? mission.inspectNote : mission.changeLog ? '카드를 누르면 크게 볼 수 있다. 언제 찍은 사진인지 도시 변경 기록과 맞춰 보고, 지금의 거리가 아닌 사진은 뺀다.' : mission.labels ? (mission.relabel !== false ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. 그림을 보고 필요 없는 카드는 뺀다.') : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
         DR.Privacy.on(mission) ? el('p', { id: 'inspect-privacy-note', class: 'note', text: DR.Privacy.TEXT.inspectNote }) : null,
         notice,
         bagGrid(mission, bag, 'inspect-grid', {
@@ -175,9 +175,11 @@
       zoomed = card;
       var A = DR.CardArt, amb = !!card.ambiguousId, label = cardLabel(mission, card), digit = mission.labelStyle === 'digit';
       var big = A.card(mission, cardId(card), variantOf(card), 320, numOf(card));
+      // 모든 임무 같은 구조(플레이테스트 5): 머리줄(이름표 + 닫기, 오른쪽 위) → 가운데 사진 → 가리기 → (임무별) 단서·날짜·이름표 고치기
+      var close = el('button', { id: 'btn-zoom-close', class: 'btn btn-ghost btn-small zoom-close', type: 'button', text: '닫기' });
       var inner = [
-        el('img', { class: 'zoom-art', src: big.toDataURL(), alt: '카드 원본: ' + label }),
-        el('p', { class: 'zoom-label' }, [DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)), el('span', { text: label })])
+        el('div', { class: 'zoom-head' }, [el('p', { class: 'zoom-label' }, [DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)), el('span', { text: label })]), close]),
+        el('img', { class: 'zoom-art', src: big.toDataURL(), alt: '카드 원본: ' + label })
       ];
       if (DR.Privacy.on(mission) && !card.fixed) {
         var maskBtn = el('button', { id: 'btn-mask', class: 'btn btn-small btn-mask', type: 'button', 'aria-pressed': card.masked ? 'true' : 'false',
@@ -235,8 +237,7 @@
         inner.push(el('h3', { text: '이름표' }),
           el('p', { class: 'note', text: mission.relabelNote || '그림과 맞지 않으면 맞는 이름표로 고친다. 맞는 이름표가 없으면 빼자.' }), relabel);
       }
-      var close = el('button', { class: 'btn btn-ghost', type: 'button', text: '닫기' });
-      var panel = el('div', { class: 'zoom-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': '카드 크게 보기: ' + label }, inner.concat([el('div', { class: 'actions' }, [close])]));
+      var panel = el('div', { class: 'zoom-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': '카드 크게 보기: ' + label }, inner);
       var overlay = el('div', { id: zoomId, class: 'zoom' }, [panel]);
       function cleanup() { overlay.remove(); root.removeEventListener('keydown', onKey); zoomCleanup = null; }
       function shut() { zoomed = null; cleanup(); }
@@ -277,7 +278,6 @@
   function supplementPrep(mission, result, bag, done, popts) {
     var extra = (popts && popts.extra) || [];
     var screen = document.getElementById('screen-prep');
-    var need = Math.min(DR.config.supplementFreeSlots, mission.bag);
     var comboById = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { comboById[c.id] = c; }); });
     // 종류(key)마다 필요한 최대 장수 — 여유 계산용
@@ -289,10 +289,16 @@
     // 종류별 "1장 빼기"는 바로 빼지 않는다 — 그 라벨의 카드 썸네일을 펼쳐 학생이 사진을 보고 직접 고른다
     // (가장 최근 카드를 몰래 빼면 가짜가 남고 진짜가 빠질 수 있다)
     var openKinds = {};
+    // 카드 전체 격자(카드마다 빼기)는 기본 접힘 — 종류별 '1장 빼기'와 겹쳐 화면이 너무 길어서(플레이테스트 13). 다시 그려도 펼친 채
+    var showAll = false;
 
     function render() {
       // forceResubmit = 보충 횟수 밖 다시 제출(4 임무 결판, 남은 보충 0번) — 달리지 않는다
-      var resubmit = !!(popts && popts.forceResubmit) || Object.keys(DR.Judge.shortfall(mission, bag.concat(extra), DR.config)).length === 0;
+      var shortNow = DR.Judge.shortfall(mission, bag.concat(extra), DR.config);
+      var resubmit = !!(popts && popts.forceResubmit) || Object.keys(shortNow).length === 0;
+      // 비워야 할 칸 = 기본 칸과 모자란 장 수 합 중 큰 쪽(플레이테스트 7 — 9장이 모자란데 6칸이면 한 번에 못 채움). 가방보다 클 수는 없다
+      var shortTotal = Object.keys(shortNow).reduce(function (n, k) { return n + shortNow[k]; }, 0);
+      var need = Math.min(Math.max(DR.config.supplementFreeSlots, shortTotal), mission.bag - extra.length);
       var free = mission.bag - bag.length - extra.length, lack = resubmit ? Math.max(0, -free) : Math.max(0, need - free);
       var counts = DR.Cards.labelCounts(mission, bag), withPeer = extra.length ? DR.Cards.labelCounts(mission, bag.concat(extra)) : counts;
       screen.innerHTML = '';
@@ -307,7 +313,7 @@
         s.missing.forEach(function (id) {
           var c = comboById[id], have = comboCount(mission, counts, c), filled = have < c.need && comboCount(mission, withPeer, c) >= c.need;
           shorts.appendChild(el('li', { class: 'combo short', 'data-combo': id }, [
-            DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: kindName(mission, c.keys[0]) }),
+            DR.UI.iconStrip(mission, c.keys[0], 20), el('span', { class: 'combo-label', text: DR.Cards.comboName(mission, c) }),
             el('b', { class: 'combo-count', text: filled ? '동기 카드로 채워짐' : have < c.need ? '부족 ' + (c.need - have) + '장' : (mission.changeLog ? '사진을 다시 살펴봐요' : mission.labels ? '이름표를 다시 살펴봐요' : '설명표를 다시 살펴봐요') })
           ]));
         });
@@ -344,11 +350,17 @@
         ]));
       });
 
+      var allToggle = el('button', { id: 'btn-prep-all', class: 'btn btn-small btn-prep-all', type: 'button', 'aria-expanded': String(showAll), 'aria-controls': 'prep-grid',
+        text: showAll ? '카드 전체 접기' : '카드 전체 보기 (' + bag.length + '장)' });
+      allToggle.addEventListener('click', function () { DR.Sfx.play('ui'); showAll = !showAll; render(); });
+      var grid = bagGrid(mission, bag, 'prep-grid', { onOpen: zoom.open, onRemove: function (card) { removeWithUndo(mission, bag, card, render); } });
+      grid.hidden = !showAll;
       var go = el('button', { id: 'btn-supplement', class: 'btn btn-primary', type: 'button', text: resubmit ? '다시 제출' : '보충 달리기 출발' });
       go.disabled = lack > 0;
       go.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); DR.UI.clearToast(); zoom.close(); done(bag, { resubmit: resubmit }); });
       var note = resubmit ? '모자란 카드는 없다. 가방을 정리했으면 다시 제출하자.'
-        : '이번엔 그 장면에 필요한 카드가 더 자주 나온다. 가방 칸은 그대로라서, 출발하려면 ' + need + '칸 이상 비어 있어야 한다.';
+        : '이번엔 그 장면에 필요한 카드가 더 자주 나온다. 가방 칸은 그대로라서, 출발하려면 ' + need + '칸 이상 비어 있어야 한다' +
+          (shortTotal > DR.config.supplementFreeSlots ? '(모자란 카드 ' + shortTotal + '장).' : '.');
       var peerNote = extra.length ? el('p', { id: 'prep-peer', class: 'notice', text: '동기가 따로 모아 둔 카드 ' + extra.length + '장이 ' + (resubmit ? '다시 제출하기 전에' : '보충 달리기가 끝나면') + ' 가방에 들어온다(' + extra.length + '칸)' +
         (popts.peerFixed ? ' — 이번엔 동기와 함께 넣는다.' : ' — 넣을지는 검수에서 정한다.') }) : null;
       var helpBtn = el('button', { id: 'btn-help-prep', class: 'btn btn-ghost btn-help', type: 'button', text: '?', 'aria-label': '도움말' });
@@ -360,10 +372,11 @@
         failed,
         el('p', { class: 'note', text: note }),
         peerNote,
-        resubmit && !lack ? null : el('p', { id: 'prep-need', class: 'notice', text: lack > 0 ? lack + '칸 더 비워야 해요.' : '출발할 수 있어요.' }),
+        resubmit && !lack ? null : el('p', { id: 'prep-need', class: 'notice' + (lack > 0 ? '' : ' notice-ok'), text: lack > 0 ? lack + '칸 더 비워야 해요.' : '출발할 수 있어요.' }), // 가능 = 초록(경고 분홍 아님)
         el('h3', { text: '가방 속 종류별 개수' }),
         summary,
-        bagGrid(mission, bag, 'prep-grid', { onOpen: zoom.open, onRemove: function (card) { removeWithUndo(mission, bag, card, render); } }),
+        allToggle,
+        grid,
         el('div', { class: 'actions' }, [go])
       ]));
       zoom.reopen();

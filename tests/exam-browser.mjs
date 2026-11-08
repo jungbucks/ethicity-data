@@ -75,10 +75,10 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     await page.evaluate(() => { DR.App.debugFill({ dog: 5, cat: 5 }); DR.Run.finishNow(); });
     await page.locator('#exam-drill').waitFor();
     assert.equal(await page.locator('#exam-grid .exam-card').count(), 10, '연습 카드는 가방 격자 밖');
-    assert.match(await page.locator('#exam-drill').innerText(), /가방에는 들어가지 않는 카드야\. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐\./);
+    assert.match(await page.locator('#exam-drill').innerText(), /이 카드도 AI가 배우는 자료야\. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐\./);
     await page.locator('#btn-submit').click();
     await page.locator('.exam-pair.wrong').waitFor();
-    assert.match(await page.locator('#exam-check').innerText(), /이름표가 맞는 카드 10 \/ 10장/, '연습 카드는 점검 수에 없음');
+    assert.match(await page.locator('#exam-check').innerText(), /이름표가 맞는 카드 10 \/ 11장/, '연습 카드도 이름표 점검에 든다(플레이테스트 3a)');
     await page.locator('#btn-fix').click();
     await page.locator('#exam-drill .exam-card').click();
     await page.locator('#btn-label-dog').click();

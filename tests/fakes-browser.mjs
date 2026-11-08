@@ -1,6 +1,6 @@
 // 가짜 카드(spec §3): 달리기 — 같은 연출·첫 가짜에만 안내 한 줄·잡으면 가방에 / 검수·결과·보충 — 오염 문구·다시 제출
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { openGame, openPrepAll, shotPath } from './browser.mjs';
 
 const HINT = '그림이랑 이름표가 맞는지 봐!';
 const stepUntil = (page, src, max = 8000) => page.evaluate(([src, max]) => {
@@ -119,6 +119,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     assert.ok(await page.locator('#screen-prep').isVisible(), 'prep');
     assert.equal((await page.locator('#btn-supplement').innerText()).trim(), '다시 제출');
     assert.ok(await page.locator('#btn-supplement').isEnabled(), 'no slot condition');
+    await openPrepAll(page); // 카드 전체 격자는 접혀 있다(플레이테스트 13)
     for (const k of ['f_pool', 'f_fountain']) await page.locator('#prep-grid .bag-card[data-key="' + k + '"] .btn-remove').click();
     await page.locator('#btn-supplement').click();
     assert.ok(await page.locator('#screen-supervisor').isVisible(), 'straight to supervisor');
@@ -204,6 +205,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     assert.ok(res2.slice(1).every((r) => r.outcome === 'pass'));
     // 분수도 빼고 다시 제출 → 통과
     await page.locator('#screen-prep').waitFor({ state: 'visible' });
+    await openPrepAll(page);
     await page.locator('#prep-grid .bag-card[data-key="f_fountain"] .btn-remove').click();
     await page.locator('#btn-supplement').click();
     await page.locator('#btn-confirm').click();

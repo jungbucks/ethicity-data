@@ -1,6 +1,6 @@
 // 1 임무 흐름: 검수·감독관·결과(실패 종류)·"?" 미결정·보충(빈칸)·선배·마무리
 import assert from 'node:assert/strict';
-import { passCity, openGame, shotPath } from './browser.mjs';
+import { passCity, openGame, openPrepAll, shotPath } from './browser.mjs';
 
 const ALL2 = { day_deep: 2, day_shallow: 2, day_wet: 2, day_dry: 2, night_wet: 2, night_neon: 2, night_deep: 2, night_shallow: 2, night_muddy: 2 };
 
@@ -101,6 +101,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       assert.deepEqual(res.map((r) => r.outcome), ['pass', 'pass', 'pass', 'danger']);
       assert.ok(await page.locator('#screen-prep').isVisible(), 'prep');
       assert.ok(await page.locator('#btn-supplement').isDisabled(), 'needs free slots');
+      await openPrepAll(page); // 카드 전체 격자는 접혀 있다(플레이테스트 13)
       for (let i = 0; i < 6; i++) await page.locator('#prep-grid .bag-card[data-key="day_deep"] .btn-remove').first().click();
       assert.ok(await page.locator('#btn-supplement').isEnabled(), 'enabled after freeing 6');
       await page.locator('#btn-supplement').click();
@@ -126,7 +127,9 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
       await passCity(page);
       await page.locator('#btn-skip').click();
       assert.ok(await page.locator('#screen-outro').isVisible(), 'outro');
-      assert.ok((await page.locator('#screen-outro').innerText()).includes('단순화한 규칙'));
+      // 시뮬레이션 안내는 감독관 마무리 대사에 한 번만(플레이테스트 12) — 완료 화면엔 되풀이하지 않는다
+      assert.ok(await page.evaluate(() => DR.Missions.flood.story.outro.some((l) => l.text.includes('단순화한 규칙'))));
+      assert.ok(!(await page.locator('#screen-outro').innerText()).includes('단순화한 규칙'));
       assert.deepEqual(await page.evaluate(() => DR.App.state.record), { firstTry: false, supplements: 1 });
       assert.deepEqual(errors, []);
     } finally { await browser.close(); }

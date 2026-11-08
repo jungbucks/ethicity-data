@@ -147,3 +147,25 @@ test('a fake fixed to another wrong label is told as what it now says', () => {
   assert.equal(J.contaminationLine(m2, 'mis:can_drink:paper'), "우리가 넣은 데이터에 음료 캔 사진이 '종이'로 들어갔다.");
   assert.equal(J.contaminationLine(m2, 'mis:pet_clear:vinyl'), "우리가 넣은 데이터에 투명 페트병 사진이 '비닐'로 들어갔다.");
 });
+
+// 플레이테스트 1: 여러 종류를 합친 조합은 첫 종류 이름만 쓰지 않는다
+test('comboName: 종류 이름이 하나로 모이면 그 이름(3 임무 시장 골목)', () => {
+  const m3 = require('../missions/m3.js');
+  const c = m3.scenes[1].combos.find((x) => x.id === 'S2_market');
+  assert.deepEqual(c.keys, ['market_now', 'market_old']);
+  assert.equal(C.comboName(m3, c), '시장 골목');
+});
+test('comboName: 이름이 여럿이면 what(4 임무 또박또박 쓴 답안 · 각지게 쓴 2와 둥글게 쓴 5)', () => {
+  const m4 = require('../missions/m4.js');
+  const neat = m4.scenes[0].combos.find((x) => x.id === 'S1_neat');
+  assert.equal(C.comboName(m4, neat), '또박또박 쓴 답안');
+  assert.equal(C.comboName(m4, m4.scenes[1].combos.find((x) => x.id === 'S2_25')), '각지게 쓴 2와 둥글게 쓴 5');
+});
+test('comboName: what이 없으면 "A·B", 종류 하나면 지금 이름 그대로', () => {
+  const m = { labels: [{ id: 'can', text: '캔' }], cardTypes: { a: { label: 'can', icons: ['can'], name: '음료 캔' }, b: { label: 'can', icons: ['can'], name: '통조림 캔' } } };
+  assert.equal(C.comboName(m, { keys: ['a', 'b'] }), '음료 캔·통조림 캔');
+  assert.equal(C.comboName(m, { keys: ['a'], what: '음료 캔 사진' }), '음료 캔');
+  // 1 임무(hideShapes): 종류 하나면 모습 이름
+  const m1 = require('../missions/m1.js');
+  assert.equal(C.comboName(m1, m1.scenes[0].combos[1]), '접힌 우산');
+});

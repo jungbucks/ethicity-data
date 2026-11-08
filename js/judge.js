@@ -89,11 +89,12 @@
     for (var i = 0; i < mission.scenes.length; i++) for (var k = 0; k < mission.scenes[i].combos.length; k++) if (mission.scenes[i].combos[k].id === id) return mission.scenes[i].combos[k];
     return null;
   }
-  // 받침 있으면 a, 없으면 b(이/가, 을/를)
-  function josa(word, a, b) {
-    var c = word.charCodeAt(word.length - 1) - 0xAC00;
-    return c >= 0 && c <= 11171 && c % 28 !== 0 ? a : b;
+  // 조사: 공용 DR.Josa(js/josa.js — 숫자·영문으로 끝나도 맞춤, 플레이테스트 9). 받침 있으면 a, 없으면 b
+  function josaApi() {
+    if (root.DR && root.DR.Josa) return root.DR.Josa;
+    return require('./josa.js');
   }
+  function josa(word, a, b) { return josaApi().josa(word, a, b); }
   // 빠진 조합 문구: 가진 개수가 0이면 "…없었다", 0보다 크고 모자라면 "…부족했다"(have = 화면이 보여 주는 그 개수)
   function missingLine(mission, comboId, have) {
     var c = comboOf(mission, comboId);
@@ -113,7 +114,7 @@
             !C.isMislabeled(mission, card) && c.keys.indexOf(C.truthKey(mission, card)) >= 0;
         });
         if (!fixed) return;
-        var t = mission.cardTypes[c.keys[0]], name = (t && t.name) || c.what, have = (s.missingHave || {})[id] || 0;
+        var t = mission.cardTypes[c.keys[0]], name = (c.keys.length > 1 ? C.comboName(mission, c) : t && t.name) || c.what, have = (s.missingHave || {})[id] || 0;
         (out[s.id] = out[s.id] || []).push('이름표는 맞게 고쳤지만, ' + name + ' 사진이 ' + have + '장뿐이라 AI가 ' + name + josa(name, '을', '를') + ' 배우지 못했다.');
       });
     });
@@ -147,13 +148,8 @@
     return (f && f.line) || '';
   }
 
-  // '…로/으로': 받침이 없거나 ㄹ이면 '로', 그 밖의 받침이면 '으로'
-  function roJosa(word) {
-    var c = word.charCodeAt(word.length - 1) - 0xAC00;
-    if (c < 0 || c > 11171) return '로';
-    var jong = c % 28;
-    return jong === 0 || jong === 8 ? '로' : '으로';
-  }
+  // '…로/으로': 받침이 없거나 ㄹ이면 '로', 그 밖의 받침이면 '으로'(숫자·영문은 읽는 소리로)
+  function roJosa(word) { return josaApi().ro(word); }
 
   function contaminationLines(mission, result) {
     var out = [];

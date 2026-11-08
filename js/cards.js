@@ -158,6 +158,18 @@
   }
   // displayAs: 화면에서 다른 종류와 한 줄로 센다(3 임무 시장 골목 옛 사진 — 옛 사진이라고 따로 보이지 않게)
   function shownAs(mission, k) { var t = k && mission.cardTypes[k]; return t && t.displayAs ? t.displayAs : k; }
+  // 조합(장면에 필요한 자료 묶음)을 화면에 부르는 이름(플레이테스트 1): 종류 이름이 하나로 모이면 그 이름(3 임무 시장 골목 = 지금·옛 사진),
+  // 여럿이면 조합의 what(4 임무 '또박또박 쓴 답안'), what도 없으면 "A·B". 1 임무(hideShapes)는 모습 이름
+  function comboName(mission, combo) {
+    var names = [];
+    (combo.keys || []).forEach(function (k) {
+      var n = mission.hideShapes && mission.cardTypes[k] ? mission.cardTypes[k].name : keyLabel(mission, k);
+      if (names.indexOf(n) < 0) names.push(n);
+    });
+    if (names.length <= 1) return names[0] || combo.what || '';
+    return combo.what || names.join('·');
+  }
+
   function displayKey(mission, card) {
     if (!card.ambiguousId && mission.labels) {
       if (!isMislabeled(mission, card)) return shownAs(mission, truthKey(mission, card));
@@ -197,7 +209,7 @@
   var api = { labelColors: labelColors, runColor: runColor,
     fakeDef: fakeDef, labelOfKey: labelOfKey, originalLabel: originalLabel, currentLabel: currentLabel, truthKey: truthKey,
     isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel, fakeScenes: fakeScenes,
-    iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText,
+    iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText, comboName: comboName,
     keyLabel: keyLabel, cardLabel: cardLabel, displayKey: displayKey, labelCounts: labelCounts
   };
   root.DR = root.DR || {};

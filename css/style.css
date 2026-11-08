@@ -120,6 +120,9 @@ body { overflow: hidden; word-break: keep-all; }
 /* 검수 · 보충 준비 */
 .notice { background: rgba(255,95,176,.14); border: 1px solid var(--pink); border-radius: 12px; padding: 10px 14px; }
 .notice[hidden] { display: none; }
+.bag-grid[hidden] { display: none; }
+.btn-prep-all { margin: 12px 0; }
+.notice.notice-ok { background: rgba(91,227,161,.12); border-color: var(--ok); } /* 보충 출발 가능(플레이테스트 7) */
 .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
 .bag-card { position: relative; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 6px; }
 .bag-card.ambiguous { border-color: var(--pink); }
@@ -138,7 +141,10 @@ body { overflow: hidden; word-break: keep-all; }
 .scene-thumbs .empty { color: var(--ink-2); font-size: 14px; }
 .zoom { position: fixed; inset: 0; z-index: 10; background: rgba(8,5,24,.8); display: grid; place-items: center; padding: 16px; overflow: auto; }
 .zoom-panel { background: var(--bg-2); border: 2px solid var(--cyan); border-radius: 20px; padding: 16px; width: min(100%, 40rem); max-height: 100%; overflow: auto; }
-.zoom-art { display: block; width: 100%; max-width: 22rem; border-radius: 10px; }
+.zoom-art { display: block; width: 100%; max-width: 22rem; border-radius: 10px; margin: 10px auto 0; } /* 가운데(플레이테스트 5) */
+.zoom-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.zoom-head .zoom-label { margin: 0; min-width: 0; }
+.zoom-close { flex: none; }
 .zoom-panel h3 { font-size: 16px; margin: 16px 0 8px; }
 .clues { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 .clue { margin: 0; }
@@ -559,8 +565,9 @@ body { overflow: hidden; word-break: keep-all; }
 .run-fade.fail { background: #2a0714; }
 
 /* 연습 카드 */
-.practice-card.is-first { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(255,210,74,.28); }
-.mc-first { align-self: flex-start; font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: var(--yellow); color: #10093a; }
+/* '다음은 여기'(플레이테스트 4) = 연습 카드 '처음이라면 여기부터'와 같은 모양 */
+.practice-card.is-first, .mission-card.is-next { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(255,210,74,.28); }
+.mc-first, .mc-next { align-self: flex-start; font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: var(--yellow); color: #10093a; }
 @media (max-width: 520px) { .run-goal { top: 104px; font-size: 14px; padding: 5px 10px; } .goal-row { grid-template-columns: 3.2rem repeat(5, minmax(0, 1fr)); } }
 
 /* 오프닝·첫 시험 검수·시연(2026-11-06) */

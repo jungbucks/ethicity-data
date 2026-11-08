@@ -58,14 +58,28 @@
     ambiguous: [],
     fakes: [
       { id: 'f_receipt', name: '영수증', label: 'paper', truth: 'trash_misc', count: 3, art: { object: 'receipt', photo: 'receipt' },
-        line: "우리가 넣은 데이터에 영수증 사진이 '종이'로 섞여 들어갔다." },
+        line: "우리가 넣은 데이터에 영수증 사진이 '종이'로 섞여 들어갔다.",
+        cut: '종이 함에 영수증이 섞였다. 그 종이 더미는 재활용이 어려워 선별장 직원이 다시 골라낸다.' },
       { id: 'f_toothbrush', name: '칫솔', label: 'pet', truth: 'trash_misc', count: 2, art: { object: 'toothbrush', photo: 'toothbrush' },
-        line: "우리가 넣은 데이터에 칫솔 사진이 '투명 페트'로 섞여 들어갔다." },
+        line: "우리가 넣은 데이터에 칫솔 사진이 '투명 페트'로 섞여 들어갔다.",
+        cut: '칫솔이 투명 페트 함으로 갔다. 페트 더미를 선별장 직원이 손으로 다시 골라낸다.' },
       { id: 'f_battery', name: '건전지', label: 'can', truth: 'battery_aa', count: 3, art: { object: 'battery_aa', photo: 'battery_aa' },
-        line: "우리가 넣은 데이터에 건전지 사진이 '캔'으로 섞여 들어갔다." },
+        line: "우리가 넣은 데이터에 건전지 사진이 '캔'으로 섞여 들어갔다.",
+        cut: '캔 사이에 섞인 건전지가 캔 함을 거쳐 압착기로 들어갔다. 불꽃이 튀자 감독관이 비상 정지 버튼을 눌렀다.' },
       { id: 'f_cat', name: '고양이', label: 'vinyl', truth: null, count: 2, art: { animal: 'cat' },
-        line: "우리가 넣은 데이터에 고양이 사진이 '비닐'로 섞여 들어갔다." }
+        line: "우리가 넣은 데이터에 고양이 사진이 '비닐'로 섞여 들어갔다.",
+        cut: '비닐 자료에 엉뚱한 사진이 섞여, 비닐봉지가 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' }
     ],
+    // 결과 문구(플레이테스트 2, DR.ResultLine): 조합 cut = 그 조합만 모자랄 때(함 이름은 컨베이어 wrongBin과 같게), 여럿이면 이 틀에 "A와 B",
+    // 가짜는 자기 cut, 플레이어가 잘못 고친 카드는 contam 틀({label} = 붙은 이름표)
+    cutTemplate: {
+      inconvenience: '{what:이} 엉뚱한 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.',
+      danger: '{what:이} 압착기로 들어갔다. 불꽃이 튀자 감독관이 비상 정지 버튼을 눌렀다.',
+      contam: {
+        inconvenience: '{what:이} {label} 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.',
+        danger: '{what:이} {label} 함에 섞여 압착기로 들어갔다. 불꽃이 튀자 감독관이 비상 정지 버튼을 눌렀다.'
+      }
+    },
     outcomeText: { pass: '제대로 분류했다', inconvenience: '엉뚱한 함으로 갔다 · 불편', danger: '압착기에 건전지가 들어갔다 · 위험' },
     counts: {
       can_drink: 9, pet_clear: 8, vinyl_bag: 6, paper_news: 7, pack_milk: 5,
@@ -74,8 +88,10 @@
     scenes: [
       { id: 'S1', title: '음료 캔과 통조림 캔', emphasis: 'normal', art: { place: 'sorting', focus: ['can_drink', 'can_tin'], wrongBin: 'vinyl' },
         combos: [
-          { id: 'S1_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔' },
-          { id: 'S1_can_tin', keys: ['can_tin'], need: 2, danger: false, boundary: true, what: '통조림 캔' }
+          { id: 'S1_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔',
+            cut: '음료 캔이 비닐 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' },
+          { id: 'S1_can_tin', keys: ['can_tin'], need: 2, danger: false, boundary: true, what: '통조림 캔',
+            cut: '뚱뚱한 통조림 캔이 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' }
         ],
         passLine: '납작한 음료 캔도, 뚱뚱한 통조림 캔도 캔 함으로 들어갔다.',
         cuts: {
@@ -84,9 +100,12 @@
         } },
       { id: 'S2', title: '찌그러진 페트병과 비닐', emphasis: 'normal', art: { place: 'sorting', focus: ['pet_crushed', 'vinyl_bag'], wrongBin: 'trash' },
         combos: [
-          { id: 'S2_pet_clear', keys: ['pet_clear'], need: 2, danger: false, what: '투명 페트병' },
-          { id: 'S2_pet_crushed', keys: ['pet_crushed'], need: 2, danger: false, boundary: true, what: '찌그러진 페트병' },
-          { id: 'S2_vinyl_bag', keys: ['vinyl_bag'], need: 2, danger: false, what: '비닐봉지' }
+          { id: 'S2_pet_clear', keys: ['pet_clear'], need: 2, danger: false, what: '투명 페트병',
+            cut: '투명 페트병이 비닐 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' },
+          { id: 'S2_pet_crushed', keys: ['pet_crushed'], need: 2, danger: false, boundary: true, what: '찌그러진 페트병',
+            cut: '찌그러진 페트병이 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' },
+          { id: 'S2_vinyl_bag', keys: ['vinyl_bag'], need: 2, danger: false, what: '비닐봉지',
+            cut: '구겨진 비닐봉지가 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' }
         ],
         passLine: '찌그러진 페트병도 투명 페트 함으로, 구겨진 비닐은 비닐 함으로.',
         cuts: {
@@ -95,9 +114,12 @@
         } },
       { id: 'S3', title: '우유팩·신문지·영수증', emphasis: 'normal', art: { place: 'sorting', focus: ['pack_milk', 'f_receipt'], wrongBin: 'paper' },
         combos: [
-          { id: 'S3_pack_milk', keys: ['pack_milk'], need: 2, danger: false, what: '우유팩' },
-          { id: 'S3_paper_news', keys: ['paper_news'], need: 2, danger: false, what: '신문지와 종이 상자' },
-          { id: 'S3_trash_misc', keys: ['trash_misc'], need: 2, danger: false, what: '재활용이 안 되는 일반쓰레기' }
+          { id: 'S3_pack_milk', keys: ['pack_milk'], need: 2, danger: false, what: '우유팩',
+            cut: '종이 함에 우유팩이 섞였다. 그 종이 더미는 재활용이 어려워 선별장 직원이 다시 골라낸다.' },
+          { id: 'S3_paper_news', keys: ['paper_news'], need: 2, danger: false, what: '신문지와 종이 상자',
+            cut: '신문지와 종이 상자가 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.' },
+          { id: 'S3_trash_misc', keys: ['trash_misc'], need: 2, danger: false, what: '재활용이 안 되는 일반쓰레기', item: '일반쓰레기',
+            cut: '종이 함에 영수증 같은 일반쓰레기가 섞였다. 그 종이 더미는 재활용이 어려워 선별장 직원이 다시 골라낸다.' }
         ],
         passLine: '우유팩은 종이팩 함으로, 신문지는 종이 함으로, 영수증은 일반쓰레기로.',
         cuts: {
@@ -106,8 +128,10 @@
         } },
       { id: 'S4', title: '캔 사이에 섞인 건전지', emphasis: 'low', art: { place: 'sorting', focus: ['can_drink', 'battery_aa'], wrongBin: 'trash' },
         combos: [
-          { id: 'S4_battery_aa', keys: ['battery_aa'], need: 2, danger: true, what: '건전지' },
-          { id: 'S4_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔' }
+          { id: 'S4_battery_aa', keys: ['battery_aa'], need: 2, danger: true, what: '건전지',
+            cut: '캔 사이에 섞인 건전지가 캔 함을 거쳐 압착기로 들어갔다. 불꽃이 튀자 감독관이 비상 정지 버튼을 눌렀다.' },
+          { id: 'S4_can_drink', keys: ['can_drink'], need: 2, danger: false, what: '음료 캔',
+            cut: '건전지는 골라냈지만, 멀쩡한 음료 캔까지 일반쓰레기 함으로 보냈다. 선별장 직원이 손으로 다시 골라낸다.' }
         ],
         passLine: '캔 더미 속 작은 건전지를 골라내 건전지 함으로 보냈다. 압착기는 조용하다.',
         cuts: {

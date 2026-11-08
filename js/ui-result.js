@@ -36,7 +36,7 @@
         el('h2', { text: s.title }),
         el('img', { class: 'result-art', src: DR.CardArt.scene(mission, s.id, outcome, 480).toDataURL(), alt: s.title }),
         el('p', { class: 'chip chip-' + OUTCOME[outcome].cls, text: (mission.outcomeText && mission.outcomeText[outcome]) || OUTCOME[outcome].text }),
-        el('p', { class: 'lead', text: r.pass ? s.passLine : (r.failLine || s.cuts[r.failKind]) })
+        el('p', { class: 'lead', text: DR.ResultLine.sceneLine(mission, s, r) }) // 실제로 실패한 조합·원인 기준 문구(플레이테스트 2)
       ];
       // 빠진 조합: 문구 + 이번 가방의 숫자(붙은 설명표 기준)
       var counts = DR.Cards.labelCounts(mission, (DR.App.state && DR.App.state.bag) || []);
@@ -44,7 +44,7 @@
         var c = byCombo[id], shown = DR.UI.comboCount(mission, counts, c);
         // 문장은 바로 아래 보이는 개수로 고른다 — '없었다'와 '1장'이 같이 나오지 않게
         parts.push(el('p', { class: 'missing', text: DR.Judge.missingLine(mission, id, shown) }));
-        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + (mission.hideShapes ? c.what : DR.Cards.keyLabel(mission, c.keys[0])) + ' ' + shown + '장 / 필요 ' + c.need + '장' }));
+        parts.push(el('p', { class: 'missing-count', text: '이번 가방: ' + (mission.hideShapes ? c.what : DR.Cards.comboName(mission, c)) + ' ' + shown + '장 / 필요 ' + c.need + '장' }));
       });
       (notes[s.id] || []).forEach(function (t) { parts.push(el('p', { class: 'missing fixed-note', text: t })); });
       (r.contaminated || []).forEach(function (src) {
