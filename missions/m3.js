@@ -48,6 +48,17 @@
       crossing_now:   { label: 'crossing', icons: ['crossing'], name: '학교 앞 횡단보도',             art: { view: 'crossing', time: 'day' },             dates: ['2024년 3월', '2025년 4월', '2026년 3월'] },
       crossing_rain:  { label: 'crossing', icons: ['crossing'], name: '비 오는 학교 앞',              art: { view: 'crossing', time: 'day', rain: true },  dates: ['2024년 7월', '2025년 6월', '2026년 7월'], rare: true }
     },
+    // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 행인 얼굴·차 번호판은 사진의 곁가지 → 가리기(흐리게·막대) 뒤 사용
+    // 위험 조합(학교 앞 횡단보도)·시장 옛 사진은 피한다. 그림은 Canvas(cardart.js people·plate)
+    privacy: {
+      on: true,
+      cards: [
+        { id: 'p_river_people', key: 'river_now', fix: 'mask', at: 0.5, what: '행인 얼굴', art: { view: 'river', time: 'day', people: true },
+          mask: [{ x: 0.29, y: 0.6, w: 0.15, h: 0.15, look: 'blur' }, { x: 0.565, y: 0.645, w: 0.14, h: 0.14, look: 'blur' }] },
+        { id: 'p_station_plate', key: 'station_now', fix: 'mask', at: 0.6, what: '차 번호판', art: { view: 'station', time: 'day', plate: true },
+          mask: [{ x: 0.39, y: 0.8, w: 0.22, h: 0.1, look: 'bar' }] }
+      ]
+    },
     ambiguous: [],
     fakes: [
       { id: 'o_station', name: '철거 전 빌딩', label: 'station', truth: null, count: 3, art: { view: 'station', era: 'old', time: 'day' },
@@ -132,6 +143,29 @@
       { id: 'g7', scene: 'S4', bin: 'right', wrongBin: 'wrong', hazard: true, causes: ['S4_crossing_now', 'o_crossing', 'danger:S4'],
         q: '학교 앞에서 길 건너 문구점에 가려면요?', right: '횡단보도에서 신호를 기다렸다 건너세요.', wrong: '육교로 건너세요.', note: '그 육교는 2023년에 철거됐다.' }
     ],
+    // 챕터 끝(설계 2026-11-08 ②, js/ui-chapter.js): 다른 용도 요청(메시지) → 개념 질문 → 짧은 생각. ⚠️ 문장은 교사 검수 전 초안
+    // 방향은 늘 '가장 지키는 쪽'(거절 = best). 다른 선택지는 왜 그것만으로 지켜지지 않는지 쉬운 말로
+    chapterEnd: {
+      from: '근처 상점 광고 회사',
+      message: '길 안내 AI를 쓴 사람들이 어느 길로 다니는지 기록을 주세요. 그 길목 가게 광고를 보여 주려고요.',
+      choices: [
+        { id: 'consent', text: '동의한 사람 것만 준다', short: '동의한 사람 것만 주기',
+          feedback: '그런 방법도 있긴 해. 하지만 길 안내와 상관없는 일이야. 아예 주지 않는 게 가장 잘 지키는 길이야.' },
+        { id: 'erase', text: '이름을 지우고 준다', short: '이름 지우고 주기',
+          feedback: '이름을 지워도 다니는 길이 그 사람을 알려 줘. 매일 같은 집에서 같은 학교로 가면 누군지 알 수 있어.' },
+        { id: 'refuse', best: true, text: '거절한다. 길을 안내하려고 남은 기록이야', short: '거절',
+          feedback: '맞아. 길을 안내하려고 남은 기록이야. 광고에 쓰면 그 사람이 어디 다니는지 남이 보게 돼.' }
+      ],
+      concept: {
+        question: '철거 전 육교가 있는 옛 사진으로 배운 길 안내 AI는 어떻게 될까?',
+        choices: [
+          { id: 'a', text: '사진이 많을수록 더 정확해진다', feedback: '지금과 다른 사진은 많을수록 더 헷갈려. 언제 찍었는지가 중요해.' },
+          { id: 'b', text: '옛 사진은 모두 빼야 한다', feedback: '다 빼면 안 돼. 시장 골목처럼 바뀐 적 없는 곳은 옛 사진도 지금과 같아.' },
+          { id: 'c', correct: true, text: '없는 육교로 안내할 수 있다', feedback: '맞아. 오래된 자료는 AI가 지금 거리를 모르게 만들어. 언제 찍힌 사진인지 봐야 해.' }
+        ]
+      },
+      frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
+    },
     story: {
       intro: [
         { who: 'supervisor', text: '이번엔 길 안내 AI야. 도시 곳곳의 안내가 몇 년 전 거리를 가리키고 있어.', face: 'worried' },

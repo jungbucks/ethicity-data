@@ -39,7 +39,16 @@ export async function passExam(page) {
   }
   await page.locator('#btn-next').click();
 }
-// 도시 복구 화면(깬 직후, 칸이 늘었을 때만)이 떠 있으면 [계속] — 임무 끝 흐름을 지나는 테스트가 쓴다
+// 챕터 끝(1~4 임무, 2026-11-08)이 떠 있으면 첫 답들로 지나간다 — 내용은 chapter-browser가 따로 본다
+export async function passChapter(page) {
+  if (!(await page.locator('#screen-chapter').isVisible())) return false;
+  await page.locator('.ch-choice').first().click(); await page.locator('#btn-ch-next').click();
+  await page.locator('.ch-concept').first().click(); await page.locator('#btn-ch-next').click();
+  await page.locator('#btn-ch-done').click();
+  return true;
+}
+// 도시 복구 화면(깬 직후, 칸이 늘었을 때만)이 떠 있으면 [계속] — 임무 끝 흐름을 지나는 테스트가 쓴다. 1~3 임무는 그 앞의 챕터 끝도 지나간다
 export async function passCity(page) {
+  await passChapter(page);
   if (await page.locator('#screen-city').isVisible()) await page.locator('#btn-city-next').click();
 }

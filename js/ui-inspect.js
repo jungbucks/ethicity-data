@@ -77,7 +77,8 @@
         el('span', { class: 'bag-label', text: label }),
         state ? el('span', { class: 'bag-state', text: state }) : null,
         isNew ? el('span', { class: 'badge-new', 'aria-hidden': 'true', text: 'NEW' }) : null,
-        fixed ? el('span', { class: 'bag-fixed', text: '고침' }) : null
+        fixed ? el('span', { class: 'bag-fixed', text: '고침' }) : null,
+        card.masked ? el('span', { class: 'bag-masked', text: DR.Privacy.TEXT.maskedTag }) : null
       ]);
       if (opts.onOpen) open.addEventListener('click', function () { opts.onOpen(card); });
       // 4 임무 동기 카드(마지막 보충): 빼기 버튼 대신 "동기와 함께 넣음"(누를 수 없음)
@@ -85,7 +86,7 @@
         ? el('span', { class: 'bag-peer-fixed', text: '동기와 함께 넣음' })
         : el('button', { class: 'btn-remove', type: 'button', text: '빼기', 'aria-label': '빼기: ' + label });
       if (!card.fixed) rm.addEventListener('click', function () { DR.Sfx.play('ui'); opts.onRemove(card); });
-      var cell = el('div', { class: 'bag-card' + (amb ? ' ambiguous' : '') + (amb && card.assigned === undefined ? ' undecided' : '') + (isNew ? ' is-new' : '') + (fixed ? ' fixed' : '') + (card.fixed ? ' peer-fixed' : ''), 'data-id': card.id, 'data-key': card.key || card.ambiguousId || card.fakeId }, [open, rm]);
+      var cell = el('div', { class: 'bag-card' + (amb ? ' ambiguous' : '') + (amb && card.assigned === undefined ? ' undecided' : '') + (isNew ? ' is-new' : '') + (fixed ? ' fixed' : '') + (card.fixed ? ' peer-fixed' : '') + (card.masked ? ' masked' : ''), 'data-id': card.id, 'data-key': card.key || card.ambiguousId || card.fakeId }, [open, rm]);
       if (card.peer) cell.setAttribute('data-peer', card.fixed ? 'fixed' : 'joined');
       grid.appendChild(cell);
     });
@@ -145,6 +146,7 @@
         opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '노이즈로 잃은 카드 ' + opts.lost + '장' }) : null,
         changeLogBoard(mission),
         el('p', { class: 'note', text: mission.inspectNote ? mission.inspectNote : mission.changeLog ? '카드를 누르면 크게 볼 수 있다. 언제 찍은 사진인지 도시 변경 기록과 맞춰 보고, 지금의 거리가 아닌 사진은 뺀다.' : mission.labels ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
+        DR.Privacy.on(mission) ? el('p', { id: 'inspect-privacy-note', class: 'note', text: DR.Privacy.TEXT.inspectNote }) : null,
         notice,
         bagGrid(mission, bag, 'inspect-grid', {
           onOpen: zoom.open, newIds: opts.newIds,
@@ -177,6 +179,17 @@
         el('img', { class: 'zoom-art', src: big.toDataURL(), alt: '카드 원본: ' + label }),
         el('p', { class: 'zoom-label' }, [DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)), el('span', { text: label })])
       ];
+      if (DR.Privacy.on(mission) && !card.fixed) {
+        var maskBtn = el('button', { id: 'btn-mask', class: 'btn btn-small btn-mask', type: 'button', 'aria-pressed': card.masked ? 'true' : 'false',
+          text: card.masked ? DR.Privacy.TEXT.unmaskButton : DR.Privacy.TEXT.maskButton });
+        var maskNote = el('p', { id: 'zoom-mask-note', class: 'note zoom-mask-note', role: 'status' });
+        maskBtn.addEventListener('click', function () {
+          DR.Sfx.play('ui');
+          if (DR.Privacy.canMask(mission, card)) { DR.Privacy.toggleMask(mission, card); rerender(); }
+          else maskNote.textContent = DR.Privacy.TEXT.noPrivate;
+        });
+        inner.push(el('div', { class: 'zoom-mask' }, [maskBtn, maskNote]));
+      }
       if (amb) {
         var q = ambDef(mission, card.ambiguousId);
         var clues = el('div', { class: 'clues' });
@@ -359,7 +372,22 @@
     render();
   }
 
+  // 개인정보 카드를 처리하지 않고 제출(DR.Privacy.check) — 어느 카드인지 말하지 않는다. 승인 버튼 없음
+  function supervisorBlock(lines, back) {
+    var screen = document.getElementById('screen-supervisor');
+    screen.innerHTML = '';
+    var b = el('button', { id: 'btn-back', class: 'btn btn-primary', type: 'button', text: '검수로 돌아가기' });
+    b.addEventListener('click', function () { DR.Sfx.play('ui'); back(); });
+    screen.appendChild(el('div', { class: 'page page-center', 'data-blocked': 'privacy' }, [
+      el('p', { class: 'kicker', text: '승인 보류' }),
+      el('div', { class: 'block-lines' }, lines.map(function (l) { return DR.UI.line(l); })),
+      el('div', { class: 'actions' }, [b])
+    ]));
+    DR.App.go('supervisor');
+  }
+
   root.DR.UI.inspect = inspect;
+  root.DR.UI.supervisorBlock = supervisorBlock;
   root.DR.UI.supervisor = supervisor;
   root.DR.UI.supplementPrep = supplementPrep;
   root.DR.UI.effectiveKey = effectiveKey;

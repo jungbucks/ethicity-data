@@ -136,3 +136,14 @@ test('lost cards count survives a checkpoint, old saves read as 0', () => {
   assert.equal(Save.KEY, 'ethicity.data.save');
 });
 
+test('개인정보 카드: 가방의 privateId·가림(masked)과 privCaught를 저장, 옛 저장은 빈 목록', () => {
+  const st = mem();
+  const state = { mission: 'm3', bag: [{ id: 'c4', key: 'river_now', privateId: 'p_river_people', masked: true }, { id: 'c9', key: 'station_now', privateId: 'p_station_plate' }], privCaught: ['c4', 'c9'] };
+  Save.checkpoint('inspect', state, {}, st);
+  const s = Save.load(st);
+  assert.deepEqual(s.bag, state.bag);
+  assert.deepEqual(s.privCaught, ['c4', 'c9']);
+  const old = mem();
+  old.setItem(Save.KEY, JSON.stringify({ v: 1, mission: 'm3', screen: 'inspect', bag: [] }));
+  assert.deepEqual(Save.load(old).privCaught, []);
+});

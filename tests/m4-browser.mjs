@@ -2,7 +2,7 @@
 //   → 장면 결과 → 결판(선배 답안) ─ 못 읽음 → 동기 합류(NEW 4장 / 마지막 보충은 고정) → … → 결판 "읽네"
 //   → 도시 재연결 5/5 → 의뢰인 → 해커의 이후 → 마무리(토론 질문)
 import assert from 'node:assert/strict';
-import { openGame, shotPath } from './browser.mjs';
+import { openGame, passChapter, shotPath } from './browser.mjs';
 
 const MIN = { neat_1: 1, neat_2: 1, neat_3: 1, neat_4: 1, neat_5: 1, flag_1: 2, loop_3: 2, angular_2: 2, round_5: 1, table_4: 2, slant_1: 2 };
 const NO_NUMBERS = /%|\d+\s*개/;
@@ -77,6 +77,8 @@ async function ending(page, w, shots) {
   assert.equal(await page.locator('#city-art').isHidden(), !hasArt);
   if (shots) await page.screenshot({ path: shotPath('city-m4-' + w) });
   await page.locator('#btn-city-next').click();
+  // 챕터 끝(2026-11-08): 재연결 뒤·의뢰인 대사 전 — 내용은 chapter-browser
+  assert.equal(await passChapter(page), true, 'chapter end after the reconnect');
   const lines = [];
   for (let n = 0; n < 12 && await page.locator('#screen-story').isVisible(); n++) {
     const t = await page.locator('#screen-story .dialog-text').innerText();

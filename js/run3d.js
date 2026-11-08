@@ -262,6 +262,7 @@
     if (item.key) g.key = item.key;
     else if (item.fakeId) g.fakeId = item.fakeId;
     else g.ambiguousId = item.ambiguousId;
+    if (item.privateId) g.privateId = item.privateId; // 목적 밖 개인정보 카드(DR.Privacy) — 검수에서 가리거나 뺀다
     S.grabbed.push(g);
     if (perfect) { S.perfects++; burst(item); root.DR.Sfx.play('perfect'); } else root.DR.Sfx.play('grab');
     var m = S.meshes[item.uid];

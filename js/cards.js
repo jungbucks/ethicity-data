@@ -102,7 +102,11 @@
     return def && def.dates ? def.dates[(variant || 0) % def.dates.length] : null;
   }
 
-  function artId(card) { return card.key || card.ambiguousId || card.fakeId; }
+  // 그림 id: 개인정보 카드는 privateId(가렸으면 '#masked'를 붙여 가린 모습으로 그린다 — DR.CardArt), 그 밖엔 종류·'?'·가짜 id
+  function artId(card) {
+    if (card.privateId) return card.privateId + (card.masked ? '#masked' : '');
+    return card.key || card.ambiguousId || card.fakeId;
+  }
 
   function labelText(mission, label) {
     var opts = (mission.labels || []).concat(mission.labelOptions || []).concat(mission.labelExtra || []);

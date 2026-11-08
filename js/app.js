@@ -7,7 +7,7 @@
 (function (root) {
   'use strict';
 
-  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'grade', 'result', 'prep', 'knockout', 'city', 'outro'];
+  var SCREENS = ['title', 'profile', 'story', 'briefing', 'run', 'inspect', 'supervisor', 'conveyor', 'guide', 'grade', 'result', 'prep', 'knockout', 'city', 'chapter', 'outro'];
   var DR = root.DR;
   var STATIC = ['title', 'run']; // HTML에 고정 구조가 있는 화면(비우지 않음)
 
@@ -44,7 +44,7 @@
   // 달리기에서 잡은 카드 → 판정용 가방 항목
   function toBag(grabbed) {
     return grabbed.map(function (g) {
-      if (g.key) return { id: g.uid, key: g.key };
+      if (g.key) return g.privateId ? { id: g.uid, key: g.key, privateId: g.privateId } : { id: g.uid, key: g.key };
       if (g.fakeId) return { id: g.uid, fakeId: g.fakeId };
       return { id: g.uid, ambiguousId: g.ambiguousId, assigned: undefined };
     });
@@ -141,7 +141,7 @@
   function startMission(id) {
     var m = DR.Missions[id];
     App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [],
-      peer: 'none', peerPending: false, showdownPassed: false };
+      peer: 'none', peerPending: false, showdownPassed: false, privCaught: [] };
     DR.UI.dialogue(m.story.intro, function () { missionBriefing(m); });
   }
   // 이전 임무(next가 이 임무인 것)의 기록에 따른 브리핑 한 줄. 기록이 없으면(임무 고르기로 바로 들어옴) null
@@ -159,6 +159,7 @@
       var course = DR.Stream.build(m, DR.config, { seed: App.state.seed });
       runCourse(m, course, [], function (bag) {
         App.state.bag = bag;
+        App.state.privCaught = DR.Privacy.caught(m, bag); // 가릴 수 있는 개인정보 카드 — 나중에 빠졌으면 결과에 한 줄
         App.afterRun(m);
       });
     }, recordLineFor(m));
@@ -174,7 +175,7 @@
     }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
       seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [], lost: save.lost || 0,
-      peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed };
+      peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed, privCaught: save.privCaught || [] };
     if (save.screen === 'briefing') { if (save.mission === 'tutorial') tutorialBriefing(); else missionBriefing(m); }
     else if (save.screen === 'inspect') review(m);
     else if (save.screen === 'result') judgeAndShow(m);
@@ -190,6 +191,13 @@
   }
 
   function askSupervisor(m) {
+    // 목적 밖 개인정보 카드를 처리하지 않았으면 감독관이 막는다(설계 2026-11-08 ①) — 장면 판정과는 따로
+    var pc = DR.Privacy.check(m, App.state.bag), T = DR.Privacy.TEXT;
+    if (!pc.ok) {
+      var lines = pc.reason === 'mustRemove' ? [T.blockMustRemove, T.blockMustRemove2] : [T.blockUnhandled, T.blockUnhandled2];
+      DR.UI.supervisorBlock(lines.map(function (t, i) { return { who: 'supervisor', text: t, face: i ? 'explain' : 'worried' }; }), function () { review(m); });
+      return;
+    }
     DR.UI.supervisor(m.story.supervisorQuestion, function () { review(m); }, function () { judgeAndShow(m); });
   }
 
@@ -326,13 +334,20 @@
     ];
     if (relabels) summary.push('고친 이름표: ' + fixed + '장');
     var cityBefore = cityCount();
+    // 챕터 끝 답(설계 2026-11-08 ②)은 다시 깨도 이어 간다 — 이전 답을 채운 채 보여 주고, 처음 선택은 처음 값 그대로
+    if (m.chapterEnd) rec.chapter = DR.Save.chapterOf(App.records, m.id);
     App.records[m.id] = rec;
     DR.Save.finish();
     DR.Save.setRecord(m.id, rec);
     var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
     var outroOpts = { kicker: m.title + ' 완료', next: next, summary: summary };
     var step = DR.Save.cityStep(m.id, cityBefore, cityCount());
-    function toOutro() { DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, outroOpts); }
+    function toOutro() {
+      outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));
+      DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, outroOpts);
+    }
+    // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)는 건너뜀
+    function chapterEnd(next) { if (m.chapterEnd) DR.UI.chapter(m, {}, next); else next(); }
     if (m.story.after) {
       // 4 임무: 도시 재연결(늘 5/5) → 의뢰인 한 줄 → (동기가 합류한 적 없으면) 동기의 상자 → 해커의 이후(bg) → 마무리(최종 토론 질문)
       var lines = (rec.passed ? m.story.reconnect.pass : m.story.reconnect.partial).slice();
@@ -341,21 +356,23 @@
       lines = lines.concat(af.lines.map(function (l) { return Object.assign({ bg: af.bg }, l); }));
       outroOpts.headline = '도시가 다시 이어졌다';
       outroOpts.questions = m.story.questions;
-      cityScreen(m, step, function () { DR.UI.dialogue(lines, toOutro); });
+      // 챕터 끝 = 재연결 5/5 뒤·의뢰인 대사 전
+      cityScreen(m, step, function () { chapterEnd(function () { DR.UI.dialogue(lines, toOutro); }); });
       return;
     }
-    // 1~3 임무: 마지막 대화(선배·정체 공개) → 도시 복구(칸이 늘었을 때만) → 임무 완료
-    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () { cityScreen(m, step, toOutro); });
+    // 1~3 임무: 마지막 대화(선배·정체 공개) → 챕터 끝 → 도시 복구(칸이 늘었을 때만) → 임무 완료
+    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () { chapterEnd(function () { cityScreen(m, step, toOutro); }); });
   }
 
   // 테스트 훅: 달리는 중 현재 코스에서 key(또는 ambiguousId) 카드를 앞에서부터 골라 가방에 넣는다
+  // 개인정보 카드(privateId)는 건너뛴다 — 부르려면 그 privateId를 id로 준다
   function debugFill(counts) {
     var items = DR.Run.course().items;
     Object.keys(counts).forEach(function (id) {
       var need = counts[id];
       for (var i = 0; i < items.length && need > 0; i++) {
         var it = items[i];
-        if (it.kind === 'card' && (it.key === id || it.ambiguousId === id || it.fakeId === id) && !DR.Run.isTaken(it.uid)) {
+        if (it.kind === 'card' && (it.privateId ? it.privateId === id : (it.key === id || it.ambiguousId === id || it.fakeId === id)) && !DR.Run.isTaken(it.uid)) {
           DR.Run.debugTake(it.uid); need--;
         }
       }

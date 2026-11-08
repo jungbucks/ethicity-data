@@ -572,3 +572,36 @@ body { overflow: hidden; word-break: keep-all; }
 #screen-profile .skip { z-index: 5; background: rgba(16, 9, 58, .78); color: #fff; }
 /* 휴대폰에서 건너뛰기와 겹치지 않게 그림 아래쪽에 */
 .opening-overlay { top: auto; bottom: 12px; right: 12px; }
+
+/* ---------- 목적 밖 개인정보 카드(설계 2026-11-08 ①): 크게 보기 '가리기' · 가린 카드 표시 · 감독관이 막을 때 ---------- */
+.bag-card.masked { border-color: var(--ink-2); }
+.bag-masked { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: #101018; color: var(--ink); border: 1px solid var(--ink-2); }
+.zoom-mask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 0; }
+.zoom-mask .note { margin: 0; }
+.zoom-mask-note:empty { display: none; }
+.block-lines { display: grid; gap: 10px; }
+
+/* ---------- 챕터 끝(설계 2026-11-08 ②): 다른 용도 요청 · 개념 질문 · 짧은 생각 ---------- */
+.ch-page h2 { margin-top: 4px; }
+.ch-page .kicker { margin-bottom: 4px; }
+.ch-step { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 700; }
+.ch-message { margin: 20px 0 8px; padding: 14px 16px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--pink); }
+.ch-from { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 6px; font-size: 14px; color: var(--ink-2); }
+.ch-from b { color: var(--ink); }
+.ch-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); }
+.ch-body { margin: 0; font-size: 17px; }
+.ch-ask { font-size: 18px; margin: 24px 0 10px; }
+.ch-question { margin: 8px 0 14px; }
+.ch-choices { display: grid; gap: 10px; }
+.ch-btn { display: flex; align-items: flex-start; gap: 10px; text-align: left; border-radius: 12px; padding: 12px 14px; font-size: 16px; line-height: 1.5; border: 2px solid var(--line); background: var(--bg-2); }
+.ch-btn[aria-pressed="true"] { border-color: var(--cyan); background: rgba(127, 249, 255, .1); }
+.ch-mark { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--ink-2); font-size: 13px; color: var(--ink-2); }
+.ch-btn[aria-pressed="true"] .ch-mark { border-color: var(--cyan); background: var(--cyan); color: #10093a; }
+.ch-feedback { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--panel); border-left: 4px solid var(--yellow); font-size: 16px; }
+.ch-feedback.is-best { border-left-color: var(--ok); }
+.ch-feedback:empty { display: none; }
+.ch-again { margin: 8px 0 0; font-size: 14px; }
+.ch-frame { display: block; margin: 12px 0 4px; font-size: 17px; font-weight: 700; line-height: 1.6; }
+.ch-note { display: block; width: 100%; min-height: 120px; margin-top: 8px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); font: inherit; font-size: 17px; line-height: 1.6; resize: vertical; }
+.ch-note:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.ch-saved { margin: 6px 0 0; font-size: 14px; min-height: 1.4em; }

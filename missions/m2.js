@@ -45,6 +45,16 @@
       trash_misc:  { label: 'trash',   icons: ['trash'],   name: '일반쓰레기',      art: { object: 'trash_misc', photos: ['trash_glove', 'trash_sponge', 'trash_tissue'] }, rare: true },
       battery_aa:  { label: 'battery', icons: ['battery'], name: '건전지',          art: { object: 'battery_aa', photo: 'battery_aa' }, rare: true, hazard: true }
     },
+    // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 사람이 사진의 주인공 → 빼기(가리면 감독관이 막음)
+    privacy: {
+      on: true,
+      cards: [
+        { id: 'p_person_a', key: 'can_drink', fix: 'remove', at: 0.4, what: '버리는 사람 얼굴', art: { photo: 'recycle-person' },
+          mask: [{ x: 0.29, y: 0.03, w: 0.25, h: 0.25, look: 'blur' }] },
+        { id: 'p_person_b', key: 'can_drink', fix: 'remove', at: 0.8, what: '버리는 사람 얼굴', art: { photo: 'recycle-person' },
+          mask: [{ x: 0.29, y: 0.03, w: 0.25, h: 0.25, look: 'blur' }] }
+      ]
+    },
     ambiguous: [],
     fakes: [
       { id: 'f_receipt', name: '영수증', label: 'paper', truth: 'trash_misc', count: 3, art: { object: 'receipt', photo: 'receipt' },
@@ -122,6 +132,29 @@
       { id: 'cv11', art: 'can_drink', variant: 4, scene: 'S4', bin: 'can', wrongBin: 'trash', causes: ['S4_can_drink', 'contaminated:S4'] },
       { id: 'cv12', art: 'battery_aa', variant: 4, scene: 'S4', bin: 'battery', wrongBin: 'can', causes: ['S4_battery_aa', 'f_battery', 'danger:S4'] }
     ],
+    // 챕터 끝(설계 2026-11-08 ②, js/ui-chapter.js): 다른 용도 요청(메시지) → 개념 질문 → 짧은 생각. ⚠️ 문장은 교사 검수 전 초안
+    // 방향은 늘 '가장 지키는 쪽'(거절 = best). 다른 선택지는 왜 그것만으로 지켜지지 않는지 쉬운 말로
+    chapterEnd: {
+      from: '구청 단속 담당',
+      message: '선별장 사진과 영상에 쓰레기를 잘못 버린 사람이 찍혀 있죠? 그 사람을 찾아내게 넘겨 주세요.',
+      choices: [
+        { id: 'mask', text: '얼굴을 가리고 넘긴다', short: '얼굴 가리고 넘기기',
+          feedback: '얼굴을 가리면 누군지 찾을 수 없어. 사람을 찾겠다는 부탁이라 가리고 줄 수가 없어.' },
+        { id: 'refuse', best: true, text: '거절한다. 물건을 분류하려고 모은 자료야', short: '거절',
+          feedback: '맞아. 분류를 배우려고 모은 자료로 사람을 찾으면 목적 밖이야. 사람을 지켜보는 기록이 돼.' },
+        { id: 'consent', text: '찍힌 사람들에게 동의를 받고 넘긴다', short: '동의 받고 넘기기',
+          feedback: '물어볼 수는 있어. 하지만 분류 자료를 사람 찾는 데 쓰는 건 처음 목적과 달라. 분류에만 쓰는 게 가장 잘 지키는 길이야.' }
+      ],
+      concept: {
+        question: "영수증 사진에 '종이' 이름표가 붙은 채로 섞이면 어떻게 될까?",
+        choices: [
+          { id: 'a', text: '사진이 많아져서 더 잘 배운다', feedback: '개수만 늘어. 틀린 이름표는 AI를 엉뚱하게 가르쳐.' },
+          { id: 'b', correct: true, text: 'AI가 영수증을 종이로 잘못 배운다', feedback: '맞아. AI는 붙은 이름표를 그대로 배워. 틀린 이름표는 고치거나 빼야 해.' },
+          { id: 'c', text: '한 장쯤은 아무 일도 없다', feedback: '이런 사진이 쌓이면 그 장면이 통째로 틀려. 한 장이라도 보이면 고치자.' }
+        ]
+      },
+      frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
+    },
     story: {
       intro: [
         { who: 'supervisor', text: '이번엔 재활용 선별장이야. 분류 AI가 물건을 자꾸 엉뚱한 함에 넣고 있어.', face: 'worried' },

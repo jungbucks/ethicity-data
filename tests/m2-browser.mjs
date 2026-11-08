@@ -121,6 +121,20 @@ async function toConveyor(page, fill, step) {
   await page.locator('#screen-conveyor').waitFor({ state: 'visible', timeout: 4000 });
 }
 
+// 컨베이어: 1배속 = 물건 하나 0.8초(config), 물건을 함으로 옮길 때마다 효과음 'sort'(2026-11-08 사용자 요청)
+{
+  const { browser, page, errors } = await openGame({ query: '?start=m2' });
+  try {
+    await page.evaluate(() => { window.__DR_SFX_LOG = []; });
+    assert.equal(await page.evaluate(() => DR.config.conveyor.step), 0.8);
+    await toConveyor(page, M2_ALL2, 0.05);
+    await page.waitForFunction(() => window.__DR_SFX_LOG.filter((n) => n === 'sort').length >= 14, null, { timeout: 20000 });
+    assert.equal(await page.evaluate(() => window.__DR_SFX_LOG.filter((n) => n === 'sort').length), CV_N, 'one sort sound per item');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+  console.log('ok conveyor 0.8s + sort sound');
+}
+
 for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 }]) {
   const small = viewport.width < 500;
   // all pass flow

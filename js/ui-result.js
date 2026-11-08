@@ -87,6 +87,9 @@
       }
       if (outcome === 'danger') parts.push(DR.UI.line({ who: 'supervisor', text: mission.story.responsibility, face: 'worried' }));
       if (last) {
+        // 가릴 수 있던 개인정보 카드를 뺐다(설계 2026-11-08 ①): 빼도 안전하지만, 가렸으면 그 종류 자료로 살렸다
+        var st = DR.App.state || {};
+        if (DR.Privacy.wasted(mission, st.privCaught, st.bag)) parts.push(DR.UI.line({ who: 'supervisor', text: DR.Privacy.TEXT.wasted, face: 'explain' }));
         if (judged.mislabeled.length) parts.push(el('p', { class: 'missing', text: '설명표를 다르게 붙인 "?" 카드 ' + judged.mislabeled.length + '장은 어느 장면의 데이터도 되지 못했다.' }));
         var client = judged.allPass ? mission.story.clientPass : mission.story.clientFail;
         (client || []).forEach(function (l) { parts.push(DR.UI.line(l)); });

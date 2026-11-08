@@ -44,6 +44,7 @@
   // 저장 내용: 미션 id, 화면, 가방 카드 목록("?" 설명표·동기 카드 고정 포함), 보충 횟수, 튜토리얼 완료, 필요 장수 공개 플래그,
   //   lost = 직전 달리기에서 노이즈로 잃은 카드 수(검수 화면 한 줄, 없는 옛 저장은 0)
   //   4 임무 결판: peer('none'|'joined'|'fixed')·peerPending(보충 뒤 동기 카드가 들어올 차례)·showdownPassed
+  //   privCaught = 첫 달리기 뒤 가방의 '가리기' 개인정보 카드 id(나중에 빠졌으면 결과 한 줄, 옛 저장은 []). 가방 카드의 privateId·masked도 그대로 남는다
   function checkpoint(screen, state, flags, st) {
     st = storage(st);
     var prev = read(st) || {};
@@ -53,6 +54,7 @@
       supplements: state.supplements || 0, firstTry: state.firstTry === undefined ? null : state.firstTry,
       seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [], named: state.named || [], lost: state.lost || 0,
       peer: state.peer || 'none', peerPending: !!state.peerPending, showdownPassed: !!state.showdownPassed,
+      privCaught: state.privCaught || [],
       tutorialDone: !!((flags && flags.tutorialDone) || prev.tutorialDone),
       records: prev.records || {},
       savedAt: Date.now()
@@ -69,7 +71,8 @@
       mission: o.mission || null, screen: o.screen || null, bag: o.bag || [],
       supplements: o.supplements || 0, firstTry: o.firstTry === undefined ? null : o.firstTry,
       seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], named: o.named || [], lost: o.lost || 0, tutorialDone: !!o.tutorialDone,
-      peer: o.peer || 'none', peerPending: !!o.peerPending, showdownPassed: !!o.showdownPassed
+      peer: o.peer || 'none', peerPending: !!o.peerPending, showdownPassed: !!o.showdownPassed,
+      privCaught: Array.isArray(o.privCaught) ? o.privCaught : []
     };
   }
 
@@ -112,6 +115,17 @@
     o.records = o.records || {};
     o.records[id] = rec;
     return write(o, st);
+  }
+
+  // 챕터 끝 답(설계 2026-11-08 ②): records[임무].chapter = { req: { first, last }, concept: { first, last }, note }
+  //   처음 고른 것과 마지막으로 고른 것을 둘 다 남긴다. 옛 기록(chapter 없음)·깨진 값은 빈 값으로
+  function chapterOf(recs, id) {
+    var c = recs && recs[id] && recs[id].chapter, out = { req: { first: null, last: null }, concept: { first: null, last: null }, note: '' };
+    if (!c || typeof c !== 'object') return out;
+    var str = function (v) { return typeof v === 'string' ? v : null; };
+    ['req', 'concept'].forEach(function (k) { if (c[k] && typeof c[k] === 'object') out[k] = { first: str(c[k].first), last: str(c[k].last) }; });
+    out.note = typeof c.note === 'string' ? c.note : '';
+    return out;
   }
 
   // 도시 복구 칸 수(설계 §7): 튜토리얼 + 1~4 임무 중 깬 것, 0~5. 순서는 상관없다(임무 고르기로 건너뛰어도).
@@ -162,7 +176,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

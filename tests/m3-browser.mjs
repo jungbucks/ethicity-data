@@ -14,7 +14,8 @@ async function toRun(page) {
 }
 async function fillAndInspect(page, fill) {
   await page.evaluate((c) => { DR.App.debugFill(c); DR.Run.finishNow(); }, fill);
-  await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 4000 });
+  // 보통 1초 안쪽이지만 PC가 바쁘면 10초 넘게 걸린 적이 있다(2026-11-08 측정) — 시간 여유를 둔다
+  await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 15000 });
 }
 async function submit(page) { await page.locator('#btn-submit').click(); await page.locator('#btn-confirm').click(); }
 async function throughResults(page) {

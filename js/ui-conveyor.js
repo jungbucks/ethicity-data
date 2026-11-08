@@ -100,6 +100,7 @@
       belt.classList.add('run');
       later(function () {
         claw.classList.add('grab');
+        DR.Sfx.play('sort');
         flyTo(e, it, Math.round(ms * 0.45));
         mark(e, it); say(it);
         later(function () {

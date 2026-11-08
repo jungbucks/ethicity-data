@@ -24,11 +24,20 @@
   }
   function pick(r, arr) { return arr[Math.floor(r.next() * arr.length)]; }
 
+  // id: 종류 key · '?'·가짜 id · 개인정보 카드 privateId(가렸으면 'privateId#masked' — 그림은 같고 가린 모습은 card()가 얹는다)
   function artOf(mission, id) {
     if (mission.cardTypes[id]) return mission.cardTypes[id].art;
+    var pd = privateDef(mission, id);
+    if (pd) return pd.art;
     var a = (mission.ambiguous || []).concat(mission.fakes || []).filter(function (q) { return q.id === id; })[0];
     if (!a) throw new Error('알 수 없는 카드: ' + id);
     return a.art;
+  }
+
+  function privateDef(mission, id) {
+    var list = (mission.privacy && mission.privacy.cards) || [], base = String(id).split('#')[0];
+    for (var i = 0; i < list.length; i++) if (list[i].id === base) return list[i];
+    return null;
   }
 
   /* ---------- 도로 장면(S×S 좌표, 그릴 때 size/256 배율) ---------- */
@@ -743,7 +752,39 @@
     viewSky(g, S, o, r);
     if (o.view !== 'market') drawBuildings(g, S, { time: o.time === 'night' ? 'night' : 'day' }, r, 'street');
     VIEWS[o.view](g, S, o, r);
+    if (o.people) drawPeople(g, S);
+    if (o.plate) drawTaxiPlate(g, S);
     if (o.rain) rainOver(g, S, r);
+  }
+  // 3 임무 개인정보 카드(설계 2026-11-08 ①): 산책로 앞쪽 행인 두 명(얼굴이 또렷하게) — 자리는 m3 privacy mask와 맞춘다
+  function face(g, S, x, y, rad, skin, hair, shirt) {
+    g.fillStyle = shirt; g.beginPath(); g.ellipse(x, y + rad * 2.3, rad * 1.5, rad * 1.3, 0, Math.PI, 0); g.fill();
+    g.fillRect(x - rad * 1.5, y + rad * 2.3, rad * 3, rad * 1.2);
+    g.fillStyle = skin; g.fillRect(x - rad * 0.35, y + rad * 0.7, rad * 0.7, rad * 0.6);
+    g.beginPath(); g.ellipse(x, y, rad * 0.86, rad, 0, 0, 7); g.fill();
+    g.fillStyle = hair; g.beginPath(); g.ellipse(x, y - rad * 0.45, rad * 0.95, rad * 0.62, 0, Math.PI, 0); g.fill();
+    g.fillRect(x - rad * 0.95, y - rad * 0.5, rad * 0.25, rad * 0.7);
+    g.fillStyle = '#1d1d24';
+    g.beginPath(); g.arc(x - rad * 0.32, y + rad * 0.05, rad * 0.11, 0, 7); g.arc(x + rad * 0.32, y + rad * 0.05, rad * 0.11, 0, 7); g.fill();
+    g.strokeStyle = '#7a3b2e'; g.lineWidth = Math.max(1, rad * 0.1); g.lineCap = 'round';
+    g.beginPath(); g.arc(x, y + rad * 0.32, rad * 0.28, 0.2, Math.PI - 0.2); g.stroke();
+  }
+  function drawPeople(g, S) {
+    face(g, S, S * 0.36, S * 0.68, S * 0.055, '#f0c7a0', '#2a2220', '#3f7fd0');
+    face(g, S, S * 0.63, S * 0.72, S * 0.05, '#d9a27a', '#5a3a22', '#d0603f');
+  }
+  // 3 임무 개인정보 카드: 역 앞에 선 택시 뒷모습 + 번호판(진짜 글자·숫자 대신 짧은 굵은 획)
+  function drawTaxiPlate(g, S) {
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(S * 0.5, S * 0.935, S * 0.22, S * 0.025, 0, 0, 7); g.fill();
+    g.fillStyle = '#f2b632'; roundRect(g, S * 0.3, S * 0.7, S * 0.4, S * 0.23, S * 0.03); g.fill();
+    g.fillStyle = '#e3a51e'; roundRect(g, S * 0.35, S * 0.63, S * 0.3, S * 0.09, S * 0.03); g.fill();
+    g.fillStyle = 'rgba(70,95,130,.9)'; roundRect(g, S * 0.37, S * 0.645, S * 0.26, S * 0.06, S * 0.015); g.fill();
+    g.fillStyle = '#c8323a'; g.fillRect(S * 0.31, S * 0.75, S * 0.06, S * 0.03); g.fillRect(S * 0.63, S * 0.75, S * 0.06, S * 0.03);
+    g.fillStyle = '#1d1d24'; g.fillRect(S * 0.32, S * 0.92, S * 0.07, S * 0.03); g.fillRect(S * 0.61, S * 0.92, S * 0.07, S * 0.03);
+    g.fillStyle = '#fbfbf7'; g.strokeStyle = '#1d1d24'; g.lineWidth = Math.max(1, S * 0.006);
+    roundRect(g, S * 0.41, S * 0.82, S * 0.18, S * 0.06, S * 0.008); g.fill(); g.stroke();
+    g.fillStyle = '#1d1d24';
+    [0.425, 0.45, 0.49, 0.515, 0.54, 0.565].forEach(function (x, i) { g.fillRect(S * x, S * (i < 2 ? 0.832 : 0.83), S * (i < 2 ? 0.016 : 0.014), S * 0.036); });
   }
 
   // 길 안내 결과 컷: 지금의 거리 + 경로(초록 = 맞게 안내 / 빨강 점선 = 옛길로 안내), 위험 = 없는 육교로 안내 → 감독관 멈춤
@@ -812,9 +853,10 @@
   var PHOTO_DIR = 'assets/cards/animals/';
   var PHOTOS = { dog: ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07', 'd08'], cat: ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08'] };
   // 1 임무 분실물 사진: 카드 그림 art.photo = 파일 이름(번호와 상관없이 그 사진 하나)
-  var LOST_DIR = 'assets/cards/lost-found/', LOST = ['umbrella-open', 'umbrella-folded', 'wallet-closed', 'wallet-open', 'phone-front', 'phone-back'];
+  // 개인정보 카드 사진(설계 2026-11-08 ①): 신분증 보이는 지갑·메시지 알림 잠금화면(1 임무), 캔을 버리는 사람(2 임무)
+  var LOST_DIR = 'assets/cards/lost-found/', LOST = ['umbrella-open', 'umbrella-folded', 'wallet-closed', 'wallet-open', 'phone-front', 'phone-back', 'wallet-id', 'phone-lock-message'];
   // 2 임무 분리배출 사진(Codex 2026-11-08, 1 임무와 같은 실사풍 384²): art.photo(하나) 또는 art.photos(여럿 — 카드 번호로 번갈아). 아직 안 온 종류는 Canvas
-  var RECYCLE_DIR = 'assets/cards/recycle/', RECYCLE = ['can_drink', 'can_tin', 'pet_clear', 'pet_crushed', 'vinyl_bag', 'paper_news', 'paper_box', 'pack_milk', 'battery_aa', 'trash_glove', 'trash_sponge', 'trash_tissue', 'receipt', 'toothbrush'];
+  var RECYCLE_DIR = 'assets/cards/recycle/', RECYCLE = ['can_drink', 'can_tin', 'pet_clear', 'pet_crushed', 'vinyl_bag', 'paper_news', 'paper_box', 'pack_milk', 'battery_aa', 'trash_glove', 'trash_sponge', 'trash_tissue', 'receipt', 'toothbrush', 'recycle-person'];
   var photoImgs = {};
   function preloadPhotos() {
     if (typeof Image === 'undefined') return;
@@ -1048,24 +1090,70 @@
 
   /* ---------- 공개 API ---------- */
   // n = 카드 번호(없으면 variant) — 사진 카드(튜토리얼 개·고양이)만 쓴다. 다른 카드 그림은 그대로
+  // 개인정보 카드 id 'p_x#masked' = 가린 모습 — 같은 그림 위에 mask 칸(검은 막대 / 흐리게)을 얹는다
+  function maskOver(c, rects) {
+    var g = c.getContext('2d'), S = c.width;
+    rects.forEach(function (rc) {
+      var x = Math.round(rc.x * S), y = Math.round(rc.y * S), w = Math.round(rc.w * S), h = Math.round(rc.h * S);
+      if (rc.look === 'blur') {
+        // 흐리게: 아주 작게 줄였다 부드럽게 늘린다(모자이크보다 덜 무섭게, 누군지는 안 보이게)
+        var t = canvas(5, 5), tg = t.getContext('2d');
+        tg.imageSmoothingEnabled = true; tg.drawImage(c, x, y, w, h, 0, 0, 5, 5);
+        g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+        g.beginPath(); roundRect(g, x, y, w, h, Math.min(w, h) * 0.2); g.clip();
+        g.drawImage(t, 0, 0, 5, 5, x, y, w, h);
+        g.restore();
+      } else {
+        g.fillStyle = '#101018'; roundRect(g, x, y, w, h, Math.min(w, h) * 0.12); g.fill();
+      }
+    });
+    return c;
+  }
+  // 4 임무 개인정보 카드: 위쪽 '이름' 칸 + 읽히지 않는 흘림 획(이어 쓴 고리 — 숫자 모양이 아니게). 답 칸(y 0.18 아래)은 손대지 않는다
+  function nameLine(c, seed) {
+    var g = c.getContext('2d'), S = c.width, r = rng(seed);
+    g.fillStyle = PAPER; g.fillRect(S * 0.57, S * 0.02, S * 0.39, S * 0.13);
+    g.fillStyle = BOX; g.font = 'bold ' + Math.round(S * 0.045) + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('이름', S * 0.59, S * 0.085);
+    g.strokeStyle = 'rgba(90,95,120,.6)'; g.lineWidth = Math.max(1, S * 0.004);
+    g.beginPath(); g.moveTo(S * 0.69, S * 0.12); g.lineTo(S * 0.94, S * 0.12); g.stroke();
+    g.strokeStyle = PENCIL; g.lineWidth = Math.max(1.5, S * 0.013); g.lineCap = 'round'; g.lineJoin = 'round';
+    var x = S * 0.7, y = S * 0.1;
+    g.beginPath(); g.moveTo(x, y);
+    for (var k = 0; k < 6; k++) {
+      var w = S * (0.03 + r.next() * 0.012), up = S * (0.04 + r.next() * 0.02);
+      // 앞으로 기운 고리 하나(위로 올라갔다 되감아 내려옴) + 아래로 잇는 획
+      g.bezierCurveTo(x + w * 0.7, y - up, x + w * 1.1, y - up * 0.6, x + w * 0.45, y - up * 0.15);
+      g.bezierCurveTo(x + w * 0.2, y + S * 0.005, x + w * 0.7, y + S * 0.012, x + w, y);
+      x += w;
+    }
+    g.stroke();
+    return c;
+  }
+
   function card(mission, id, variant, size, n) {
+    var masked = /#masked$/.test(id), pdef = privateDef(mission, id);
     // variant 3 이상 = 2 임무 컨베이어의 '처음 보는 물건'(학습 카드와 달라 보여야 함) → 사진 대신 Canvas 그림
     var pid = variant >= 3 ? '' : photoId(mission, id, n === undefined ? variant : n);
-    if (pid) return cached('photo|' + pid + '|' + size, function () {
+    if (pid) return cached('photo|' + pid + '|' + size + (masked ? '|masked' : ''), function () {
       var c = canvas(size);
       c.getContext('2d').drawImage(photoImgs[pid], 0, 0, size, size);
       c.photo = pid;
-      return c;
+      return masked && pdef ? maskOver(c, pdef.mask) : c;
     });
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
-      var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
+      // 개인정보 카드는 그 종류(key)와 같은 씨앗 — 같은 거리·같은 글씨 위에 행인·번호판·이름만 더한다
+      var o = artOf(mission, id), c = canvas(size), seed = hash(pdef ? pdef.key : id) + variant * 7919;
+      var drawId = pdef ? pdef.key : id;
       if (o.photo && !o.object) drawLostFallback(c, o); // 1 임무(사진뿐) — 사진이 있는 2 임무 물건은 아래 Canvas 물건 그림으로
       else if (o.animal) drawAnimal(c, o, seed);
       else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
       else if (o.object) drawObject(c, o, seed, variant);
-      else drawRoad(c, Object.assign({}, o, { place: PLACES[(hash(id) + variant) % PLACES.length] }), seed);
+      else drawRoad(c, Object.assign({}, o, { place: PLACES[(hash(drawId) + variant) % PLACES.length] }), seed);
+      if (o.name) nameLine(c, seed + 17);
+      if (masked && pdef) maskOver(c, pdef.mask);
       return c;
     });
   }

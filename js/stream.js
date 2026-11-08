@@ -25,6 +25,11 @@
     return require('./cards.js');
   }
 
+  function privacyApi() {
+    if (root.DR && root.DR.Privacy) return root.DR.Privacy;
+    return require('./privacy.js');
+  }
+
   function rngApi() {
     if (root.DR && root.DR.Rng) return root.DR.Rng;
     return require('./rng.js');
@@ -287,6 +292,8 @@
     });
     var course = { length: length, items: items };
     if (zones) { course.zones = zones; course.supplement = !!focus; }
+    // 목적 밖 개인정보 카드(첫 판만): 이미 놓인 흔한 카드에 privateId만 붙인다 — 자리·uid·벽은 그대로(DR.Privacy.mark)
+    if (!focus) privacyApi().mark(mission, course);
     return course;
   }
 

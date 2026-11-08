@@ -47,10 +47,13 @@
     warn: function (a) { tone(a, 1180, 0, 0.07, 'square', 0.07); tone(a, 1180, 0, 0.07, 'square', 0.07, 0.12); },
     burn: function (a) { noise(a, 0.3, 0.45); tone(a, 220, 60, 0.3, 'sawtooth', 0.1); },
     full: function (a) { tone(a, 200, 160, 0.14, 'square', 0.1); },
-    ui: function (a) { tone(a, 520, 0, 0.06, 'triangle', 0.1); }
+    ui: function (a) { tone(a, 520, 0, 0.06, 'triangle', 0.1); },
+    // 컨베이어: 집게가 물건을 함으로 옮길 때 짧은 '톡'
+    sort: function (a) { tone(a, 380, 620, 0.07, 'triangle', 0.12); tone(a, 760, 0, 0.05, 'sine', 0.06, 0.05); }
   };
 
   function play(name) {
+    if (root.__DR_SFX_LOG) root.__DR_SFX_LOG.push(name); // 테스트용 기록(테스트가 켤 때만)
     if (muted || !SOUNDS[name]) return;
     var a = audio();
     if (!a) return;

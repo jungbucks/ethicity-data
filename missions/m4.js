@@ -68,6 +68,17 @@
           { type: 'stroke', text: '연필 자국 확대: 가운데가 안쪽으로 꺾인다' }
         ] }
     ],
+    // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 또박또박 쓴 평범한 답(S4 독특한 답 아님)에 학생 이름 → 가리기 뒤 사용
+    // 이름은 읽히지 않는 흘림 획(cardart.js nameLine) — 숫자 모양이 아니게
+    privacy: {
+      on: true,
+      cards: [
+        { id: 'p_name_2', key: 'neat_2', fix: 'mask', at: 0.5, what: '학생 이름', art: { digit: '2', style: 'neat', name: true },
+          mask: [{ x: 0.57, y: 0.02, w: 0.39, h: 0.13, look: 'bar' }] },
+        { id: 'p_name_4', key: 'neat_4', fix: 'mask', at: 0.5, what: '학생 이름', art: { digit: '4', style: 'neat', name: true },
+          mask: [{ x: 0.57, y: 0.02, w: 0.39, h: 0.13, look: 'bar' }] }
+      ]
+    },
     // 이름표가 틀린 답안(2 임무 방식 — 고치거나 빼기). 7·8 = 선택지 밖, 2에 '5' = 선택지 안, 낙서 = 고칠 수 없음
     fakes: [
       { id: 'x_17', name: '흘려 쓴 1', label: '7', truth: 'flag_1', count: 3, harm: 'danger', scenes: ['S2'], art: { digit: '1', style: 'flag' },
@@ -155,6 +166,29 @@
       { id: 'gr10', scene: 'S3', art: 'neat_3', variant: 4, chose: '3', answer: '3', bin: 'o', wrongBin: 'x', read: '8', hazard: true, causes: ['danger:S3'] },
       { id: 'gr13', scene: 'S2', art: 'loop_3', variant: 5, chose: '3', answer: '3', bin: 'o', wrongBin: 'hold', causes: ['contaminated:S2'] }
     ],
+    // 챕터 끝(설계 2026-11-08 ②, js/ui-chapter.js): 다른 용도 요청(메시지) → 개념 질문 → 짧은 생각. ⚠️ 문장은 교사 검수 전 초안
+    // 방향은 늘 '가장 지키는 쪽'(거절 = best). 다른 선택지는 왜 그것만으로 지켜지지 않는지 쉬운 말로
+    chapterEnd: {
+      from: '○○학원',
+      message: '채점한 답안지를 우리 학원에 팔아 주세요. 학생들이 어디서 틀리는지 보고 수업 자료를 만들게요.',
+      choices: [
+        { id: 'erase', text: '이름만 지우고 판다', short: '이름 지우고 팔기',
+          feedback: '이름만 지워도 필체·답으로 누군지 알 수 있어. 그리고 파는 것 자체가 채점 목적 밖이야.' },
+        { id: 'consent', text: '학생들에게 동의를 받고 판다', short: '동의 받고 팔기',
+          feedback: '물어볼 수는 있어. 그래도 답안지는 채점하려고 받은 거야. 파는 건 학생을 지키는 답이 아니야.' },
+        { id: 'refuse', best: true, text: '거절한다. 채점하려고 받은 답안지야', short: '거절',
+          feedback: '맞아. 답안지는 채점하려고 받은 거야. 학원에 파는 건 목적 밖이야.' }
+      ],
+      concept: {
+        question: "크게 기운 1처럼 독특한 답을 '이상하다'고 다 빼면 어떻게 될까?",
+        choices: [
+          { id: 'a', correct: true, text: '그렇게 쓰는 학생의 답을 잘못 채점한다', feedback: '맞아. 드문 글씨를 지우면 AI는 그 학생을 못 읽어. 이게 편향이야.' },
+          { id: 'b', text: 'AI가 더 공정해진다', feedback: '반대야. 많은 쪽만 배운 AI는 드문 글씨를 쓰는 학생에게 불리해.' },
+          { id: 'c', text: '채점이 빨라질 뿐이다', feedback: '빨라 보여도 맞게 쓴 답이 틀렸다고 채점될 수 있어. 선배 답안이 그랬지.' }
+        ]
+      },
+      frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
+    },
     story: {
       intro: [
         { who: 'supervisor', text: '마지막이야. 선배가 말한 채점 AI.', face: 'worried' },

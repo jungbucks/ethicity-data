@@ -208,8 +208,8 @@ test('cast covers every speaker (m2)', () => {
   assert.equal(m2.story.conveyorIntro.text, '그럼, 실제로 돌려 보자.');
 });
 
-test('config has conveyor step', () => {
-  assert.ok(cfg.conveyor && cfg.conveyor.step > 0);
+test('config has conveyor step (1배속 0.8초, 2026-11-08 사용자 요청)', () => {
+  assert.equal(cfg.conveyor.step, 0.8);
 });
 
 // [2] 1 임무 S1이 오염으로 '불편' 실패할 때: 그림과 문구가 같은 말("물이 없는 옆 골목까지 막혔다")

@@ -34,6 +34,17 @@
       phone_front:     { label: 'phone',    icons: ['phone'],    name: '앞면 스마트폰', art: { photo: 'phone-front' } },
       phone_back:      { label: 'phone',    icons: ['phone'],    name: '뒷면 스마트폰', art: { photo: 'phone-back' }, rare: true }
     },
+    // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 흔한 모습 카드에만. 신분증·메시지는 사진의 곁가지 → 가리기 뒤 사용
+    // wallet-id = 닫힌 지갑의 투명 카드 칸으로 신분증이 보이는 사진(2026-11-08 Codex 다시 그림) → 닫힌 지갑 종류로 센다
+    privacy: {
+      on: true,
+      cards: [
+        { id: 'p_wallet_id', key: 'wallet_closed', fix: 'mask', at: 0.5, what: '신분증', art: { photo: 'wallet-id' },
+          mask: [{ x: 0.24, y: 0.27, w: 0.55, h: 0.35, look: 'bar' }] },
+        { id: 'p_phone_msg', key: 'phone_front', fix: 'mask', at: 0.6, what: '메시지 알림', art: { photo: 'phone-lock-message' },
+          mask: [{ x: 0.3, y: 0.27, w: 0.43, h: 0.32, look: 'bar' }] }
+      ]
+    },
     ambiguous: [],
     outcomeText: { pass: '종류별 목록에 올렸다', inconvenience: '일부 물건이 분류 보류로 남았다', danger: '일부 물건이 분류 보류로 남았다' },
     counts: { umbrella_open: 8, wallet_closed: 8, phone_front: 8, umbrella_folded: 5, wallet_open: 5, phone_back: 5 },
@@ -75,6 +86,29 @@
       { id: 'cv11', art: 'wallet_open', variant: 2, scene: 'S2', bin: 'wallet', wrongBin: 'hold', causes: ['S2_open'] },
       { id: 'cv12', art: 'phone_front', variant: 2, scene: 'S3', bin: 'phone', wrongBin: 'hold', causes: ['S3_front'] }
     ],
+    // 챕터 끝(설계 2026-11-08 ②, js/ui-chapter.js): 다른 용도 요청(메시지) → 개념 질문 → 짧은 생각. ⚠️ 문장은 교사 검수 전 초안
+    // 방향은 늘 '가장 지키는 쪽'(거절 = best). 다른 선택지는 왜 그것만으로 지켜지지 않는지 쉬운 말로
+    chapterEnd: {
+      from: '○○마트 마케팅팀',
+      message: '분실물 센터에 남은 주인 연락처로 우리 마트 할인 문자를 보내고 싶어요. 연락처를 나눠 주실래요?',
+      choices: [
+        { id: 'consent', text: '주인들에게 먼저 동의를 받고 보낸다', short: '동의 받고 보내기',
+          feedback: '물어볼 수는 있어. 하지만 물건을 돌려주는 일과 상관없는 부탁이야. 싫다고 해도 물건은 똑같이 돌려받아야 해.' },
+        { id: 'refuse', best: true, text: '거절한다. 연락처는 물건을 돌려주려고 받은 거야', short: '거절',
+          feedback: '맞아. 연락처는 물건을 돌려주려고 받은 거야. 할인 문자는 그 목적 밖이야.' },
+        { id: 'erase', text: '연락처를 지우고 보낸다', short: '연락처 지우고 보내기',
+          feedback: '연락처를 지우면 문자를 보낼 수가 없어. 연락처를 쓰겠다는 부탁이라, 지우고 쓸 수가 없어.' }
+      ],
+      concept: {
+        question: '접힌 우산 사진을 모으지 않으면, AI는 접힌 모습의 우산을 어떻게 할까?',
+        choices: [
+          { id: 'a', correct: true, text: '알아보지 못한다', feedback: '맞아. AI는 자료에 있던 모습만 알아봐. 빠진 모습은 분류 보류로 남아.' },
+          { id: 'b', text: '비슷하니까 알아서 알아본다', feedback: '아니야. AI는 본 적 없는 모습을 짐작하지 못해. 그래서 여러 모습을 골고루 모아야 해.' },
+          { id: 'c', text: '이름표만 맞으면 괜찮다', feedback: '이름표가 다 맞아도 모습이 빠지면 못 알아봐. 1 임무에서 본 그대로야.' }
+        ]
+      },
+      frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
+    },
     story: {
       intro: [
         { who: 'student', text: '제 우산 여기 있잖아요. 왜 목록에 없어요?' },
