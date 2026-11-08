@@ -98,8 +98,10 @@ try {
   assert.ok(r2.s1Dry > 10, 'm1 S1 inconvenience shows a dry alley ' + r2.s1Dry);
   assert.ok(r2.batteryDiff, 'conveyor batteries differ from training cards');
 
-  // 3 임무: 거리 풍경 카드(지금·옛·비·밤·저녁), 장소 아이콘 4종, 길 안내 결과 컷 — 시트 _shot-cardart-m3.png
-  const r3 = await page.evaluate(() => {
+  // 3 임무: 거리 풍경 카드(지금·옛·비·밤·저녁) = 사진(assets/cards/city/, Codex 2026-11-08), 장소 아이콘 4종, 길 안내 결과 컷(Canvas) — 시트 _shot-cardart-m3.png
+  // 카드 그림이 사진이라 사진이 다 온 뒤에 잰다(그 전엔 Canvas로 그려져 비교가 섞임)
+  await page.waitForFunction(() => DR.CardArt.photosReady(), null, { timeout: 15000 });
+  const r3 = await page.evaluate(async () => {
     document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
     const A = DR.CardArt, M = DR.Missions, m3 = M.m3;
     const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
@@ -120,12 +122,28 @@ try {
       const [a, b] = sc.combos.map((cb) => cb.keys[0]);
       return { scene: sc.id, a, b, min: Math.min(...[0, 1, 2].map((v) => diff(A.card(m3, a, v, 128), A.card(m3, b, v, 128))), diff(A.thumb(A.card(m3, a, 0, 256), 24), A.thumb(A.card(m3, b, 0, 256), 24))) };
     });
+    // 모든 카드 종류·옛 사진(가짜)·개인정보 카드 = 사진(한 임무 전체를 한꺼번에 — 일부만 사진이면 그림 방식 차이가 가짜 단서)
+    out.notPhoto = ids.concat(m3.privacy.cards.map((d) => d.id)).filter((id) => !A.card(m3, id, 0, 256, 1).photo);
+    out.photoIds = ids.map((id) => A.card(m3, id, 1, 256, 5).photo);
+    // 가린 개인정보 카드: 같은 사진 위에 가림(흐리게·막대)이 얹혀 있다
+    out.masked = m3.privacy.cards.map((d) => { const p = A.card(m3, d.id, 0, 256, 4), mk = A.card(m3, d.id + '#masked', 0, 256, 4); return { id: d.id, photo: p.photo, maskedPhoto: mk.photo, diff: diff(p, mk) }; });
+    // 사진을 못 읽음 → 그 카드는 Canvas 거리 그림(분실물 대체 그림이 아님), 가린 모습은 canvasMask 자리
+    const keep = { s: A._photos.station_now, p: A._photos.station_plate };
+    const bad = new Image(); A._photos.station_now = bad; A._photos.station_plate = bad;
+    await new Promise((res) => { bad.onerror = res; bad.onload = res; bad.src = 'assets/cards/city/__missing.webp'; });
+    const fb = A.card(m3, 'station_now', 0, 256), fbp = A.card(m3, 'p_station_plate', 0, 256), fbm = A.card(m3, 'p_station_plate#masked', 0, 256);
+    const rg = (c, r) => { const d = c.getContext('2d').getImageData(Math.round(r.x * 256), Math.round(r.y * 256), Math.round(r.w * 256), Math.round(r.h * 256)).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i] + d[i + 1] + d[i + 2]) / 3; return t / (d.length / 4); };
+    const cm = m3.privacy.cards[1].canvasMask[0], inner = { x: cm.x + cm.w * 0.12, y: cm.y + cm.h * 0.12, w: cm.w * 0.76, h: cm.h * 0.76 };
+    out.fallback = { photo: fb.photo || '', std: std(fb), plateStd: std(fbp), plateMean: rg(fbp, inner), maskedMean: rg(fbm, inner) };
+    A._photos.station_now = keep.s; A._photos.station_plate = keep.p;
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
     const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
     for (const id of ids) add(A.card(m3, id, 0, 256), id);
     for (const id of ['station_now', 'market_old', 'crossing_now']) add(A.card(m3, id, 1, 256), id + ' v1');
     for (const id of ['station_now', 'o_station', 'river_now', 'o_river', 'crossing_now', 'o_crossing', 'market_now', 'market_old']) add(A.thumb(A.card(m3, id, 0, 256), 24), 'thumb ' + id, 80);
+    for (const d of m3.privacy.cards) { add(A.card(m3, d.id, 0, 256, 4), d.id); add(A.card(m3, d.id + '#masked', 0, 256, 4), d.id + ' 가림'); }
+    add(fb, 'station_now 대체(Canvas)'); add(fbm, 'plate 대체 가림');
     for (const l of m3.labels) add(A.icon(l.id, 64), l.text, 56);
     for (const s of m3.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(m3, s.id, o, 320), s.id + ' ' + o, 130);
     document.body.append(sheet);
@@ -137,7 +155,17 @@ try {
   assert.equal(r3.scenes, 16, 'm3 scenes');
   assert.equal(r3.outcomesDiffer, 4, 'm3 outcomes differ');
   assert.ok(r3.oldDiff.every((d) => d > 15), 'old photos show the old landmark ' + r3.oldDiff.map((d) => d.toFixed(1)));
-  for (const c of r3.condDiff) assert.ok(c.min > 150, 'scene condition visible at a glance: ' + c.scene + ' ' + c.a + ' vs ' + c.b + ' = ' + c.min.toFixed(1));
+  console.log('m3 oldDiff', r3.oldDiff.map((d) => d.toFixed(1)).join(' '), '| condDiff', r3.condDiff.map((c) => c.scene + ' ' + c.min.toFixed(1)).join(' '));
+  // 문턱 150 → 100(2026-11-08 사진으로 바뀌며): Canvas 때 버그 = 35, 나머지 300+. 사진은 같은 골목의 낮 ↔ 저녁(등불·노을빛) 144, 맑은 ↔ 비 오는 학교 앞 112(S1·S3는 300+) —
+  // 눈으로 보면 한눈에 다르다(_shot-cardart-m3.png). 35 같은 '거의 같은 그림'은 여전히 걸러진다
+  for (const c of r3.condDiff) assert.ok(c.min > 100,'scene condition visible at a glance: ' + c.scene + ' ' + c.a + ' vs ' + c.b + ' = ' + c.min.toFixed(1));
+  assert.deepEqual(r3.notPhoto, [], 'every m3 card kind, outdated photo and private card is a photo');
+  assert.deepEqual(r3.photoIds, ['station_now', 'station_rain', 'market_now', 'market_old', 'market_eve_old', 'river_now', 'river_night', 'crossing_now', 'crossing_rain', 'station_old', 'river_old', 'crossing_old']);
+  assert.deepEqual(r3.masked.map((m) => [m.id, m.photo, m.maskedPhoto]), [['p_river_people', 'river_people', 'river_people'], ['p_station_plate', 'station_plate', 'station_plate']]);
+  for (const m of r3.masked) assert.ok(m.diff > 0.3, m.id + ' masked version drawn: ' + m.diff);
+  assert.equal(r3.fallback.photo, '', 'missing m3 photo → Canvas');
+  assert.ok(r3.fallback.std > 10 && r3.fallback.plateStd > 10, 'Canvas street art drawn ' + JSON.stringify(r3.fallback));
+  assert.ok(r3.fallback.plateMean > 60 && r3.fallback.maskedMean < 40, 'Canvas fallback plate covered by canvasMask ' + JSON.stringify(r3.fallback));
 
   // 4 임무: 손글씨 답안(같은 붓), 번호 아이콘 7종, "?" 단서, 채점 결과 컷, 결판 선배 답안 — 시트 _shot-cardart-m4.png(24칸 썸네일 = 게임 크기)
   const r4 = await page.evaluate(() => {

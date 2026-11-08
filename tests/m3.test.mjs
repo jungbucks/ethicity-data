@@ -179,3 +179,16 @@ test('review I3/I4: each S1/S2/S3 combo has its own failure line matching what i
 test('review: m3 run hint points at the date, not picture-vs-label', () => {
   assert.ok(m3.fakeHint && !/이름표/.test(m3.fakeHint));
 });
+
+// 3 임무 카드 = 사진(2026-11-08, Codex 384² webp). 한 임무 전체를 한꺼번에 — 일부만 사진이면 그림 방식 차이가 가짜 카드 단서가 된다
+test('m3 every card kind, outdated photo and private card has its photo file', () => {
+  const arts = [...Object.values(m3.cardTypes), ...m3.fakes, ...m3.privacy.cards].map((t) => t.art);
+  for (const a of arts) {
+    assert.ok(a.photo, JSON.stringify(a));
+    assert.ok(a.view, 'Canvas fallback stays: ' + a.photo);
+    assert.ok(fs.existsSync(new URL('../assets/cards/city/' + a.photo + '.webp', import.meta.url)), a.photo);
+  }
+  assert.equal(new Set(arts.map((a) => a.photo)).size, arts.length, 'one photo per kind');
+  // 장면 결과 컷은 Canvas 그대로(사진 없음)
+  assert.ok(m3.scenes.every((s) => !s.art.photo));
+});

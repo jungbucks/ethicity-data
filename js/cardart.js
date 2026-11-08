@@ -756,7 +756,7 @@
     if (o.plate) drawTaxiPlate(g, S);
     if (o.rain) rainOver(g, S, r);
   }
-  // 3 임무 개인정보 카드(설계 2026-11-08 ①): 산책로 앞쪽 행인 두 명(얼굴이 또렷하게) — 자리는 m3 privacy mask와 맞춘다
+  // 3 임무 개인정보 카드(설계 2026-11-08 ①): 사진이 없을 때의 대체 그림. 산책로 앞쪽 행인 두 명(얼굴이 또렷하게) — 자리는 m3 privacy canvasMask와 맞춘다
   function face(g, S, x, y, rad, skin, hair, shirt) {
     g.fillStyle = shirt; g.beginPath(); g.ellipse(x, y + rad * 2.3, rad * 1.5, rad * 1.3, 0, Math.PI, 0); g.fill();
     g.fillRect(x - rad * 1.5, y + rad * 2.3, rad * 3, rad * 1.2);
@@ -857,6 +857,8 @@
   var LOST_DIR = 'assets/cards/lost-found/', LOST = ['umbrella-open', 'umbrella-folded', 'wallet-closed', 'wallet-open', 'phone-front', 'phone-back', 'wallet-id', 'phone-lock-message'];
   // 2 임무 분리배출 사진(Codex 2026-11-08, 1 임무와 같은 실사풍 384²): art.photo(하나) 또는 art.photos(여럿 — 카드 번호로 번갈아). 아직 안 온 종류는 Canvas
   var RECYCLE_DIR = 'assets/cards/recycle/', RECYCLE = ['can_drink', 'can_tin', 'pet_clear', 'pet_crushed', 'vinyl_bag', 'paper_news', 'paper_box', 'pack_milk', 'battery_aa', 'trash_glove', 'trash_sponge', 'trash_tissue', 'receipt', 'toothbrush', 'recycle-person'];
+  // 3 임무 거리 사진(Codex 2026-11-08, 384²): 카드 종류·옛 사진(가짜)·개인정보 카드(행인·택시 번호판) 모두. 장면 결과 컷·길 안내 시연은 Canvas
+  var CITY_DIR = 'assets/cards/city/', CITY = ['station_now', 'station_rain', 'station_old', 'station_plate', 'market_now', 'market_old', 'market_eve_old', 'river_now', 'river_night', 'river_old', 'river_people', 'crossing_now', 'crossing_rain', 'crossing_old'];
   var photoImgs = {};
   function preloadPhotos() {
     if (typeof Image === 'undefined') return;
@@ -866,7 +868,7 @@
         var im = new Image(); im.decoding = 'async'; im.src = PHOTO_DIR + id + '.webp'; photoImgs[id] = im;
       });
     });
-    [[LOST_DIR, LOST], [RECYCLE_DIR, RECYCLE]].forEach(function (set) {
+    [[LOST_DIR, LOST], [RECYCLE_DIR, RECYCLE], [CITY_DIR, CITY]].forEach(function (set) {
       set[1].forEach(function (id) {
         if (photoImgs[id]) return;
         var im = new Image(); im.decoding = 'async'; im.src = set[0] + id + '.webp'; photoImgs[id] = im;
@@ -1145,7 +1147,7 @@
       // 개인정보 카드는 그 종류(key)와 같은 씨앗 — 같은 거리·같은 글씨 위에 행인·번호판·이름만 더한다
       var o = artOf(mission, id), c = canvas(size), seed = hash(pdef ? pdef.key : id) + variant * 7919;
       var drawId = pdef ? pdef.key : id;
-      if (o.photo && !o.object) drawLostFallback(c, o); // 1 임무(사진뿐) — 사진이 있는 2 임무 물건은 아래 Canvas 물건 그림으로
+      if (o.photo && !o.object && !o.view) drawLostFallback(c, o); // 1 임무(사진뿐) — 사진이 있는 2 임무 물건·3 임무 거리는 아래 Canvas 그림으로
       else if (o.animal) drawAnimal(c, o, seed);
       else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
@@ -1153,7 +1155,8 @@
       else if (o.object) drawObject(c, o, seed, variant);
       else drawRoad(c, Object.assign({}, o, { place: PLACES[(hash(drawId) + variant) % PLACES.length] }), seed);
       if (o.name) nameLine(c, seed + 17);
-      if (masked && pdef) maskOver(c, pdef.mask);
+      // Canvas 대체 그림은 얼굴·번호판 자리가 사진과 다를 수 있다 → canvasMask(3 임무), 없으면 mask
+      if (masked && pdef) maskOver(c, pdef.canvasMask || pdef.mask);
       return c;
     });
   }

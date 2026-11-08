@@ -15,7 +15,12 @@ async function artPart() {
         const g = c.getContext('2d'), S = c.width, d = g.getImageData(Math.round(rc.x * S), Math.round(rc.y * S), Math.round(rc.w * S), Math.round(rc.h * S)).data;
         let s = 0, s2 = 0, n = d.length / 4;
         for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; }
-        return { mean: s / n, std: Math.sqrt(Math.max(0, s2 / n - (s / n) ** 2)) };
+        // grad = 이웃 화소 밝기 차 평균(눈·코·입 같은 잔무늬). 사진 얼굴은 칸이 작아(3 임무 약 19px) 머리카락↔피부↔배경의
+        // 큰 명암이 흐린 뒤에도 남아 std는 0.8배 근처 — 흐림이 지우는 건 잔무늬라 grad로 잰다
+        const w = Math.round(rc.w * S), h = Math.round(rc.h * S), L = (x, y) => { const i = (y * w + x) * 4; return (d[i] + d[i + 1] + d[i + 2]) / 3; };
+        let gs = 0, gn = 0;
+        for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) { gs += Math.abs(L(x + 1, y) - L(x, y)) + Math.abs(L(x, y + 1) - L(x, y)); gn++; }
+        return { mean: s / n, std: Math.sqrt(Math.max(0, s2 / n - (s / n) ** 2)), grad: gn ? gs / gn : 0 };
       };
       const diff = (a, b) => { const x = a.getContext('2d').getImageData(0, 0, a.width, a.height).data, y = b.getContext('2d').getImageData(0, 0, b.width, b.height).data; let s = 0; for (let i = 0; i < x.length; i += 4) s += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); return s / (x.length / 4); };
       const out = { cards: [] };
@@ -25,7 +30,7 @@ async function artPart() {
         for (const rc of d.mask) {
           const inset = { x: rc.x + rc.w * 0.12, y: rc.y + rc.h * 0.12, w: rc.w * 0.76, h: rc.h * 0.76 }; // 둥근 모서리 밖은 빼고
           const a = region(plain, inset), b = region(masked, inset);
-          row.regions.push({ look: rc.look, plainStd: a.std, maskedStd: b.std, maskedMean: b.mean });
+          row.regions.push({ look: rc.look, plainStd: a.std, maskedStd: b.std, maskedMean: b.mean, plainGrad: a.grad, maskedGrad: b.grad });
         }
         // 가린 칸 밖은 같은 그림
         row.outside = region(masked, { x: 0, y: 0.92, w: 1, h: 0.08 }).mean - region(plain, { x: 0, y: 0.92, w: 1, h: 0.08 }).mean;
@@ -51,15 +56,16 @@ async function artPart() {
       return out;
     });
     await page.screenshot({ path: shotPath('privacy-art') });
+    for (const c of r.cards) console.log(c.id, c.regions.map((g) => g.look + ' std ' + g.plainStd.toFixed(1) + '→' + g.maskedStd.toFixed(1) + ' grad ' + g.plainGrad.toFixed(1) + '→' + g.maskedGrad.toFixed(1)).join(' | '));
     for (const c of r.cards) {
-      if (c.id.startsWith('p_wallet') || c.id.startsWith('p_phone') || c.id.startsWith('p_person')) {
+      if (c.id.startsWith('p_wallet') || c.id.startsWith('p_phone') || c.id.startsWith('p_person') || c.id.startsWith('p_river') || c.id.startsWith('p_station')) {
         assert.ok(c.photo, c.id + ' uses its photo');
         assert.ok(c.maskedPhoto === '' || c.maskedPhoto === c.photo, c.id);
       }
       assert.ok(c.diffBase > 3, c.id + ' differs from the plain card of its kind: ' + c.diffBase);
       for (const g of c.regions) {
         if (g.look === 'bar') assert.ok(g.maskedMean < 40 && g.maskedStd < 12, c.id + ' bar is dark and flat ' + JSON.stringify(g));
-        else assert.ok(g.maskedStd < g.plainStd * 0.8, c.id + ' blur lowers detail ' + JSON.stringify(g));
+        else assert.ok(g.maskedStd < g.plainStd * 0.9 && g.maskedGrad < g.plainGrad * 0.6, c.id + ' blur lowers detail ' + JSON.stringify(g));
       }
       assert.ok(Math.abs(c.outside) < 1, c.id + ' outside the mask unchanged');
     }

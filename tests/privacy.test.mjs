@@ -45,7 +45,8 @@ test('private cards are only common shapes: not rare, not in a danger combo, not
     if (id === 'm4') assert.ok(combos.every((c) => c.scene !== 'S4'), 'm4 not S4');
     assert.ok(['mask', 'remove'].includes(d.fix), d.id);
     assert.ok(d.mask && d.mask.length, d.id + ' has mask regions');
-    for (const r of d.mask) {
+    // canvasMask = 사진이 없을 때 Canvas 대체 그림 위 자리(3 임무 — 사진과 Canvas의 얼굴·번호판 자리가 다르다)
+    for (const r of d.mask.concat(d.canvasMask || [])) {
       assert.ok(r.x >= 0 && r.y >= 0 && r.x + r.w <= 1 && r.y + r.h <= 1, d.id);
       assert.ok(['bar', 'blur'].includes(r.look), d.id);
     }

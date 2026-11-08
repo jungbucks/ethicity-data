@@ -38,36 +38,39 @@
       { label: 'crossing', when: '2023년 3월', text: '학교 앞 육교 철거, 횡단보도가 생김' }
     ],
     cardTypes: {
-      station_now:    { label: 'station',  icons: ['station'],  name: '역 앞 광장',                 art: { view: 'station', time: 'day' },              dates: ['2025년 9월', '2026년 2월', '2026년 4월'] },
-      station_rain:   { label: 'station',  icons: ['station'],  name: '비 오는 밤 역 앞',            art: { view: 'station', time: 'night', rain: true }, dates: ['2025년 11월', '2026년 3월', '2026년 7월'], rare: true },
-      market_now:     { label: 'market',   icons: ['market'],   name: '시장 골목',                   art: { view: 'market', time: 'day' },               dates: ['2026년 1월', '2026년 5월', '2026년 8월'], rare: true },
-      market_old:     { label: 'market',   icons: ['market'],   name: '시장 골목',                   displayAs: 'market_now', art: { view: 'market', time: 'day' },               dates: ['2016년 5월', '2018년 9월', '2020년 4월'] },
-      market_eve_old: { label: 'market',   icons: ['market'],   name: '저녁 시장 골목',               art: { view: 'market', time: 'evening' },           dates: ['2017년 12월', '2018년 6월', '2019년 10월'], rare: true },
-      river_now:      { label: 'river',    icons: ['river'],    name: '강변길',                      art: { view: 'river', time: 'day' },                dates: ['2025년 7월', '2025년 10월', '2026년 5월'] },
-      river_night:    { label: 'river',    icons: ['river'],    name: '밤 강변길',                   art: { view: 'river', time: 'night' },              dates: ['2025년 8월', '2026년 1월', '2026년 6월'], rare: true },
-      crossing_now:   { label: 'crossing', icons: ['crossing'], name: '학교 앞 횡단보도',             art: { view: 'crossing', time: 'day' },             dates: ['2024년 3월', '2025년 4월', '2026년 3월'] },
-      crossing_rain:  { label: 'crossing', icons: ['crossing'], name: '비 오는 학교 앞',              art: { view: 'crossing', time: 'day', rain: true },  dates: ['2024년 7월', '2025년 6월', '2026년 7월'], rare: true }
+      station_now:    { label: 'station',  icons: ['station'],  name: '역 앞 광장',                 art: { view: 'station', time: 'day', photo: 'station_now' },              dates: ['2025년 9월', '2026년 2월', '2026년 4월'] },
+      station_rain:   { label: 'station',  icons: ['station'],  name: '비 오는 밤 역 앞',            art: { view: 'station', time: 'night', rain: true, photo: 'station_rain' }, dates: ['2025년 11월', '2026년 3월', '2026년 7월'], rare: true },
+      market_now:     { label: 'market',   icons: ['market'],   name: '시장 골목',                   art: { view: 'market', time: 'day', photo: 'market_now' },               dates: ['2026년 1월', '2026년 5월', '2026년 8월'], rare: true },
+      market_old:     { label: 'market',   icons: ['market'],   name: '시장 골목',                   displayAs: 'market_now', art: { view: 'market', time: 'day', photo: 'market_old' },               dates: ['2016년 5월', '2018년 9월', '2020년 4월'] },
+      market_eve_old: { label: 'market',   icons: ['market'],   name: '저녁 시장 골목',               art: { view: 'market', time: 'evening', photo: 'market_eve_old' },           dates: ['2017년 12월', '2018년 6월', '2019년 10월'], rare: true },
+      river_now:      { label: 'river',    icons: ['river'],    name: '강변길',                      art: { view: 'river', time: 'day', photo: 'river_now' },                dates: ['2025년 7월', '2025년 10월', '2026년 5월'] },
+      river_night:    { label: 'river',    icons: ['river'],    name: '밤 강변길',                   art: { view: 'river', time: 'night', photo: 'river_night' },              dates: ['2025년 8월', '2026년 1월', '2026년 6월'], rare: true },
+      crossing_now:   { label: 'crossing', icons: ['crossing'], name: '학교 앞 횡단보도',             art: { view: 'crossing', time: 'day', photo: 'crossing_now' },             dates: ['2024년 3월', '2025년 4월', '2026년 3월'] },
+      crossing_rain:  { label: 'crossing', icons: ['crossing'], name: '비 오는 학교 앞',              art: { view: 'crossing', time: 'day', rain: true, photo: 'crossing_rain' },  dates: ['2024년 7월', '2025년 6월', '2026년 7월'], rare: true }
     },
     // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 행인 얼굴·차 번호판은 사진의 곁가지 → 가리기(흐리게·막대) 뒤 사용
-    // 위험 조합(학교 앞 횡단보도)·시장 옛 사진은 피한다. 그림은 Canvas(cardart.js people·plate)
+    // 위험 조합(학교 앞 횡단보도)·시장 옛 사진은 피한다. 그림 = 사진(river_people·station_plate), 사진이 없으면 Canvas(cardart.js people·plate)
+    // mask = 사진 위 자리(2026-11-08 재 봄: 걷는 두 사람 얼굴·택시 앞 번호판), canvasMask = Canvas 대체 그림 위 자리
     privacy: {
       on: true,
       cards: [
-        { id: 'p_river_people', key: 'river_now', fix: 'mask', at: 0.5, what: '행인 얼굴', art: { view: 'river', time: 'day', people: true },
-          mask: [{ x: 0.29, y: 0.6, w: 0.15, h: 0.15, look: 'blur' }, { x: 0.565, y: 0.645, w: 0.14, h: 0.14, look: 'blur' }] },
-        { id: 'p_station_plate', key: 'station_now', fix: 'mask', at: 0.6, what: '차 번호판', art: { view: 'station', time: 'day', plate: true },
-          mask: [{ x: 0.39, y: 0.8, w: 0.22, h: 0.1, look: 'bar' }] }
+        { id: 'p_river_people', key: 'river_now', fix: 'mask', at: 0.5, what: '행인 얼굴', art: { view: 'river', time: 'day', people: true, photo: 'river_people' },
+          mask: [{ x: 0.36, y: 0.4, w: 0.075, h: 0.09, look: 'blur' }, { x: 0.545, y: 0.432, w: 0.07, h: 0.082, look: 'blur' }],
+          canvasMask: [{ x: 0.29, y: 0.6, w: 0.15, h: 0.15, look: 'blur' }, { x: 0.565, y: 0.645, w: 0.14, h: 0.14, look: 'blur' }] },
+        { id: 'p_station_plate', key: 'station_now', fix: 'mask', at: 0.6, what: '차 번호판', art: { view: 'station', time: 'day', plate: true, photo: 'station_plate' },
+          mask: [{ x: 0.422, y: 0.785, w: 0.11, h: 0.08, look: 'bar' }],
+          canvasMask: [{ x: 0.39, y: 0.8, w: 0.22, h: 0.1, look: 'bar' }] }
       ]
     },
     ambiguous: [],
     fakes: [
-      { id: 'o_station', name: '철거 전 빌딩', label: 'station', truth: null, count: 3, art: { view: 'station', era: 'old', time: 'day' },
+      { id: 'o_station', name: '철거 전 빌딩', label: 'station', truth: null, count: 3, art: { view: 'station', era: 'old', time: 'day', photo: 'station_old' },
         dates: ['2019년 4월', '2019년 10월', '2020년 6월'],
         line: '우리가 넣은 데이터에 철거 전 빌딩이 서 있는 옛 역 앞 사진이 섞여 들어갔다.' },
-      { id: 'o_river', name: '공사 전 공터', label: 'river', truth: null, count: 3, art: { view: 'river', era: 'old', time: 'day' },
+      { id: 'o_river', name: '공사 전 공터', label: 'river', truth: null, count: 3, art: { view: 'river', era: 'old', time: 'day', photo: 'river_old' },
         dates: ['2021년 5월', '2021년 11월', '2022년 8월'],
         line: '우리가 넣은 데이터에 강변길이 생기기 전 공터 사진이 섞여 들어갔다.' },
-      { id: 'o_crossing', name: '철거 전 육교', label: 'crossing', truth: null, count: 3, harm: 'danger', art: { view: 'crossing', era: 'old', time: 'day' },
+      { id: 'o_crossing', name: '철거 전 육교', label: 'crossing', truth: null, count: 3, harm: 'danger', art: { view: 'crossing', era: 'old', time: 'day', photo: 'crossing_old' },
         dates: ['2020년 9월', '2021년 4월', '2022년 10월'],
         line: '우리가 넣은 데이터에 철거 전 육교가 있는 옛 학교 앞 사진이 섞여 들어갔다.' }
     ],
