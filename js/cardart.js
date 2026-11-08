@@ -813,6 +813,8 @@
   var PHOTOS = { dog: ['d01', 'd02', 'd03', 'd04', 'd05', 'd06', 'd07', 'd08'], cat: ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08'] };
   // 1 임무 분실물 사진: 카드 그림 art.photo = 파일 이름(번호와 상관없이 그 사진 하나)
   var LOST_DIR = 'assets/cards/lost-found/', LOST = ['umbrella-open', 'umbrella-folded', 'wallet-closed', 'wallet-open', 'phone-front', 'phone-back'];
+  // 2 임무 분리배출 사진(Codex 2026-11-08, 1 임무와 같은 실사풍 384²): art.photo(하나) 또는 art.photos(여럿 — 카드 번호로 번갈아). 아직 안 온 종류는 Canvas
+  var RECYCLE_DIR = 'assets/cards/recycle/', RECYCLE = ['can_drink', 'can_tin', 'pet_clear', 'pet_crushed', 'vinyl_bag', 'paper_news', 'paper_box', 'pack_milk', 'battery_aa', 'trash_glove', 'trash_sponge', 'trash_tissue', 'receipt', 'toothbrush'];
   var photoImgs = {};
   function preloadPhotos() {
     if (typeof Image === 'undefined') return;
@@ -822,9 +824,11 @@
         var im = new Image(); im.decoding = 'async'; im.src = PHOTO_DIR + id + '.webp'; photoImgs[id] = im;
       });
     });
-    LOST.forEach(function (id) {
-      if (photoImgs[id]) return;
-      var im = new Image(); im.decoding = 'async'; im.src = LOST_DIR + id + '.webp'; photoImgs[id] = im;
+    [[LOST_DIR, LOST], [RECYCLE_DIR, RECYCLE]].forEach(function (set) {
+      set[1].forEach(function (id) {
+        if (photoImgs[id]) return;
+        var im = new Image(); im.decoding = 'async'; im.src = set[0] + id + '.webp'; photoImgs[id] = im;
+      });
     });
   }
   function photoReady(im) { return !!(im && im.complete && im.naturalWidth > 0); }
@@ -832,6 +836,7 @@
   function photoId(mission, id, n) {
     var o = artOf(mission, id), list = o.animal && PHOTOS[o.animal];
     if (o.photo) return photoReady(photoImgs[o.photo]) ? o.photo : '';
+    if (o.photos) { var p = o.photos[((Math.floor(n) || 0) % o.photos.length + o.photos.length) % o.photos.length]; return photoReady(photoImgs[p]) ? p : ''; }
     if (!list) return '';
     var pid = list[((Math.floor(n) || 0) % list.length + list.length) % list.length];
     return photoReady(photoImgs[pid]) ? pid : '';
@@ -1044,7 +1049,8 @@
   /* ---------- 공개 API ---------- */
   // n = 카드 번호(없으면 variant) — 사진 카드(튜토리얼 개·고양이)만 쓴다. 다른 카드 그림은 그대로
   function card(mission, id, variant, size, n) {
-    var pid = photoId(mission, id, n === undefined ? variant : n);
+    // variant 3 이상 = 2 임무 컨베이어의 '처음 보는 물건'(학습 카드와 달라 보여야 함) → 사진 대신 Canvas 그림
+    var pid = variant >= 3 ? '' : photoId(mission, id, n === undefined ? variant : n);
     if (pid) return cached('photo|' + pid + '|' + size, function () {
       var c = canvas(size);
       c.getContext('2d').drawImage(photoImgs[pid], 0, 0, size, size);
@@ -1053,7 +1059,7 @@
     });
     return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
       var o = artOf(mission, id), c = canvas(size), seed = hash(id) + variant * 7919;
-      if (o.photo) drawLostFallback(c, o);
+      if (o.photo && !o.object) drawLostFallback(c, o); // 1 임무(사진뿐) — 사진이 있는 2 임무 물건은 아래 Canvas 물건 그림으로
       else if (o.animal) drawAnimal(c, o, seed);
       else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
