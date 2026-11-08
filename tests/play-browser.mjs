@@ -40,7 +40,7 @@ async function autopilot(page) {
       const walled = (lane, sec) => items.some((w) => w.kind === 'wall' && w.lane === lane && w.z > p.runnerZ - 0.3 && w.z - p.runnerZ < p.speed * sec);
       if (walled(p.lane, 0.32)) {
         // 벽이 두 레인 나란히 서 있으면 옆 칸도 막혀 있다 — 가까운 빈 레인 쪽으로 간다
-        const open = [0, 1, 2].filter((l) => !walled(l, 0.32)).sort((x, y) => Math.abs(x - p.lane) - Math.abs(y - p.lane) || Math.abs(x - (t ? t.lane : 1)) - Math.abs(y - (t ? t.lane : 1)))[0];
+        const open = Array.from({ length: p.lanes }, (_, l) => l).filter((l) => !walled(l, 0.32)).sort((x, y) => Math.abs(x - p.lane) - Math.abs(y - p.lane) || Math.abs(x - (t ? t.lane : 1)) - Math.abs(y - (t ? t.lane : 1)))[0];
         if (open != null) key(open < p.lane ? 'ArrowLeft' : 'ArrowRight');
       } else if (t) {
         if (p.lane !== t.lane) { const next = p.lane < t.lane ? p.lane + 1 : p.lane - 1; if (!walled(next, 0.32)) key(p.lane < t.lane ? 'ArrowRight' : 'ArrowLeft'); }

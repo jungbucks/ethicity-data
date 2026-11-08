@@ -53,6 +53,14 @@ body { overflow: hidden; word-break: keep-all; }
 .rw-far { top: calc(var(--rw-horizon) - 30vh); height: 30vh; opacity: .85; }
 .rw-mid { top: calc(var(--rw-horizon) - 27vh); height: 27vh; }
 .rw-tint { inset: 0; }
+/* 실내 무대(2·4 임무, 2차): 벽 그림(창 유리 투명) 밑변 = 지평선, 창 띠(그림 높이 25~68%) 뒤로 낮 도시. 그림이 없으면 방 색 바탕 + 도시만 */
+#run-stage.rw-on.rw-indoor.rw-room-sorting { background: linear-gradient(180deg, #a39586 0%, #a39586 40%, #6b6457 62%, #5a544a 100%); }
+#run-stage.rw-on.rw-indoor.rw-room-grading { background: linear-gradient(180deg, #c6caca 0%, #c6caca 40%, #6f7c93 62%, #5c677b 100%); }
+#run-stage.rw-on.rw-indoor.rw-room-office { background: linear-gradient(180deg, #cea379 0%, #cea379 40%, #5a4330 62%, #4a3628 100%); }
+.rw-indoor .rw-sky { height: calc(var(--rw-horizon) * .72); }
+.rw-indoor .rw-far { top: calc(var(--rw-horizon) * .26); height: calc(var(--rw-horizon) * .44); opacity: .9; }
+.rw-indoor .rw-mid { top: calc(var(--rw-horizon) * .36); height: calc(var(--rw-horizon) * .34); }
+.rw-wall { top: 0; height: calc(var(--rw-horizon) + 1px); width: 400%; background-repeat: repeat-x; background-size: auto 100%; background-position: left bottom; will-change: transform; }
 .rw-rain { inset: -192px 0 0 -96px; animation: rw-rain .5s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='192'%3E%3Cg stroke='%23bcd4ff' stroke-opacity='.22' stroke-width='1.2'%3E%3Cpath d='M12 8l-5 24M44 66l-5 24M74 26l-5 24M88 118l-5 24M26 138l-5 24M58 162l-5 24M6 92l-5 24'/%3E%3C/g%3E%3C/svg%3E"); }
 @keyframes rw-rain { to { transform: translate(-48px, 192px); } }
 .rw-still .rw-rain { animation: none; }
@@ -463,6 +471,8 @@ body { overflow: hidden; word-break: keep-all; }
 .labels.word .btn-word, .relabel.word .btn-word { min-width: 0; min-height: 44px; padding: 0 2px; font-size: 15px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; justify-content: center; text-align: center; }
 @media (max-width: 330px) { .labels.word { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .run-card.run-card-word .run-card-label { font-size: 19px; line-height: 1.25; }
+/* 4레인(4 임무): 좁은 화면에선 카드 네 장이 나란히 들어가게 작아지므로 낱말도 한 줄에 맞게 */
+@media (max-width: 600px) { .run-feedback.lanes-4 .run-card { padding: 3px; } .run-feedback.lanes-4 .run-card.run-card-word .run-card-label { font-size: 16px; letter-spacing: -0.02em; } }
 .gr-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
 .gr-item { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 8px; animation: gd-in .25s ease-out both; }
 .gr-item.ok { border-color: var(--ok); }

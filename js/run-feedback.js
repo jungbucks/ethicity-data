@@ -4,11 +4,13 @@
   var DR = root.DR;
   function label(m, c) { return c.ambiguousId ? '판단 필요' : DR.Cards.cardLabel(m, c); }
   function create(container, mission, course) {
-    var layer = document.createElement('div'); layer.className = 'run-feedback'; container.appendChild(layer);
+    var nLanes = DR.Stream.laneCount(mission), mid = (nLanes - 1) / 2; // 레인 수(4 임무만 4)·가운데 레인 자리
+    function laneX(l) { return (l - mid) * DR.config.laneWidth; }
+    var layer = document.createElement('div'); layer.className = 'run-feedback lanes-' + DR.Stream.laneCount(mission); container.appendChild(layer);
     var cards = {}, flights = [], drops = [], noticeUntil = 0, damageUntil = 0, loseTimer = null;
     var damage = document.createElement('div'); damage.className = 'damage-flash'; damage.hidden = true; layer.appendChild(damage);
     var reason = document.createElement('b'); reason.textContent = '불에 맞음'; reason.setAttribute('role', 'status'); damage.appendChild(reason);
-    var warnings = [0, 1, 2].map(function () { var el = document.createElement('b'); el.className = 'fire-warning'; el.textContent = '! 불'; el.hidden = true; layer.appendChild(el); return el; });
+    var warnings = Array.from({ length: nLanes }, function () { var el = document.createElement('b'); el.className = 'fire-warning'; el.textContent = '! 불'; el.hidden = true; layer.appendChild(el); return el; });
     var notice = document.createElement('div'); notice.className = 'catch-notice'; notice.setAttribute('role', 'status'); layer.appendChild(notice);
     var sign = document.createElement('div'); sign.className = 'zone-sign'; sign.setAttribute('role', 'status'); sign.hidden = true; layer.appendChild(sign);
     var progress = document.getElementById('hud-progress'), zoneEls = [], counts = {}, zoneId = null, signUntil = 0;
@@ -97,7 +99,7 @@
       warnings.forEach(function (el, lane) {
         var warn = s.course.items.some(function (it) { var d = it.z - s.z; return it.kind === 'fire' && it.lane === lane && d > 0 && d <= Math.max(s.speed, DR.config.baseSpeed) * DR.config.fire.warn; });
         el.hidden = !warn;
-        if (warn) { var p = project(new THREE.Vector3((lane - 1) * DR.config.laneWidth, 0.5, -s.z - 8), s.camera); el.style.left = p.x + 'px'; el.style.top = Math.min(container.clientHeight - 90, p.y) + 'px'; }
+        if (warn) { var p = project(new THREE.Vector3(laneX(lane), 0.5, -s.z - 8), s.camera); el.style.left = p.x + 'px'; el.style.top = Math.min(container.clientHeight - 90, p.y) + 'px'; }
       });
       var seen = {};
       s.course.items.forEach(function (it) {
@@ -106,11 +108,20 @@
         if (d > 34 || phase === 'passed' || s.behindWall(it)) return; // 벽 뒤 카드는 3D로만 — 큰 카드가 앞의 벽을 가리지 않게
         var el = card(it); seen[it.uid] = true; el.hidden = false;
         if (it.glitch) glitchDom(el, it, s.glitchOf ? s.glitchOf(it, d, s.speed) : null);
-        var p = project(new THREE.Vector3((it.lane - 1) * DR.config.laneWidth, 2.2, -it.z), s.camera);
+        var p = project(new THREE.Vector3(laneX(it.lane), 2.2, -it.z), s.camera);
         var width = Math.min(container.clientWidth < 600 ? 112 : 204, Math.max(96, container.clientHeight - 250), Math.max(150, 4000 / (d + 15)));
-        var middle = project(new THREE.Vector3(0, 2.2, -it.z), s.camera);
-        var next = project(new THREE.Vector3(DR.config.laneWidth, 2.2, -it.z), s.camera);
-        p.x = middle.x + (it.lane - 1) * Math.max(next.x - middle.x, width + 16);
+        if (nLanes > 3) {
+          // 4레인: 네 칸이 화면 폭에 나란히 들어가게 — 칸 자리는 모든 카드가 같은 기준(러너 앞 20m)·같은 간격(가장 큰 카드 폭 + 10)이라
+          //   앞뒤 간격으로 거리가 다른 옆 레인 카드끼리도 겹치지 않는다(3레인은 예전 그대로 카드마다 그 거리에서 잰다)
+          var cap = Math.min(container.clientWidth < 600 ? 112 : 204, Math.max(96, container.clientHeight - 250), Math.floor((container.clientWidth - 16) / nLanes) - 10);
+          width = Math.min(width, cap);
+          var refM = project(new THREE.Vector3(0, 2.2, -s.z - 20), s.camera), refN = project(new THREE.Vector3(DR.config.laneWidth, 2.2, -s.z - 20), s.camera);
+          p.x = refM.x + (it.lane - mid) * Math.max(refN.x - refM.x, cap + 10);
+        } else {
+          var middle = project(new THREE.Vector3(0, 2.2, -it.z), s.camera);
+          var next = project(new THREE.Vector3(DR.config.laneWidth, 2.2, -it.z), s.camera);
+          p.x = middle.x + (it.lane - 1) * Math.max(next.x - middle.x, width + 16);
+        }
         var x = Math.max(width / 2 + 8, Math.min(container.clientWidth - width / 2 - 8, p.x));
         el.style.width = width + 'px';
         var y = Math.max(85, Math.min(container.clientHeight - el.offsetHeight - 55, p.y - width / 2));

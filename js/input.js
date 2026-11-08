@@ -12,6 +12,10 @@
     return null;
   }
 
+  // 레인 한 칸 옮기기(끝에서 멈춤) · 출발 레인(3레인 = 가운데, 4레인 = 가운데 왼쪽). n = 임무 레인 수(DR.Stream.laneCount)
+  function nextLane(lane, dir, n) { return Math.max(0, Math.min((n || 3) - 1, lane + dir)); }
+  function startLane(n) { return Math.floor(((n || 3) - 1) / 2); }
+
   // handlers: { lane(dir), grab() } → unbind()
   function bind(target, handlers, cfg) {
     function onKey(e) {
@@ -52,7 +56,7 @@
     };
   }
 
-  var api = { classify: classify, bind: bind };
+  var api = { classify: classify, bind: bind, nextLane: nextLane, startLane: startLane };
   root.DR = root.DR || {};
   root.DR.Input = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

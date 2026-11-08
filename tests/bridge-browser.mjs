@@ -38,13 +38,17 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 375, height: 812 
     await page.evaluate(() => { for (let i = 0; i < 40; i++) DR.Run.step(0.05); });
     await page.screenshot({ path: shotPath('bridge-tutorial-' + viewport.width) });
     if (viewport.width === 1366) {
-      // 두 번 달려도 층이 겹쳐 쌓이지 않고, 2 임무(실내 무대)로 가면 다리 층은 없다
+      // 두 번 달려도 층이 겹쳐 쌓이지 않고, 2 임무로 가면 다리가 아니라 실내 무대(2차, 2026-11-09 — indoor-browser가 자세히 봄)
       await restart(page, 'tutorial');
       assert.equal(await layers(page), 5, 'no stacked layers after a rerun');
+      assert.equal((await world(page)).indoor, false);
       await restart(page, 'm2');
-      assert.equal(await layers(page), 0, 'm2 keeps its indoor stage');
-      assert.equal(await world(page), null);
+      assert.equal(await layers(page), 6, 'm2 = indoor stage layers (with the wall art), not stacked on the bridge');
+      assert.equal((await world(page)).room, 'sorting');
       assert.equal(await page.evaluate(() => DR.Run.peek().scenery.theme), 'sorting');
+      await restart(page, 'tutorial');
+      assert.equal(await layers(page), 5, 'back to the bridge');
+      assert.equal(await page.evaluate(() => document.getElementById('run-stage').className.includes('rw-indoor')), false);
     }
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }

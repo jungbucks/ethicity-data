@@ -23,7 +23,7 @@
       { id: 'S3', title: '우유팩·신문지·영수증', short: '종이·영수증' },
       { id: 'S4', title: '캔 사이에 섞인 건전지', short: '건전지' }
     ],
-    fakeLate: 'zone', scenery: 'sorting',
+    fakeLate: 'zone', scenery: 'sorting', world: 'sorting', // 달리기 무대 2차: 선별장 안 메인 벨트 위(js/run-world.js·run-scenery.js)
     labels: [
       { id: 'can', text: '캔' },
       { id: 'pet', text: '투명 페트' },

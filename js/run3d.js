@@ -1,5 +1,5 @@
 /*
- * 3D 3레인 달리기(spec §4) — 러너 뒤에서 따라가는 카메라, 자동 전진.
+ * 3D 달리기(spec §4) — 레인 수는 임무 데이터(DR.Stream.laneCount: 기본 3, 4 임무만 4) — 러너 뒤에서 따라가는 카메라, 자동 전진.
  * 판정(잡기·벽)은 코스 z 좌표로 계산하고, 화면은 그 상태를 그린다. three.js 세계에서 앞쪽은 -z.
  * 테스트·조정용: step(dt)·peek()·setPaused()·finishNow()·course()·isTaken().
  * 끝맺음: 결승선을 지나면(또는 HP 0) 입력을 잠그고 감속 → 어두워짐 → onEnd → 다음 화면 밝아짐(config.finish). finishNow는 연출 없이 바로 끝난다.
@@ -13,7 +13,9 @@
   var fadeTimer = null;
 
   function cfg() { return root.DR.config; }
-  function laneX(l) { return (l - 1) * cfg().laneWidth; }
+  function lanes() { return S ? root.DR.Stream.laneCount(S.mission) : 3; }
+  function laneX(l) { return (l - (lanes() - 1) / 2) * cfg().laneWidth; }
+  function roadW() { return cfg().laneWidth * lanes() + 1.2; }
   function reducedMotion() { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
   /* ---------- 텍스처 ---------- */
@@ -98,7 +100,7 @@
     scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x2a1a6e, 1.1));
     var sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(3, 8, 4); scene.add(sun);
 
-    var W = cfg().laneWidth * 3 + 1.2;
+    var W = roadW();
     // 땅: 어두운 판 + 넓은 격자
     var groundTex = canvasTex(64, 64, function (g, w, h) {
       g.fillStyle = '#140d36'; g.fillRect(0, 0, w, h);
@@ -119,8 +121,10 @@
     scene.add(road);
     // 레인 구분선(시안)
     var lines = new THREE.Group();
-    [-1.5, -0.5, 0.5, 1.5].forEach(function (f) {
-      var m = new THREE.Mesh(new THREE.PlaneGeometry(f === -1.5 || f === 1.5 ? 0.16 : 0.08, ROAD_LEN), new THREE.MeshBasicMaterial({ color: 0x7ff9ff }));
+    var half = lanes() / 2, fs = [];
+    for (var lf = -half; lf <= half + 1e-9; lf++) fs.push(lf); // 경계 = 레인 수 + 1개(바깥 2개는 굵게)
+    fs.forEach(function (f) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(Math.abs(f) === half ? 0.16 : 0.08, ROAD_LEN), new THREE.MeshBasicMaterial({ color: 0x7ff9ff }));
       m.rotation.x = -Math.PI / 2; m.position.set(f * cfg().laneWidth, 0.01, 0);
       lines.add(m);
     });
@@ -231,7 +235,7 @@
 
   // 결승 게이트(코스 끝 z, 마지막 config.finish.gate초 구간부터 보인다)
   function makeGate() {
-    var W = cfg().laneWidth * 3 + 1.2, H = 5.2, g = new THREE.Group();
+    var W = roadW(), H = 5.2, g = new THREE.Group();
     var post = new THREE.MeshBasicMaterial({ color: 0x7ff9ff });
     [-1, 1].forEach(function (side) {
       var p = new THREE.Mesh(new THREE.BoxGeometry(0.3, H, 0.3), post);
@@ -518,10 +522,10 @@
     v.runner.position.y = Math.abs(sw) * 0.08;
     v.runner.visible = !(S.t < S.invulnUntil && Math.floor(S.t * 12) % 2);
     // 카메라(관성 추종 + 충돌 흔들림)
-    var portrait = S.aspect < 1;
-    S.camX += (S.x * 0.75 - S.camX) * Math.min(1, dt * 6);
+    var portrait = S.aspect < 1, cam = camRig(portrait);
+    S.camX += (S.x * cam.follow - S.camX) * Math.min(1, dt * 6);
     var shake = (!rm && S.t < S.shakeUntil) ? 0.18 : 0;
-    S.camera.position.set(S.camX + (Math.random() - 0.5) * shake, (portrait ? 4.6 : 3.7) + (Math.random() - 0.5) * shake, -S.z + (portrait ? 7.6 : 6.4));
+    S.camera.position.set(S.camX + (Math.random() - 0.5) * shake, cam.y + (Math.random() - 0.5) * shake, -S.z + cam.back);
     S.camera.lookAt(S.camX * 0.5, 1.1, -S.z - 16);
     if (S.scenery) {
       var zone = S.course.zones.filter(function (zone) { return S.z >= zone.start; }).pop();
@@ -611,6 +615,12 @@
     });
   }
 
+  // 카메라 높이·거리·좌우 따라가기: 3레인은 예전 그대로, 4레인은 조금 높이·뒤로 + 덜 따라가 네 레인이 다 보이게(좁은 세로 화면 포함)
+  function camRig(portrait) {
+    if (lanes() <= 3) return { y: portrait ? 4.6 : 3.7, back: portrait ? 7.6 : 6.4, follow: 0.75 };
+    return { y: portrait ? 5.6 : 4.1, back: portrait ? 9.6 : 7.0, follow: portrait ? 0.4 : 0.6 };
+  }
+
   // 화면 카드(run-feedback)도 3D와 같은 상태를 쓴다. 3D 메시 상태가 없는 카드는 여기서 같은 규칙으로
   function glitchOf(it, d, speed) {
     if (!it.glitch) return null;
@@ -689,7 +699,7 @@
     S = {
       container: container, mission: opts.mission, course: opts.course, onEnd: opts.onEnd,
       startBag: (opts.bag || []).length, bagMax: opts.bagMax,
-      t: 0, z: 0, lane: 1, x: 0, camX: 0, slowedUntil: 0, shakeUntil: 0,
+      t: 0, z: 0, lane: root.DR.Input.startLane(root.DR.Stream.laneCount(opts.mission)), x: 0, camX: 0, slowedUntil: 0, shakeUntil: 0,
       taken: new Set(), hitWalls: new Set(), hitFires: new Set(), grabbed: [], hits: 0, perfects: 0,
       lost: [], dropSafeUntil: 0, rush: false, rushAmt: 0, finishing: null, stride: 0, rareHints: {}, wallHintShown: false,
       hp: cfg().hp, invulnUntil: 0, warning: null, fireHintShown: false, fakeHintShown: false, knockedOut: false, hintUntil: 3,
@@ -705,12 +715,14 @@
     S.heroId = DR.Save ? DR.Save.hero() : 'onyu';
     S.view = buildScene();
     S.view.gate = makeGate();
-    // 빛의 다리(연습·1·3 임무): 바닥·격자·상자 빌딩 대신 다리 + 캔버스 뒤 하늘·도시 층(js/run-world.js). 2·4 임무는 없음
+    // 빛의 다리(연습·1·3 임무, world 'bridge'): 바닥·격자·상자 빌딩 대신 다리 + 캔버스 뒤 하늘·도시 층(js/run-world.js)
+    // 실내 무대(2 임무 'sorting'·4 임무 'grading', 2차): 같은 층 + 실내 벽 그림(창밖 낮 도시) + 벨트 바닥
     if (S.mission.world && root.DR.RunWorld) {
-      S.view.world = root.DR.RunWorld.create(S.view, container, { time: S.mission.worldTime || 'night', low: low, reduced: reducedMotion(), missionId: S.mission.id, laneWidth: cfg().laneWidth, roadLen: ROAD_LEN });
+      S.view.world = root.DR.RunWorld.create(S.view, container, { world: S.mission.world, time: S.mission.worldTime || 'night', low: low, reduced: reducedMotion(), missionId: S.mission.id, laneWidth: cfg().laneWidth, lanes: lanes(), roadLen: ROAD_LEN });
       S.view.world.look(null);
     }
-    if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view, S.mission);
+    if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view, S.mission, { course: S.course, lanes: lanes(), roadW: roadW(), low: low, reduced: reducedMotion() });
+    S.x = laneX(S.lane); S.camX = S.x * camRig(false).follow; // 출발 자리(3레인 = 가운데 0, 4레인은 가운데 왼쪽 레인)
     S.feedback = root.DR.RunFeedback.create(container, S.mission, S.course);
     // 조작을 막는 건 일시정지 메뉴·도움말 같은 열린 다이얼로그다. S.paused(setPaused)는 시계만 멈춘다 —
     // 테스트가 시계를 멈춘 채 step()으로 한 칸씩 굴리며 키를 누르기 때문(메뉴는 언제나 다이얼로그로 뜬다).
@@ -718,7 +730,7 @@
     S.unbind = root.DR.Input.bind(container, {
       lane: function (dir) {
         if (inputBlocked()) return;
-        var nl = Math.max(0, Math.min(2, S.lane + dir));
+        var nl = root.DR.Input.nextLane(S.lane, dir, lanes());
         if (nl !== S.lane) { S.lane = nl; root.DR.Sfx.play('lane'); hideHint(); }
       },
       grab: function () { skipFinish(); if (!inputBlocked()) { root.DR.Sfx.unlock(); S.grabber.press(S.t);
@@ -778,6 +790,15 @@
       var p = m.getWorldPosition(new THREE.Vector3()).project(S.camera);
       return { x: (p.x + 1) / 2 * S.container.clientWidth, y: (1 - p.y) / 2 * S.container.clientHeight, visible: m.visible };
     },
+    // 테스트용: 러너 앞 d m 지점, 레인마다 가운데(높이 y)의 화면 위치(px) — 레인이 화면 안에 다 들어오는지
+    laneScreen: function (d, y) {
+      if (!S) return [];
+      S.camera.updateMatrixWorld();
+      return Array.from({ length: lanes() }, function (_, l) {
+        var p = new THREE.Vector3(laneX(l), y == null ? 1.45 : y, -S.z - d).project(S.camera);
+        return { x: (p.x + 1) / 2 * S.container.clientWidth, y: (1 - p.y) / 2 * S.container.clientHeight };
+      });
+    },
     // 테스트용: 3D 카드마다 지지직 상태(swapped = 원래 그림이 아닌 그림을 보이는 중, frame = 효과 그림 번호 또는 -1, soft = 움직임 줄이기 흐린 테두리)
     glitchState: function () {
       if (!S) return [];
@@ -797,7 +818,7 @@
     },
     peek: function () {
       if (!S) return { running: false };
-      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, bagCount: bagCount(), bagMax: S.bagMax, lost: S.lost.length, rush: S.rush, finishing: S.finishing ? S.finishing.kind : null, gate: !!(S.view && S.view.gate.visible), running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, linesShown: S.linesShown || [], pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null, world: S.view && S.view.world ? S.view.world.state() : null,
+      return { t: S.t, runnerZ: S.z, speed: currentSpeed(), lane: S.lane, lanes: lanes(), laneX: Array.from({ length: lanes() }, function (_, l) { return laneX(l); }), bagCount: bagCount(), bagMax: S.bagMax, lost: S.lost.length, rush: S.rush, finishing: S.finishing ? S.finishing.kind : null, gate: !!(S.view && S.view.gate.visible), running: S.running, hero: S.view && S.view.hero ? S.heroId : null, legSwing: S.legSwing, slowedUntil: S.slowedUntil, paused: S.paused, hp: S.hp, invulnUntil: S.invulnUntil, warning: S.warning, fakeHintShown: S.fakeHintShown, linesShown: S.linesShown || [], pixelRatio: S.renderer ? S.renderer.getPixelRatio() : null, scenery: S.scenery && S.scenery.state ? S.scenery.state() : null, world: S.view && S.view.world ? S.view.world.state() : null,
         wallOpacities: S.course.items.filter(function (i) { return i.kind === 'wall' && S.meshes[i.uid]; }).map(function (i) { return S.meshes[i.uid].children[0].material.opacity; }) };
     }
   };

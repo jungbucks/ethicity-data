@@ -2,6 +2,8 @@
  * 빛의 다리 겉모습 데이터(설계 docs/specs/2026-11-07-run-bridge-world-design.md). 그리는 쪽은 js/run-world.js.
  * 밤(연습·1 임무) / 낮(3 임무) 팔레트와 임무·구역별 모습(하늘 색조·다리 아래 불빛 비율·비·소품).
  * 색은 사용자가 고른 시안 2번(어두운 남색 철판, 가장 밝은 빛 = 다리 가장자리). 카드·벽과 겹치면 색은 지키고 밝기로 양보.
+ * 2차 실내 무대(설계 docs/specs/2026-11-08-run-indoor-stages-design.md): 2 임무 선별장·4 임무 채점 센터(S4 교무실) — 실제 장소 색.
+ *   보라 네온은 1차 데이터 세계(다리)에만. 바닥(벨트)은 카드보다 어둡게, 창밖 = 낮 도시 그림 + 시간대 색조(window).
  */
 (function (root) {
   'use strict';
@@ -17,8 +19,28 @@
       fog: '#cfe4ef', lights: ['#ffd24a', '#a6e9f0', '#f2b8d6'], lightOpacity: 0.35, reflect: ['#f2b8d6', '#a6e9f0'], reflectOpacity: 0.08,
       // 리뷰 I1: 진분홍(#c2307f) 칸은 낮 바닥과 밝기가 거의 같다(대비 1.1) → 낮에만 밝은 분홍 칸 + 덜 투명하게
       wall: { opacity: 0.9, noise: ['#ffffff', '#ff5fb0', '#ff8fca'] }
+    },
+    // ---- 실내(2차). deck = 달리는 벨트, ground = 벨트 옆 바닥, fog = 먼 바닥이 그림 속 바닥선과 이어지는 색(그림 아래 3% 평균에 맞춤)
+    // 선별장(밝은 오후): 어두운 초록 고무 벨트 + 롤러 이음매, 가장자리 = 안전 노랑, 옆 = 콘크리트
+    sorting: {
+      deck: '#1d3a2b', seam: '#2f5240', lane: '#d6dfd8', laneOpacity: 0.22, edge: '#f2c230', edgeOpacity: 0.9, side: '#4a4f55',
+      ground: '#6b6457', fog: '#827466', wall: { opacity: 0.88, noise: ['#ffffff', '#ff5fb0', '#ff8fca'] }
+    },
+    // 채점 센터(맑은 늦은 오후): 어두운 남색 벨트(흰 답안지·흰 카드가 묻히지 않게), 가장자리 = 흰빛, 안쪽 줄 = 민트 조금
+    grading: {
+      deck: '#1b2840', seam: '#2a3b5a', lane: '#a8e6d6', laneOpacity: 0.28, edge: '#e8f1ff', edgeOpacity: 0.85, side: '#5b6b85',
+      ground: '#6f7c93', fog: '#8495af', wall: { opacity: 0.88, noise: ['#ffffff', '#ff5fb0', '#ff8fca'] }
+    },
+    // 교무실(퇴근 뒤 노을): 어두운 리놀륨, 더 따뜻하고 어둡게(정체 공개·결판으로 이어지는 구역)
+    office: {
+      deck: '#33241e', seam: '#43312a', lane: '#e9c9a0', laneOpacity: 0.2, edge: '#f0b878', edgeOpacity: 0.7, side: '#2c211c',
+      ground: '#5a4330', fog: '#866540', wall: { opacity: 0.9, noise: ['#ffffff', '#ff5fb0', '#ff8fca'] }
     }
   };
+  var ART = { sorting: 'assets/title/int-sorting.webp', grading: 'assets/title/int-grading.webp', office: 'assets/title/int-teachers-office.webp' };
+  var INDOOR_ART = [ART.sorting, ART.grading, ART.office];
+  // 실내 모습: room = 팔레트·벽 그림, window = 창밖 낮 도시에 덮는 시간대 색조(구역마다 조금씩 — 시간이 흐르는 느낌)
+  function R(id, room, window) { return { id: id, time: 'day', room: room, art: ART[room], window: window, tint: null, lightMix: [1, 0, 0], rain: false, wet: false, lanterns: false, river: false }; }
 
   function L(id, time, tint, mix, extra) {
     var o = { id: id, time: time, tint: tint, lightMix: mix, rain: false, wet: false, lanterns: false, river: false };
@@ -42,7 +64,27 @@
       S4: L('m3-S4', 'day', 'rgba(60,70,90,.30)', [0.4, 0.4, 0.2], { rain: true, wet: true })
     }
   };
-  LOOKS.m1._ = LOOKS.m1.S1; LOOKS.m3._ = LOOKS.m3.S1;
+  // 2 임무 선별장: 같은 그림, 구역 신호는 분류함 색(run-scenery) — 창빛만 오후에서 늦은 오후로 조금씩
+  LOOKS.m2 = {
+    S1: R('m2-S1', 'sorting', 'rgba(255,244,214,.06)'),
+    S2: R('m2-S2', 'sorting', 'rgba(255,236,200,.10)'),
+    S3: R('m2-S3', 'sorting', 'rgba(255,226,184,.14)'),
+    S4: R('m2-S4', 'sorting', 'rgba(255,214,168,.18)')
+  };
+  // 4 임무 채점 센터(맑은 늦은 오후) → S4 교무실(노을)
+  LOOKS.m4 = {
+    S1: R('m4-S1', 'grading', 'rgba(255,214,160,.12)'),
+    S2: R('m4-S2', 'grading', 'rgba(255,206,150,.16)'),
+    S3: R('m4-S3', 'grading', 'rgba(255,196,140,.20)'),
+    S4: R('m4-S4', 'office', 'rgba(255,128,72,.30)')
+  };
+  LOOKS.m1._ = LOOKS.m1.S1; LOOKS.m3._ = LOOKS.m3.S1; LOOKS.m2._ = LOOKS.m2.S1; LOOKS.m4._ = LOOKS.m4.S1;
+  // 분류함: 카드 테두리와 같은 색상(의도된 단서 "이 카드는 이 함으로")은 지키고 밝기만 낮춰 카드와 겹쳐 보이지 않게
+  function dimBin(hex, k) {
+    k = k == null ? 0.72 : k;
+    var n = parseInt(hex.slice(1), 16);
+    return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(v * k).toString(16).padStart(2, '0'); }).join('');
+  }
 
   function look(missionId, zoneId) {
     var t = LOOKS[missionId];
@@ -61,7 +103,7 @@
     return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
   }
 
-  var api = { PALETTE: PALETTE, look: look, contrast: contrast };
+  var api = { PALETTE: PALETTE, look: look, contrast: contrast, dimBin: dimBin, INDOOR_ART: INDOOR_ART };
   root.DR = root.DR || {};
   root.DR.BridgeLook = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -38,3 +38,14 @@
 - 3 임무 썸네일 = `mission-m3.webp`(Codex 2026-11-02, 비 그친 역 앞 사거리 + 반투명 옛 육교). 미끼 글은 게임이 얹는다(`ui-shell.js` MISSION_CARDS). 그림이 없는 임무만 코드 그림으로 대신한다.
 - 4 임무 썸네일 = `mission-m4.webp`(Codex 2026-11-02, 그림 안 숫자·글자 없음). 미끼 글 "맞게 쓴 답에 ✕가 찍힌다면?"은 게임이 얹는다.
 - AI 봇·주인공 초상은 `assets/characters/`(robot·onyu·daon-portraits.png, 이미 저장소에 있던 파일)를 쓴다.
+
+## 달리기 실내 무대(2026-11-09, 무대 2차 — 2·4 임무)
+
+| 게임이 쓰는 파일 | 원본(올리지 않음) | 용량 |
+|---|---|---:|
+| int-sorting.webp(2 임무 선별장) | int-sorting.png 2832KB | 269KB |
+| int-grading.webp(4 임무 채점 센터 S1~S3) | int-grading.png 2106KB | 171KB |
+| int-teachers-office.webp(4 임무 S4 교무실, 노을) | int-teachers-office.png 2639KB | 210KB |
+
+- 2560×1080, 창 유리 알파 0(위 20% 천장·가운데 창 띠·아래 바닥선), 가로 이음매 없이 반복. sharp `webp({ quality: 90, alphaQuality: 90, smartSubsample })`로 알파 유지. 창 뒤로 낮 도시(`bg-*-day.webp`)가 비친다(`js/run-world.js` `.rw-wall`).
+- `int-archive*`·`*-purple-backup-*`·`*-original*`·`*-preview*`·`*-seam-check*`·`*.ps1`·`int-teachers-office-warm*`·`-night-backup`은 올리지 않는다(검토·보관용).

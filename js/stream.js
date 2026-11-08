@@ -4,6 +4,8 @@
  * 드문 카드 앞 벽 간격은 초 단위(cfg.rareWallGapSec) — 초반은 옆 레인으로 피했다 돌아와 잡을 수 있게 넉넉히, 후반은 촘촘히.
  *   거리 = 그 지점 속도 × 초. 다른 카드에 겹치면 rareGapRange 안에서 비킨다(카드 자리는 그대로, 벽만 옮긴다).
  * 벽은 그 밖에도 줄 사이에 듬성듬성(카드 수의 약 15%) — 바로 다음 줄에 카드가 있는 레인은 피한다. 세 레인을 모두 막는 일은 없다.
+ * 레인 수 = mission.lanes(기본 3, 4 임무만 4 — 2026-11-09 사용자 결정). 3레인이면 난수 쓰는 횟수까지 예전 그대로(코스 스냅숏 tests/lanes.test).
+ *   벽 규칙(막힌 레인 2개까지 = 늘 빈 레인)은 레인 수와 상관없이 같다.
  * 불꽃(mission.fires개, 보충은 1개)은 벽·카드와 떨어진 줄 사이에 한 번에 하나씩 — 피할 빈 레인이 늘 있다.
  * 보충: 짧은 코스. focusCounts(부족한 장 수)가 있으면 key마다 부족분 × 1.5장 + 흔한 카드 4장,
  * focusKeys만 있으면 카드 12장 중 8장을 그 key로 고르게 채운다.
@@ -47,6 +49,9 @@
     }
     return arr;
   }
+
+  function laneCount(mission) { return mission && mission.lanes > 0 ? mission.lanes : 3; }
+  function laneList(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); return a; }
 
   function isRare(mission, c) { if (c.fakeId) return false; return !!c.ambiguousId || !!(mission.cardTypes[c.key] && mission.cardTypes[c.key].rare); }
 
@@ -222,7 +227,7 @@
     var focus = counts ? Object.keys(counts) : (opts.focusKeys && opts.focusKeys.length ? opts.focusKeys : null);
     var seconds = opts.seconds || (focus ? mission.supplementSeconds : mission.runSeconds);
     var length = seconds * cfg.baseSpeed;
-    var rng = rngApi().create(opts.seed);
+    var rng = rngApi().create(opts.seed), nLanes = laneCount(mission);
     var deck = shuffle(focus ? supplementDeck(mission, focus, counts, opts.seed) : mainDeck(mission), rng);
 
     // 줄 수: 한 줄에 1~2장
@@ -245,7 +250,7 @@
 
     var items = [];
     rows.forEach(function (row) {
-      var lanes = shuffle([0, 1, 2], rng);
+      var lanes = shuffle(laneList(nLanes), rng);
       // 앞뒤 간격(2026-11-08 사용자 결정): 한 줄의 두 번째 카드는 그 지점 속도 × cfg.cardStaggerSec만큼 뒤에 — 나란히 같은 거리에 오지 않게.
       //   뒤로만 민다(가짜·드문·개인정보 카드의 '앞쪽엔 두지 않음' 규칙이 그대로 지켜진다). 난수를 쓰지 않아 종류·레인·구역은 그대로
       //   드문 카드와 흔한 카드가 한 줄이면 흔한 카드를 민다(드문 카드와 그 앞 벽은 원래 자리 — rareWallGapSec 그대로)
@@ -271,8 +276,8 @@
     shuffle(gaps, rng);
     var extra = Math.min(gaps.length, Math.round(deck.length * EXTRA_WALL_RATE));
     for (var e = 0; e < extra; e++) {
-      var gi = gaps[e], z = (rows[gi].z + rows[gi + 1].z) / 2, first = Math.floor(rng.next() * 3);
-      var lanes = [first, (first + 1) % 3, (first + 2) % 3].filter(function (l) { return wallFits(z, l, cardItems, walls, cfg); });
+      var gi = gaps[e], z = (rows[gi].z + rows[gi + 1].z) / 2, first = Math.floor(rng.next() * nLanes);
+      var lanes = laneList(nLanes).map(function (k) { return (first + k) % nLanes; }).filter(function (l) { return wallFits(z, l, cardItems, walls, cfg); });
       var usedBy = function (row, l) { return cardItems.some(function (c) { return c.row === row && c.lane === l; }); }; // 줄 소속으로(앞뒤 간격으로 z가 조금씩 다르다)
       // 바로 다음 줄에 카드가 없는 레인만, 그중 앞 줄에도 없는 레인을 먼저(자리가 없으면 이 벽은 세우지 않는다)
       var open = lanes.filter(function (l) { return !usedBy(rows[gi + 1], l); });
@@ -285,7 +290,7 @@
     var fireFrom = length * (mission.fireFrom || 0), fireZs = [];
     gaps.slice(extra).forEach(function (gi) {
       if (fireZs.length >= fireCount) return;
-      var z = (rows[gi].z + rows[gi + 1].z) / 2, lane = Math.floor(rng.next() * 3);
+      var z = (rows[gi].z + rows[gi + 1].z) / 2, lane = Math.floor(rng.next() * nLanes);
       if (z < fireFrom) return;
       if (fireZs.some(function (fz) { return Math.abs(fz - z) < cfg.baseSpeed * 3; })) return;
       if (items.some(function (it) { return Math.abs(it.z - z) < FIRE_CLEAR && (it.kind === 'wall' || it.lane === lane); })) return;
@@ -313,7 +318,7 @@
     return course;
   }
 
-  var api = { build: build, zonesOf: zonesOf, rareGapSec: rareGapSec, rareGapRange: rareGapRange, speedAt: speedAt, dodgeSec: dodgeSec, canDodge: canDodge };
+  var api = { build: build, laneCount: laneCount, zonesOf: zonesOf, rareGapSec: rareGapSec, rareGapRange: rareGapRange, speedAt: speedAt, dodgeSec: dodgeSec, canDodge: canDodge };
   root.DR = root.DR || {};
   root.DR.Stream = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
