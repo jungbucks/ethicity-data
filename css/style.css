@@ -111,6 +111,12 @@ body { overflow: hidden; word-break: keep-all; }
 .brief-scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: start; }
 .brief-scene { margin: 0; background: var(--panel); border-radius: var(--r); padding: 8px; }
 .brief-scene img { display: block; width: 100%; border-radius: 6px; }
+/* 4 임무 브리핑 답안 샘플(낱말판) — 375px에서 2×2, 넓으면 4칸 */
+.brief-samples { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.brief-sample { margin: 0; }
+.brief-sample img { display: block; width: 100%; aspect-ratio: 1; border-radius: 8px; }
+.brief-sample figcaption { font-size: 14px; text-align: center; padding-top: 4px; color: var(--muted, #c9c3e8); }
+@media (max-width: 640px) { .brief-samples { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .brief-scene figcaption { font-size: 16px; padding: 8px 4px 2px; }
 .brief-scene[data-emphasis="low"] { opacity: .72; transform: scale(.88); transform-origin: top left; }
 .brief-scene[data-emphasis="low"] figcaption { font-size: 14px; color: var(--ink-2); }
@@ -449,6 +455,11 @@ body { overflow: hidden; word-break: keep-all; }
 .labels.digit { flex-wrap: nowrap; gap: 8px; }
 .labels.digit .btn-digit, .relabel.digit .btn-digit { flex: none; width: 48px; min-width: 48px; height: 44px; padding: 0; border-radius: 999px; font-size: 20px; font-weight: 800; justify-content: center; }
 .label-none { margin-top: 8px; }
+/* 4 임무 낱말판(2026-11-08): 이름표 고치기·"?" 버튼 = 낱말 넷이 한 줄(375px 창 안쪽 307px — 칸마다 약 72px), 아주 좁으면 2×2 */
+.labels.word { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.labels.word .btn-word, .relabel.word .btn-word { min-width: 0; min-height: 44px; padding: 0 2px; font-size: 15px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; justify-content: center; text-align: center; }
+@media (max-width: 330px) { .labels.word { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.run-card.run-card-word .run-card-label { font-size: 19px; line-height: 1.25; }
 .gr-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
 .gr-item { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 8px; animation: gd-in .25s ease-out both; }
 .gr-item.ok { border-color: var(--ok); }

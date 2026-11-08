@@ -131,7 +131,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
 
 // C) 4 임무: 결판 통과 → 재연결 5/5 → 챕터 끝 → 의뢰인(채점 담당 선생님) 대사
 {
-  const MIN = { neat_1: 1, neat_2: 1, neat_3: 1, neat_4: 1, neat_5: 1, flag_1: 2, loop_3: 2, angular_2: 2, round_5: 1, table_4: 2, slant_1: 2 };
+  const MIN = { neat_data: 1, neat_algo: 1, neat_ai: 1, neat_ml: 1, cur_ai: 2, cur_algo: 2, alt_ai: 2, alt_data: 2, alt_ml: 2, scrawl_ml: 2 };
   const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m4' });
   try {
     await page.locator('#btn-skip').click();

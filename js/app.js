@@ -169,9 +169,11 @@
   function resume(save) {
     var m = DR.Missions[save.mission];
     if (!m) { go('title'); return; }
-    // 옛 1 임무(침수) 도중 저장: 도로 카드를 새 카드로 읽지 않게 새 1 임무 브리핑으로 돌려보낸다(다른 임무 기록은 그대로)
-    if (save.mission === 'm1' && save.bag.some(function (c) { return !c.key || !m.cardTypes[c.key]; })) {
-      save = Object.assign({}, save, { screen: 'briefing', bag: [], supplements: 0, firstTry: null, needRevealed: false, newIds: [], firstFails: [], named: [], seed: undefined });
+    // 옛 저장(1 임무 침수 도중 · 4 임무 숫자판 도중): 지금 임무에 없는 카드·이름표가 가방에 있으면 그 임무 브리핑으로 돌려보낸다
+    // (임무 기록 records는 그대로, 결판·동기·개인정보 진행도 처음부터 — DR.Save.fitsMission)
+    if (save.mission !== 'tutorial' && !DR.Save.fitsMission(m, save.bag)) {
+      save = Object.assign({}, save, { screen: 'briefing', bag: [], supplements: 0, firstTry: null, needRevealed: false, newIds: [], firstFails: [], named: [], seed: undefined,
+        lost: 0, peer: 'none', peerPending: false, showdownPassed: false, privCaught: [] });
     }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
       seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [], lost: save.lost || 0,

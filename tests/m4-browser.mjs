@@ -1,13 +1,13 @@
-// 4 임무 「채점 AI」 흐름: 브리핑 → 달리기(시험장 배경·구역 대사) → 검수(숫자 버튼) → 감독관 → 채점 시연(위험이면 멈춤)
+// 4 임무 「채점 AI」 낱말판(2026-11-08) 흐름: 브리핑(답안 샘플) → 달리기(시험장 배경·구역 대사) → 검수(낱말 버튼) → 감독관 → 채점 시연(위험이면 멈춤)
 //   → 장면 결과 → 결판(선배 답안) ─ 못 읽음 → 동기 합류(NEW 4장 / 마지막 보충은 고정) → … → 결판 "읽네"
 //   → 도시 재연결 5/5 → 의뢰인 → 해커의 이후 → 마무리(토론 질문)
 import assert from 'node:assert/strict';
 import { openGame, passChapter, shotPath } from './browser.mjs';
 
-const MIN = { neat_1: 1, neat_2: 1, neat_3: 1, neat_4: 1, neat_5: 1, flag_1: 2, loop_3: 2, angular_2: 2, round_5: 1, table_4: 2, slant_1: 2 };
+const MIN = { neat_data: 1, neat_algo: 1, neat_ai: 1, neat_ml: 1, cur_ai: 2, cur_algo: 2, alt_ai: 2, alt_data: 2, alt_ml: 2, scrawl_ml: 2 };
 const NO_NUMBERS = /%|\d+\s*개/;
 // 콘솔 오류는 없어야 한다(도시 복구 그림 assets/city/city-n.webp도 이제 있다)
-const ONLY = process.env.M4_ONLY || 'ABCDEF';
+const ONLY = process.env.M4_ONLY || 'ABCDEFG';
 const real = (errors) => errors.filter((e) => !/__missing__/.test(e)); // C는 결판 배경 그림을 일부러 없는 파일로
 
 async function toRun(page) {
@@ -103,7 +103,7 @@ async function ending(page, w, shots) {
   return lines;
 }
 
-// A) 첫 판에 크게 기운 1을 뺌 → 채점 멈춤 → S4 위험 → 결판 "또 지웠잖아" → 동기 합류(NEW 4장) → 보충 → 결판 "읽네" → 5/5 → 이후 → 마무리
+// A) 첫 판에 아주 흘려 쓴 머신러닝(선배 글씨)을 뺌 → 채점 멈춤 → S4 위험 → 결판 "또 지웠잖아" → 동기 합류(NEW 4장) → 보충 → 결판 "읽네" → 5/5 → 이후 → 마무리
 for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { width: 390, height: 844 }] : []) {
   const w = viewport.width;
   const { browser, page, errors } = await openGame({ viewport, query: '?start=m4', hasTouch: w < 500 });
@@ -118,8 +118,10 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     await page.locator('#btn-skip').click();
     await page.locator('#screen-briefing').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#screen-briefing .brief-scene').count(), 4);
-    assert.equal(await page.locator('#screen-briefing .legend li').count(), 5, 'choice numbers 1~5');
-    assert.match(await page.locator('#screen-briefing').innerText(), /이 시험의 선택지는 1~5번/);
+    assert.equal(await page.locator('#screen-briefing .legend li').count(), 4, 'the four words');
+    assert.match(await page.locator('#screen-briefing').innerText(), /보기 낱말은 데이터·알고리즘·인공지능·머신러닝/);
+    // 이번 시험 실제 답안 샘플 4장(반듯·흘림·'AI'·'data') — 선배 글씨는 없음
+    assert.deepEqual(await page.locator('#screen-briefing .brief-sample').evaluateAll((f) => f.map((x) => x.dataset.art)), ['neat_ai', 'cur_algo', 'alt_ai', 'alt_data']);
     await page.screenshot({ path: shotPath('m4-briefing-' + w), fullPage: true });
     await page.locator('#btn-run').click();
     await page.waitForFunction(() => DR.Run.peek().running, null, { timeout: 8000 });
@@ -128,18 +130,23 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     assert.equal(await page.evaluate(() => DR.Run.peek().scenery.theme), 'exam');
     // 구역 진입 대사(선배): S2에 들어서면 한 줄
     await page.evaluate(() => { const z = DR.Run.course().zones[1]; for (let i = 0; i < 20000 && DR.Run.peek().linesShown.indexOf('S2') < 0; i++) DR.Run.step(0.02); });
-    assert.match(await page.locator('#run-hint').innerText(), /^선배: 1을 7로 읽는 기계야/);
+    assert.match(await page.locator('#run-hint').innerText(), /^선배: 흘려 쓴 인공지능을 알고리즘으로 읽는 기계야/);
     await page.screenshot({ path: shotPath('m4-run-' + w) });
+    // 달리는 카드 가독성: 앞 카드가 잡기 직전 거리까지 — 3D 카드의 손글씨·이름표 낱말을 사람 눈으로 본다
+    await page.evaluate(() => { const z0 = DR.Run.peek().runnerZ; const it = DR.Run.course().items.filter((x) => x.kind === 'card' && x.z > z0 + 6)[0]; for (let i = 0; i < 4000 && DR.Run.peek().runnerZ < it.z - 4.5; i++) DR.Run.step(0.01); });
+    await page.screenshot({ path: shotPath('m4-run-near-' + w) });
     await page.evaluate(() => DR.Run.setPaused(false));
-    await fillAndInspect(page, { ...MIN, slant_1: 0, neat_1: 0, x_17: 1 });
-    // 7이 붙은 카드: 지금 이름표 = 7(선택지에 없는 번호), 1~5 버튼 중 눌린 것 없음
-    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_17"] .bag-label').innerText(), /^7번\(선택지에 없는 번호\)$/);
-    await page.locator('#inspect-grid .bag-card[data-key="x_17"] .bag-open').click();
+    await fillAndInspect(page, { ...MIN, scrawl_ml: 0, neat_data: 0, x_date: 1, x_neat_algo: 1 });
+    // '데이트'가 붙은 카드: 지금 이름표 = 데이트(보기에 없는 낱말), 낱말 버튼 넷 중 눌린 것 없음
+    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_date"] .bag-label').innerText(), /^데이트\(보기에 없는 낱말\)$/);
+    // ③ 반듯한데 틀린 카드는 겉보기에 평범한 이름표('인공지능')
+    assert.equal(await page.locator('#inspect-grid .bag-card[data-key="x_neat_algo"] .bag-label').innerText(), '인공지능');
+    await page.locator('#inspect-grid .bag-card[data-key="x_date"] .bag-open').click();
     const zoom = page.locator('#inspect-zoom');
-    assert.equal(await zoom.locator('[data-relabel]').count(), 5);
-    assert.equal(await zoom.locator('[data-relabel][aria-pressed="true"]').count(), 0, 'no number pressed for 7');
+    assert.deepEqual(await zoom.locator('[data-relabel]').evaluateAll((bs) => bs.map((b) => b.textContent)), ['데이터', '알고리즘', '인공지능', '머신러닝']);
+    assert.equal(await zoom.locator('[data-relabel][aria-pressed="true"]').count(), 0, 'no word pressed for 데이트');
     const tops = await zoom.locator('[data-relabel]').evaluateAll((bs) => bs.map((b) => Math.round(b.getBoundingClientRect().top)));
-    assert.equal(new Set(tops).size, 1, 'five buttons in one row');
+    assert.equal(new Set(tops).size, 1, 'four word buttons in one row');
     await page.screenshot({ path: shotPath('m4-zoom-' + w) });
     await page.keyboard.press('Escape');
     await page.screenshot({ path: shotPath('m4-inspect-' + w), fullPage: true });
@@ -154,10 +161,12 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     await page.screenshot({ path: shotPath('m4-grade-stop-' + w) });
     await page.locator('#btn-gr-resume').click();
     await page.locator('#btn-gr-next').waitFor({ state: 'visible', timeout: 10000 });
-    assert.equal(await page.locator('#screen-grade .gr-item').count(), 13);
+    assert.equal(await page.locator('#screen-grade .gr-item').count(), 14);
     const slant = page.locator('#screen-grade .gr-item[data-id="gr11"]');
     assert.equal(await slant.getAttribute('data-correct'), 'false');
-    assert.match(await slant.innerText(), /AI가 읽은 번호: 7/);
+    assert.match(await slant.innerText(), /학생이 쓴 답: 머신러닝/);
+    assert.match(await slant.innerText(), /AI가 읽은 낱말: 인공지능/);
+    assert.ok(!/번호|선택지/.test(await page.locator('#screen-grade').innerText()), 'no digit-era words');
     assert.equal(await page.locator('#screen-grade .gr-item[data-id="gr3"]').getAttribute('data-correct'), 'true', 'real wrong answer ✕ is right');
     assert.ok(!NO_NUMBERS.test(await page.locator('#screen-grade').innerText()), 'no % in grading');
     if (w < 500) assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= 390), 'grade fits 390');
@@ -165,7 +174,7 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     await page.locator('#btn-gr-next').click();
     const res = await throughResults(page);
     assert.deepEqual(res.map((r) => r.outcome), ['inconvenience', 'pass', 'pass', 'danger']);
-    assert.ok(res[3].text.includes('7로 읽었다') && res[3].text.includes('있지도 않은 번호'), res[3].text);
+    assert.ok(res[3].text.includes("'인공지능'으로 읽었다"), res[3].text);
     // 결판: 배경 그림 + 선배 답안(빈 자리 → 7 · ✕)
     await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 4000 });
     assert.match(await page.locator('#screen-story .story-bg').getAttribute('src'), /assets\/story\/showdown-senior\.webp$/);
@@ -173,13 +182,13 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     assert.equal(await page.locator('#screen-story .story-sheet').getAttribute('data-read'), 'null');
     await dialogueUntil(page, /^봐, 또 지웠잖아\.$/);
     assert.equal(await page.locator('#screen-story .story-sheet').getAttribute('data-read'), 'false');
-    assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /7 — 선택지에 없는 번호 · ✕/);
+    assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /인공지능 — 다른 낱말로 읽음 · ✕/);
     await page.waitForTimeout(700);
     await page.screenshot({ path: shotPath('m4-showdown-' + w) });
     const join = await readDialogue(page);
     assert.ok(join.some((t) => /이상한 건 빼자/.test(t) && /모아 뒀어/.test(t)), 'peer joins');
     // 보충 준비: 동기 카드 4장이 보충 뒤에 들어온다는 안내(뺄 수 있음)
-    const peerNote = await toPrepAndRun(page, { neat_1: 1 });
+    const peerNote = await toPrepAndRun(page, { neat_data: 1 });
     assert.equal(toPrepAndRun.bagMax, 26, 'run keeps 4 slots for the peer cards');
     assert.match(peerNote, /4장/); assert.match(peerNote, /넣을지는 검수에서 정한다/);
     assert.equal(await page.locator('#inspect-grid .bag-card[data-peer="joined"]').count(), 4);
@@ -225,7 +234,7 @@ if (ONLY.includes('C')) // C) 동기 카드를 빼고 다시 못 읽음 → 마�
   try {
     await page.evaluate(() => { DR.Missions.m4.story.showdown.bg = 'assets/story/__missing__.webp'; });
     await toRun(page);
-    await fillAndInspect(page, { ...MIN, slant_1: 0, table_4: 0 });
+    await fillAndInspect(page, { ...MIN, scrawl_ml: 0, alt_ml: 0 });
     await submit(page);
     await skipGrade(page);
     await throughResults(page);
@@ -260,28 +269,31 @@ if (ONLY.includes('C')) // C) 동기 카드를 빼고 다시 못 읽음 → 마�
   } finally { await browser.close(); }
 }
 
-// D) 375px: 이름표 고치기 버튼 5개 한 줄, "?" 카드 = 번호 5개 한 줄 + "넣지 않기" 둘째 줄
+// D) 375px: 이름표 고치기 = 낱말 버튼 4개 한 줄, "?" 카드 = 낱말 4개 한 줄 + "넣지 않기" 둘째 줄
 if (ONLY.includes('D')) {
   const { browser, page, errors } = await openGame({ viewport: { width: 375, height: 740 }, query: '?start=m4', hasTouch: true });
   try {
     await toRun(page);
-    await fillAndInspect(page, { ...MIN, x_38: 1, q_25: 1 });
-    await page.locator('#inspect-grid .bag-card[data-key="x_38"] .bag-open').click();
+    await fillAndInspect(page, { ...MIN, x_algo_ai: 1, q_ai: 1 });
+    await page.screenshot({ path: shotPath('m4-inspect-375'), fullPage: true });
+    await page.locator('#inspect-grid .bag-card[data-key="x_algo_ai"] .bag-open').click();
     const zoom = page.locator('#inspect-zoom');
     const boxes = await zoom.locator('[data-relabel]').evaluateAll((bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { top: Math.round(r.top), w: r.width, h: r.height, right: r.right }; }));
-    assert.equal(boxes.length, 5);
+    assert.equal(boxes.length, 4);
     assert.equal(new Set(boxes.map((b) => b.top)).size, 1, 'one row at 375px');
-    assert.ok(boxes.every((b) => b.w >= 48 && b.h >= 44), JSON.stringify(boxes));
+    assert.ok(boxes.every((b) => b.w >= 60 && b.h >= 44), JSON.stringify(boxes));
+    // 낱말이 버튼 안에 다 들어간다(잘리지 않음)
+    assert.ok(await zoom.locator('[data-relabel]').evaluateAll((bs) => bs.every((b) => b.scrollWidth <= b.clientWidth + 1)), 'words fit their buttons');
     assert.ok(boxes.every((b) => b.right <= 375), 'inside the screen');
     await page.screenshot({ path: shotPath('m4-relabel-375') });
-    await page.locator('#inspect-zoom [data-relabel="3"]').click();
-    assert.equal(await page.locator('#inspect-zoom [data-relabel="3"]').getAttribute('aria-pressed'), 'true');
+    await page.locator('#inspect-zoom [data-relabel="algo"]').click();
+    assert.equal(await page.locator('#inspect-zoom [data-relabel="algo"]').getAttribute('aria-pressed'), 'true');
     await page.keyboard.press('Escape');
-    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_38"]').innerText(), /고침/);
-    await page.locator('#inspect-grid .bag-card[data-key="q_25"] .bag-open').click();
+    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_algo_ai"]').innerText(), /고침/);
+    await page.locator('#inspect-grid .bag-card[data-key="q_ai"] .bag-open').click();
     const q = await page.locator('#inspect-zoom [data-label]').evaluateAll((bs) => bs.map((b) => ({ id: b.dataset.label, top: Math.round(b.getBoundingClientRect().top) })));
     const nums = q.filter((b) => b.id !== 'none'), none = q.find((b) => b.id === 'none');
-    assert.equal(nums.length, 5); assert.equal(new Set(nums.map((b) => b.top)).size, 1, '"?" numbers in one row');
+    assert.equal(nums.length, 4); assert.equal(new Set(nums.map((b) => b.top)).size, 1, '"?" words in one row');
     assert.ok(none.top > nums[0].top, '"넣지 않기" on its own row');
     assert.equal(await page.locator('#inspect-zoom .clue').count(), 2);
     await page.screenshot({ path: shotPath('m4-question-375'), fullPage: true });
@@ -326,27 +338,50 @@ for (const viewport of ONLY.includes('E') ? [{ width: 1280, height: 800 }, { wid
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }
-// F) 크게 기운 1은 있는데 표 안 답만 없음 → 결판도 장면 결과와 같은 말("답 없음 · 사람 채점", 7이 아니다 — 리뷰 I2)
+// F) 아주 흘린 글씨는 있는데 띄어 쓴 '머신 러닝'만 없음 → 결판도 장면 결과와 같은 말("보기에 없는 낱말 · 사람 채점", ✕가 아니다 — 리뷰 I2)
 if (ONLY.includes('F')) {
   const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, query: '?start=m4' });
   try {
     await toRun(page);
-    await fillAndInspect(page, { ...MIN, table_4: 0 });
+    await fillAndInspect(page, { ...MIN, alt_ml: 0 });
     await submit(page);
     await skipGrade(page);
     const res = await throughResults(page);
     assert.equal(res.find((r) => r.scene === 'S4').outcome, 'inconvenience');
     const t = await dialogueUntil(page, /채점 결과/);
-    assert.match(t, /표 끝 칸의 답을 찾지 못함 · 사람 채점/);
+    assert.match(t, /보기에 없는 낱말 · 사람 채점/);
     assert.equal(await page.locator('#screen-story .story-sheet').getAttribute('data-read'), 'hold');
-    assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /답 없음/);
+    assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /보기에 없는 낱말/);
     await page.screenshot({ path: shotPath('m4-showdown-hold-1280') });
     const rest = await readDialogue(page);
     assert.ok(rest.includes('봐, 또 지웠잖아.'));
-    // 보충 준비: 표 안 답은 동기 카드로 채워진다고 보인다(리뷰 M4)
+    // 보충 준비: 띄어 쓴 '머신 러닝'은 동기 카드로 채워진다고 보인다(리뷰 M4)
     await page.locator('#screen-prep').waitFor({ state: 'visible' });
     assert.ok((await page.locator('#prep-failed').innerText()).includes('동기 카드로 채워짐'));
     assert.deepEqual(real(errors), []);
+  } finally { await browser.close(); }
+}
+// G) 옛 숫자판 4 임무 도중 저장(검수 화면, 가방 neat_1·x_17, 동기 합류) → 이어하기 = 4 임무 브리핑부터, 임무 기록은 그대로
+if (ONLY.includes('G')) {
+  const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 } });
+  try {
+    await page.evaluate(() => {
+      localStorage.setItem('ethicity.data.save', JSON.stringify({ v: 1, cityV: 1, screen: 'inspect', mission: 'm4', bag: [{ id: 'c1', key: 'neat_1' }, { id: 'c2', fakeId: 'x_17', label: '1' }, { id: 'q', ambiguousId: 'q_25', assigned: '2' }],
+        supplements: 1, firstTry: false, seed: 4401, needRevealed: true, newIds: [], firstFails: [{ scene: 'S4', title: '선배의 옛 답안', kind: 'danger' }], named: [], lost: 0,
+        peer: 'joined', peerPending: false, showdownPassed: false, privCaught: ['p_name_2'], tutorialDone: true,
+        records: { tutorial: { cleared: true }, m1: { cleared: true }, m4: { cleared: true, firstTry: false, supplements: 1, firstFails: [] } } }));
+    });
+    await page.reload();
+    await page.locator('#btn-continue').click();
+    await page.locator('#screen-briefing').waitFor({ state: 'visible' });
+    const st = await page.evaluate(() => ({ bag: DR.App.state.bag.length, peer: DR.App.state.peer, sup: DR.App.state.supplements, priv: DR.App.state.privCaught, m4: !!(DR.App.records.m4 && DR.App.records.m4.cleared) }));
+    assert.deepEqual(st, { bag: 0, peer: 'none', sup: 0, priv: [], m4: true });
+    assert.equal(await page.locator('#screen-briefing .brief-sample').count(), 4, 'new word briefing');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ethicity.data.save')));
+    assert.equal(saved.screen, 'briefing'); assert.deepEqual(saved.bag, []);
+    assert.equal(saved.records.m4.cleared, true, 'records.m4 kept');
+    assert.deepEqual(errors, []);
+    console.log('ok old digit save -> m4 briefing');
   } finally { await browser.close(); }
 }
 console.log('PASS m4');

@@ -155,11 +155,11 @@ test('comboName: 종류 이름이 하나로 모이면 그 이름(3 임무 시장
   assert.deepEqual(c.keys, ['market_now', 'market_old']);
   assert.equal(C.comboName(m3, c), '시장 골목');
 });
-test('comboName: 이름이 여럿이면 what(4 임무 또박또박 쓴 답안 · 각지게 쓴 2와 둥글게 쓴 5)', () => {
+test('comboName: 이름이 여럿이면 what(4 임무 또박또박 쓴 답안), 하나면 그 이름(흘려 쓴 인공지능)', () => {
   const m4 = require('../missions/m4.js');
   const neat = m4.scenes[0].combos.find((x) => x.id === 'S1_neat');
   assert.equal(C.comboName(m4, neat), '또박또박 쓴 답안');
-  assert.equal(C.comboName(m4, m4.scenes[1].combos.find((x) => x.id === 'S2_25')), '각지게 쓴 2와 둥글게 쓴 5');
+  assert.equal(C.comboName(m4, m4.scenes[1].combos.find((x) => x.id === 'S2_cur_ai')), '흘려 쓴 인공지능');
 });
 test('comboName: what이 없으면 "A·B", 종류 하나면 지금 이름 그대로', () => {
   const m = { labels: [{ id: 'can', text: '캔' }], cardTypes: { a: { label: 'can', icons: ['can'], name: '음료 캔' }, b: { label: 'can', icons: ['can'], name: '통조림 캔' } } };

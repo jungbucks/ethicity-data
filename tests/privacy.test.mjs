@@ -93,7 +93,7 @@ test('check: untouched → unhandled, masked a must-remove card → mustRemove, 
 
 test('mask: only private cards can be masked; masked card counts as its normal kind', () => {
   const m4 = M.m4, d = m4.privacy.cards[0];
-  const plain = { id: 'c1', key: 'neat_1' }, priv = { id: 'c2', key: d.key, privateId: d.id };
+  const plain = { id: 'c1', key: 'neat_data' }, priv = { id: 'c2', key: d.key, privateId: d.id };
   assert.equal(Privacy.canMask(m4, plain), false);
   assert.equal(Privacy.canMask(m4, priv), true);
   assert.equal(Privacy.toggleMask(m4, plain), false);
@@ -108,7 +108,7 @@ test('mask: only private cards can be masked; masked card counts as its normal k
   assert.equal(Privacy.toggleMask(m4, priv), false);
   assert.equal('masked' in priv, false);
   assert.equal(C.artId(priv), d.id);
-  assert.equal(C.artId({ id: 'c9', key: 'neat_1' }), 'neat_1');
+  assert.equal(C.artId({ id: 'c9', key: 'neat_data' }), 'neat_data');
 });
 
 test('wasted: maskable private cards caught then removed (the "could have masked" line)', () => {

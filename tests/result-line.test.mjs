@@ -76,8 +76,8 @@ test('3 임무: 학교 앞 — 비 오는 날만 부족 / 지금 횡단보도 �
 test('통과면 passLine', () => {
   assert.equal(lineOf(m2, bagOf(M2_ALL), 'S2').line, m2.scenes[1].passLine);
 });
-test('1~3 임무 데이터: 조합마다 cut(문장) 또는 fail.line, 임무마다 cutTemplate, 가짜 cut', () => {
-  for (const m of [m1, m2, m3]) {
+test('1~4 임무 데이터: 조합마다 cut(문장) 또는 fail.line, 임무마다 cutTemplate, 가짜 cut', () => {
+  for (const m of [m1, m2, m3, m4]) {
     assert.ok(m.cutTemplate && m.cutTemplate.inconvenience, m.id + ' cutTemplate');
     for (const s of m.scenes) for (const c of s.combos) {
       const own = c.cut || (c.fail && c.fail.line);
@@ -88,19 +88,31 @@ test('1~3 임무 데이터: 조합마다 cut(문장) 또는 fail.line, 임무마
   }
 });
 
-// 4 임무는 데이터를 바꾸지 않는다 → 문구도 예전과 같아야(조합 fail.line → 장면 cuts)
+// 4 임무 낱말판(2026-11-08): 이제 4 임무도 결과 문구 데이터(cut·cutTemplate)를 쓴다
+const M4_ALL = { neat_data: 1, neat_algo: 1, neat_ai: 1, neat_ml: 1, cur_ai: 2, cur_algo: 2, alt_ai: 2, alt_data: 2, alt_ml: 2, scrawl_ml: 2 };
+test('4 임무: 흘려 쓴 인공지능만 부족 / 둘 다 부족 → "A와 B를" / ③ 반듯한 알고리즘 오염 → 그 가짜 문장', () => {
+  const one = lineOf(m4, bagOf({ ...M4_ALL, cur_ai: 1 }), 'S2');
+  assert.equal(one.r.failKind, 'danger'); assert.match(one.line, /흘려 쓴 인공지능/); assert.doesNotMatch(one.line, /흘려 쓴 알고리즘을/);
+  assert.match(lineOf(m4, bagOf({ ...M4_ALL, cur_ai: 0, cur_algo: 0 }), 'S2').line, /흘려 쓴 인공지능과 흘려 쓴 알고리즘을 다른 낱말로 읽어/);
+  const neat = lineOf(m4, bagOf(M4_ALL).concat(fakes('x_neat_algo', 2)), 'S1');
+  assert.equal(neat.r.failKind, 'danger'); assert.match(neat.line, /반듯하게 쓴 '알고리즘'을 '인공지능'으로/);
+  assert.match(lineOf(m4, bagOf(M4_ALL).concat(fakes('x_date', 2)), 'S3').line, /'데이트'로 읽었다/);
+  // 플레이어 오표기: 반듯한 인공지능을 '머신러닝'으로 2장 → 틀(조사 자동)
+  const mis = lineOf(m4, bagOf(M4_ALL).concat([{ id: 'w1', key: 'neat_ai', label: 'ml' }, { id: 'w2', key: 'neat_ai', label: 'ml' }]), 'S1');
+  assert.match(mis.line, /또박또박 쓴 인공지능이 '머신러닝' 이름표로 섞여/);
+});
 const rnd = (seed) => () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-test('4 임무: 무작위 가방 400개에서 예전 문구(failLine || cuts)와 같다', () => {
-  const rand = rnd(4401), keys = Object.keys(m4.cardTypes), labels = m4.labels.map((l) => l.id).concat(['7', '8']);
+test('4 임무: 무작위 가방 400개 — 실패 장면엔 늘 문장이 있고, 숫자 시절 말(번호·선택지)이 없다', () => {
+  const rand = rnd(4401), keys = Object.keys(m4.cardTypes), labels = m4.labels.map((l) => l.id).concat(['date', 'en_ai']);
   for (let n = 0; n < 400; n++) {
     const bag = [];
-    keys.forEach((k) => { const c = Math.floor(rand() * 6); for (let i = 0; i < c; i++) bag.push(rand() < 0.08 ? { id: k + n + '_' + i, key: k, label: labels[Math.floor(rand() * labels.length)] } : { id: k + n + '_' + i, key: k }); });
+    keys.forEach((k) => { const c = Math.floor(rand() * 4); for (let i = 0; i < c; i++) bag.push(rand() < 0.08 ? { id: k + n + '_' + i, key: k, label: labels[Math.floor(rand() * 4)] } : { id: k + n + '_' + i, key: k }); });
     (m4.fakes || []).forEach((f) => { const c = Math.floor(rand() * 3); for (let i = 0; i < c; i++) bag.push({ id: f.id + n + '_' + i, fakeId: f.id }); });
-    (m4.ambiguous || []).forEach((a) => { if (rand() < 0.5) bag.push({ id: a.id + n, ambiguousId: a.id, assigned: rand() < 0.5 ? a.correctLabel : '3' }); });
     const r = judge(m4, bag, cfg);
     r.scenes.forEach((s, i) => {
-      const sc = m4.scenes[i], old = s.pass ? sc.passLine : (s.failLine || sc.cuts[s.failKind]);
-      assert.equal(RL.sceneLine(m4, sc, s), old, 'bag ' + n + ' ' + s.id);
+      const line = RL.sceneLine(m4, m4.scenes[i], s);
+      assert.ok(line && line.length > 8, 'bag ' + n + ' ' + s.id);
+      assert.doesNotMatch(line, /번호|선택지|{/);
     });
   }
 });

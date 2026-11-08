@@ -60,11 +60,11 @@
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '길 안내 시연에서 잘못 안내한 질문' }), ql]));
       } else if (wrong.length && mission.grading) {
-        // 4 임무: 이 장면에서 잘못 채점한 답안지(학생이 고른 번호 → AI가 읽은 번호·도장)
+        // 4 임무: 이 장면에서 잘못 채점한 답안지(학생이 쓴 낱말 → AI가 읽은 낱말·도장)
         var gr = el('div', { class: 'result-wrong-row' });
         wrong.forEach(function (it) {
           var g = mission.grading.filter(function (x) { return x.id === it.id; })[0];
-          var cap = g.chose + '번 → ' + (it.bin === 'hold' ? '못 읽음 · 사람 채점' : g.read + ' · ✕');
+          var gw = mission.cardTypes[g.art] && mission.cardTypes[g.art].art.word, cap = (gw || DR.Cards.labelShort(mission, g.chose)) + ' → ' + (it.bin === 'hold' ? '못 읽음 · 사람 채점' : DR.Cards.labelShort(mission, g.read) + ' · ✕');
           gr.appendChild(el('figure', null, [el('img', { src: DR.CardArt.card(mission, g.art, g.variant, 160).toDataURL(), alt: mission.cardTypes[g.art].name }), el('figcaption', { text: cap })]));
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '채점 시연에서 잘못 채점한 답안지' }), gr]));

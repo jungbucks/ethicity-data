@@ -1027,8 +1027,114 @@
     }
   }
 
+  /* ---------- 4 임무 낱말 손글씨(2026-11-08 개편) — OFL 손글씨 글꼴 + Canvas 변형 ----------
+   * 글꼴은 css/hw-fonts.css(base64)에 있다. 글꼴이 읽히기 전에 그린 그림은 캐시하지 않는다(대체 글꼴 그림이 남지 않게, cacheKey '|hw0').
+   * hand: neat 반듯(두 학생 — HW Neat·HW Round를 variant로 번갈아) · quick 흘림(HW Quick, 기울임·좁은 간격) ·
+   *       scrawl 아주 흘림 = 선배 글씨(HW Bold, 크게·많이 기울게·글자가 겹치게, 획은 굵고 일정 — 개성 있는 글씨, 못 쓴 글씨가 아님).
+   * 낱말은 넓은 답 칸을 가득 채운다(4글자도 카드 폭의 60% 넘게 — 달리는 속도·48칸 썸네일에서 읽히게). */
+  var HW_FONTS = ['HW Neat', 'HW Round', 'HW Quick', 'HW Bold'], HW_TEXT = '데이터알고리즘인공지능머신러닝 datAI';
+  var HAND = {
+    neat:   { fonts: ['HW Neat', 'HW Round'], skew: 0, rot: 0.035, jit: 0.05, dy: 0.05, k: 1, track: 0.02, bold: 0.045 },
+    quick:  { fonts: ['HW Quick'], skew: -0.22, rot: 0.06, jit: 0.07, dy: 0.06, k: 1.04, track: -0.06, bold: 0.02, slope: -0.05 },
+    scrawl: { fonts: ['HW Bold'], skew: -0.38, rot: 0.02, jit: 0.0, dy: 0.0, k: 1.12, track: -0.16, bold: 0, slope: -0.1, wave: 0.07 }
+  };
+  var hwState = 'idle';
+  function loadWords() {
+    if (hwState !== 'idle' || typeof document === 'undefined' || !document.fonts || !document.fonts.load) return;
+    hwState = 'loading';
+    Promise.all(HW_FONTS.map(function (f) { return document.fonts.load("40px '" + f + "'", HW_TEXT); }))
+      .then(function (list) { hwState = list.every(function (x) { return x && x.length; }) ? 'ready' : 'failed'; }, function () { hwState = 'failed'; });
+  }
+  // 손글씨 글꼴 4종이 다 읽혔나(처음 부르면 읽기 시작). 'failed'면 대체 글꼴로 그리고 캐시도 한다(멈추지 않게)
+  function wordsReady() {
+    if (hwState === 'idle') loadWords();
+    if (hwState === 'loading' && typeof document !== 'undefined' && document.fonts &&
+      HW_FONTS.every(function (f) { return document.fonts.check("40px '" + f + "'", '데이터'); })) hwState = 'ready';
+    return hwState === 'ready' || hwState === 'failed';
+  }
+  function handOf(o) { return HAND[o.hand] || HAND.neat; }
+  function fontOf(o, variant) { var h = handOf(o); return h.fonts[(Math.floor(variant) || 0) % h.fonts.length]; }
+
+  // 낱말 하나를 (x,y,w,h) 칸 가운데에 쓴다. alpha·dx는 번진 자국(겹쳐 쓰기)용
+  function writeWord(g, o, r, variant, x, y, w, h, opts) {
+    opts = opts || {};
+    var hand = handOf(o), font = fontOf(o, variant), chars = Array.from(o.word);
+    g.save();
+    g.font = "100px '" + font + "', 'Malgun Gothic', sans-serif";
+    var widths = chars.map(function (ch) { return ch === ' ' ? 34 : g.measureText(ch).width; });
+    var track = hand.track * 100, total = widths.reduce(function (a, b) { return a + b; }, 0) + track * (chars.length - 1);
+    var size = Math.min(100 * w * 0.9 / Math.max(1, total), h * 0.78) * hand.k * (0.94 + r.next() * 0.08);
+    var s = size / 100;
+    if (total * s > w * 0.96) s = w * 0.96 / total; // 기울여도 칸 밖으로 크게 넘치지 않게
+    g.translate(x + w / 2 + (opts.dx || 0), y + h / 2 + (r.next() - 0.5) * h * 0.06);
+    g.rotate(hand.slope ? hand.slope + (r.next() - 0.5) * hand.rot : (r.next() - 0.5) * 2 * hand.rot);
+    g.transform(1, 0, hand.skew, 1, 0, 0);
+    g.globalAlpha = opts.alpha === undefined ? 1 : opts.alpha;
+    g.fillStyle = PENCIL; g.strokeStyle = PENCIL; g.lineJoin = 'round'; g.lineWidth = Math.max(0.5, hand.bold * 100 * s);
+    g.font = Math.round(100 * s * 10) / 10 + "px '" + font + "', 'Malgun Gothic', sans-serif";
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    var cx = -total * s / 2;
+    chars.forEach(function (ch, i) {
+      var cw = widths[i] * s, wave = hand.wave ? Math.sin(i * 1.7 + variant) * hand.wave * size : 0;
+      if (ch !== ' ') {
+        g.save();
+        g.translate(cx + cw / 2, (r.next() - 0.5) * hand.dy * size + wave);
+        g.rotate((r.next() - 0.5) * hand.jit * 2);
+        g.scale(1 + (r.next() - 0.5) * 0.06, 1 + (r.next() - 0.5) * 0.06);
+        g.fillText(ch, 0, 0);
+        if (hand.bold) g.strokeText(ch, 0, 0);
+        g.restore();
+      }
+      cx += cw + track * s;
+    });
+    g.restore();
+    return font;
+  }
+
+  // 답안 카드(낱말판): 종이 + 넓은 답 칸 + 손글씨 낱말. o.style 'scribble'(낙서 가짜)도 같은 칸 모양(칸 모양이 정답 단서가 되지 않게)
+  function drawWordAnswer(c, o, seed, variant) {
+    var S = c.width, g = c.getContext('2d'), r = rng(seed);
+    paper(g, S, r);
+    var bx = S * 0.04, by = S * 0.2, bw = S * 0.92, bh = S * 0.74;
+    answerBox(g, S, bx, by, bw, bh);
+    var x = bx + S * 0.02, y = by + S * 0.07, w = bw - S * 0.04, h = bh - S * 0.09;
+    if (o.style === 'scribble') {
+      var cx = S * 0.5, cy = y + h / 2;
+      g.fillStyle = 'rgba(120,120,140,.22)'; g.beginPath(); g.ellipse(cx, cy, S * 0.3, S * 0.14, (r.next() - 0.5) * 0.6, 0, 7); g.fill();
+      g.strokeStyle = PENCIL; g.lineWidth = S * 0.018; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(cx - S * 0.3, cy);
+      for (var z = 0; z < 11; z++) g.lineTo(cx - S * 0.3 + S * 0.055 * (z + 1), cy + (z % 2 ? -1 : 1) * S * (0.06 + r.next() * 0.09));
+      g.stroke();
+      return;
+    }
+    c.hwFont = writeWord(g, o, r, variant, x, y, w, h);
+    if (o.smudge) {
+      // 번진 글씨: 같은 낱말을 옆으로 밀어 두 번 더 흐리게 + 문지른 회색 자국 — 어느 낱말인지 한눈에 단정하기 어렵게
+      writeWord(g, o, rng(seed + 1), variant, x, y, w, h, { dx: S * 0.035, alpha: 0.35 });
+      writeWord(g, o, rng(seed + 2), variant, x, y, w, h, { dx: -S * 0.03, alpha: 0.3 });
+      g.fillStyle = 'rgba(150,150,165,.72)'; g.beginPath(); g.ellipse(S * 0.52, y + h * 0.52, S * 0.38, S * 0.13, -0.12, 0, 7); g.fill();
+    }
+  }
+
+  // "?" 카드 단서(낱말판): 같은 학생의 다른 답(같은 흘림 글씨, 또렷하게) / 연필 자국 확대(한 글자 크게 + 동그라미)
+  function drawWordClue(c, q, cl, seed) {
+    var S = c.width, g = c.getContext('2d');
+    if (cl.type === 'same_student') { drawWordAnswer(c, { word: q.art.word, hand: q.art.hand }, seed, 2); return; }
+    g.fillStyle = PAPER; g.fillRect(0, 0, S, S);
+    g.save(); g.beginPath(); g.arc(S * 0.5, S * 0.5, S * 0.42, 0, 7); g.clip();
+    g.fillStyle = '#ece6d4'; g.fillRect(0, 0, S, S);
+    writeWord(g, { word: cl.zoom, hand: q.art.hand }, rng(seed), 0, S * 0.12, S * 0.1, S * 0.76, S * 0.8);
+    g.restore();
+    g.strokeStyle = '#4a4f68'; g.lineWidth = S * 0.025; g.beginPath(); g.arc(S * 0.5, S * 0.5, S * 0.42, 0, 7); g.stroke();
+    // 받침 자리(글자 아래쪽)에 파란 동그라미 — 단서 글이 가리키는 곳
+    g.strokeStyle = '#3a8fd9'; g.lineWidth = S * 0.018;
+    g.beginPath(); g.ellipse(S * 0.5, S * 0.68, S * 0.2, S * 0.1, 0, 0, 7); g.stroke();
+  }
+
   // 결과·브리핑 컷(4 임무): 책상 위 답안지 + 도장(○ 초록 / ✕ 빨강 / 사람 채점 노랑) + 선생님 실루엣
-  var EXAM_ART = { neat: { digit: '3', style: 'neat' }, quick: { digit: '1', style: 'flag' }, table: { digit: '4', style: 'table' }, slant: { digit: '1', style: 'slant' } };
+  var EXAM_ART = { neat: { word: '인공지능', hand: 'neat' }, quick: { word: '알고리즘', hand: 'quick' }, alt: { word: 'AI', hand: 'neat', alt: true }, scrawl: { word: '머신러닝', hand: 'scrawl' },
+    // 옛 숫자판 장면 이름(그림 시험용으로만 남김)
+    table: { digit: '4', style: 'table' }, slant: { digit: '1', style: 'slant' } };
   function stampO(g, S, x, y, rad) { g.strokeStyle = '#2fae6b'; g.lineWidth = S * 0.03; g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); }
   function stampX(g, S, x, y, rad) { g.strokeStyle = '#e8434a'; g.lineWidth = S * 0.035; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - rad, y - rad); g.lineTo(x + rad, y + rad); g.moveTo(x + rad, y - rad); g.lineTo(x - rad, y + rad); g.stroke(); }
   function stampHuman(g, S, x, y) {
@@ -1044,7 +1150,8 @@
     g.fillStyle = '#2c2547'; g.fillRect(0, 0, S, S);
     g.fillStyle = '#3b3260'; g.fillRect(0, S * 0.72, S, S * 0.28);
     var sheet = canvas(Math.round(S * 0.7));
-    drawAnswer(sheet, EXAM_ART[s.art.exam] || EXAM_ART.neat, seed);
+    var ea = EXAM_ART[s.art.exam] || EXAM_ART.neat;
+    if (ea.word) drawWordAnswer(sheet, ea, seed, 3); else drawAnswer(sheet, ea, seed);
     g.save(); g.translate(S * 0.46, S * 0.52); g.rotate(-0.05);
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(-S * 0.35 + S * 0.015, -S * 0.35 + S * 0.02, S * 0.7, S * 0.7);
     g.drawImage(sheet, -S * 0.35, -S * 0.35, S * 0.7, S * 0.7);
@@ -1066,8 +1173,32 @@
   }
 
   // 결판: 선배의 옛 답안(크게 기운 1을 표 끝 칸에) + 위쪽 'AI가 읽은 답' 자리. read = true(1 · ○) / false(7 · ✕) / 그 밖(빈 자리)
+  // 낱말판 결판(2026-11-08): 선배가 빈칸에 아주 흘려 쓴 낱말(showdown.sheetWord) + 위쪽 'AI가 읽은 답' 칸에 읽은 낱말(sheetRead)·도장
+  function wordSheet(mission, read, size) {
+    var sd = mission.story.showdown, c = canvas(size), g = c.getContext('2d'), S = size, r = rng(hash('senior-sheet'));
+    paper(g, S, r);
+    g.fillStyle = BOX; g.font = 'bold ' + Math.round(S * 0.045) + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('AI가 읽은 답', S * 0.47, S * 0.19);
+    g.strokeStyle = '#4a4f68'; g.lineWidth = Math.max(1.5, S * 0.008); g.setLineDash([S * 0.02, S * 0.015]);
+    roundRect(g, S * 0.45, S * 0.23, S * 0.5, S * 0.17, S * 0.03); g.stroke(); g.setLineDash([]);
+    var key = read === true ? 'pass' : read === false ? 'fail' : read === 'hold' ? 'hold' : null;
+    if (key) {
+      g.fillStyle = key === 'pass' ? '#1f7a4c' : key === 'fail' ? '#b8283a' : '#8a6d00';
+      g.font = 'bold ' + Math.round(S * 0.065) + "px 'Malgun Gothic', sans-serif"; g.textAlign = 'center';
+      g.fillText(sd.sheetRead[key], S * 0.63, S * 0.315, S * 0.3);
+      if (key === 'pass') stampO(g, S, S * 0.87, S * 0.315, S * 0.055);
+      else if (key === 'fail') stampX(g, S, S * 0.87, S * 0.315, S * 0.045);
+      else stampHuman(g, S * 0.5, S * 0.87, S * 0.315);
+    }
+    var bx = S * 0.04, by = S * 0.46, bw = S * 0.92, bh = S * 0.48;
+    answerBox(g, S, bx, by, bw, bh);
+    c.hwFont = writeWord(g, { word: sd.sheetWord, hand: 'scrawl' }, r, 0, bx + S * 0.02, by + S * 0.06, bw - S * 0.04, bh - S * 0.08);
+    return c;
+  }
+
   function sheet(mission, who, read, size) {
     size = size || 360;
+    if (mission.story && mission.story.showdown && mission.story.showdown.sheetWord) return cached('sheet|' + mission.id + '|' + who + '|' + read + '|' + size + wordKey(mission), function () { return wordSheet(mission, read, size); });
     return cached('sheet|' + mission.id + '|' + who + '|' + read + '|' + size, function () {
       var c = canvas(size), g = c.getContext('2d'), S = size, r = rng(hash('senior-sheet'));
       paper(g, S, r);
@@ -1133,6 +1264,9 @@
     return c;
   }
 
+  // 4 임무 낱말판: 손글씨 글꼴이 아직이면 캐시 열쇠를 달리 — 글꼴이 오면 새로 그린다
+  function wordKey(mission) { return mission.labelStyle === 'word' && !wordsReady() ? '|hw0' : ''; }
+
   function card(mission, id, variant, size, n) {
     var masked = /#masked$/.test(id), pdef = privateDef(mission, id);
     // variant 3 이상 = 2 임무 컨베이어의 '처음 보는 물건'(학습 카드와 달라 보여야 함) → 사진 대신 Canvas 그림
@@ -1143,12 +1277,13 @@
       c.photo = pid;
       return masked && pdef ? maskOver(c, pdef.mask) : c;
     });
-    return cached(mission.id + '|' + id + '|' + variant + '|' + size, function () {
+    return cached(mission.id + '|' + id + '|' + variant + '|' + size + wordKey(mission), function () {
       // 개인정보 카드는 그 종류(key)와 같은 씨앗 — 같은 거리·같은 글씨 위에 행인·번호판·이름만 더한다
       var o = artOf(mission, id), c = canvas(size), seed = hash(pdef ? pdef.key : id) + variant * 7919;
       var drawId = pdef ? pdef.key : id;
       if (o.photo && !o.object && !o.view) drawLostFallback(c, o); // 1 임무(사진뿐) — 사진이 있는 2 임무 물건·3 임무 거리는 아래 Canvas 그림으로
       else if (o.animal) drawAnimal(c, o, seed);
+      else if (o.word || mission.labelStyle === 'word') { drawWordAnswer(c, o, seed, variant); c.fine = true; } // 4 임무 낱말판(낙서 가짜도 같은 칸)
       else if (o.style) drawAnswer(c, o, seed);
       else if (o.view) drawStreetView(c, o, seed);
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
@@ -1163,7 +1298,7 @@
 
   function thumb(src, cells) {
     cells = cells || 24;
-    if (src.photo) cells = Math.max(cells, 48); // 사진은 24칸이면 뭉개진다 — 48칸(같은 픽셀 썸네일 방식)
+    if (src.photo || src.fine) cells = Math.max(cells, 48); // 낱말 손글씨(4 임무)도 24칸이면 글자가 뭉개진다 // 사진은 24칸이면 뭉개진다 — 48칸(같은 픽셀 썸네일 방식)
     var k = Math.max(1, Math.floor(src.width / cells));
     var small = canvas(cells), sg = small.getContext('2d');
     sg.drawImage(src, 0, 0, cells, cells);
@@ -1337,9 +1472,10 @@
 
   // 단서: usual_photo는 같은 장소의 평소(마른) 모습, 나머지는 계기판 모양 문구
   function clue(mission, ambiguousId, index, size) {
-    return cached('clue|' + mission.id + '|' + ambiguousId + '|' + index + '|' + size, function () {
+    return cached('clue|' + mission.id + '|' + ambiguousId + '|' + index + '|' + size + wordKey(mission), function () {
       var q = mission.ambiguous.filter(function (a) { return a.id === ambiguousId; })[0];
       var cl = q.clues[index], c = canvas(size);
+      if (q.art && q.art.word) { drawWordClue(c, q, cl, hash(ambiguousId) + index); return c; }
       if (q.art && q.art.style) { drawAnswerClue(c, q, cl, hash(ambiguousId) + index); return c; }
       if (cl.type === 'usual_photo') {
         drawRoad(c, Object.assign({}, q.art, { water: 'dry', ambiguity: null, place: PLACES[hash(ambiguousId) % PLACES.length] }), hash(ambiguousId));
@@ -1362,7 +1498,7 @@
 
   // 장면 그림(브리핑 'neutral' / 결과 'pass'·'danger'·'inconvenience')
   function scene(mission, sceneId, outcome, size) {
-    return cached('scene|' + mission.id + '|' + sceneId + '|' + outcome + '|' + size, function () {
+    return cached('scene|' + mission.id + '|' + sceneId + '|' + outcome + '|' + size + wordKey(mission), function () {
       var s = mission.scenes.filter(function (x) { return x.id === sceneId; })[0];
       var c = canvas(size), g = c.getContext('2d'), S = size, seed = hash(sceneId);
       if (s.art.place === 'sorting') { drawSorting(c, mission, s, outcome, seed); return c; }
@@ -1534,7 +1670,8 @@
     else { g.beginPath(); g.moveTo(x, y - r * 0.5); g.lineTo(x, y + r * 0.1); g.stroke(); g.beginPath(); g.arc(x, y + r * 0.4, S * 0.012, 0, 7); g.fill(); }
   }
 
-  var api = { card: card, photoId: photoId, preloadPhotos: preloadPhotos, photosReady: photosReady, _photos: photoImgs, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, binColors: BIN_COLORS };
+  loadWords(); // 손글씨 글꼴을 바로 읽기 시작(base64라 금방 — 4 임무 카드를 그릴 때쯤엔 준비됨)
+  var api = { card: card, photoId: photoId, preloadPhotos: preloadPhotos, photosReady: photosReady, _photos: photoImgs, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, wordsReady: wordsReady, binColors: BIN_COLORS };
   root.DR = root.DR || {};
   root.DR.CardArt = api;
 })(window);

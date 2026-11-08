@@ -167,39 +167,45 @@ try {
   assert.ok(r3.fallback.std > 10 && r3.fallback.plateStd > 10, 'Canvas street art drawn ' + JSON.stringify(r3.fallback));
   assert.ok(r3.fallback.plateMean > 60 && r3.fallback.maskedMean < 40, 'Canvas fallback plate covered by canvasMask ' + JSON.stringify(r3.fallback));
 
-  // 4 임무: 손글씨 답안(같은 붓), 번호 아이콘 7종, "?" 단서, 채점 결과 컷, 결판 선배 답안 — 시트 _shot-cardart-m4.png(24칸 썸네일 = 게임 크기)
+  // 4 임무 낱말 손글씨(2026-11-08): OFL 글꼴 4종이 읽혀야 그린다. 낱말이 답 칸을 넓게 채우는지(달리는 속도·썸네일에서 읽히게),
+  // 손글씨 갈래(반듯·흘림·아주 흘림·다른 표기)가 서로 다른지, 썸네일 48칸, "?" 단서·채점 컷·결판 선배 답안 — 시트 _shot-cardart-m4.png
+  await page.waitForFunction(() => DR.CardArt.wordsReady(), null, { timeout: 10000 });
   const r4 = await page.evaluate(() => {
     document.querySelectorAll('body > div[style*="z-index:99"]').forEach((e) => e.remove());
     const A = DR.CardArt, M = DR.Missions, m4 = M.m4;
     const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
     const std = (c) => { const d = px(c); let s = 0, s2 = 0; const n = d.length / 4; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; } return Math.sqrt(s2 / n - (s / n) ** 2); };
     const diff = (a, b) => { const x = px(a), y = px(b); let d = 0; for (let i = 0; i < x.length; i += 4) d += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); return d / (x.length / 4); };
+    // 연필 잉크(어두운 화소)가 차지한 상자 — 답 칸 테두리·'답' 글자(회색)는 밝아서 빠진다
+    const ink = (c) => { const d = px(c), w = c.width; let x0 = w, x1 = -1, y0 = w, y1 = -1; for (let y = Math.floor(w * 0.2); y < w; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if ((d[i] + d[i + 1] + d[i + 2]) / 3 < 90) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } } return { w: (x1 - x0) / w, h: (y1 - y0) / w }; };
     const out = { bad: [], scenes: 0, clues: 0 };
-    const ids = [...Object.keys(m4.cardTypes), ...m4.fakes.map((f) => f.id), ...m4.ambiguous.map((a) => a.id)];
-    for (const id of ids) for (const v of [0, 1, 2]) if (std(A.card(m4, id, v, 256)) <= 10) out.bad.push(id + ' v' + v);
-    out.variantDiff = A.card(m4, 'neat_3', 0, 256).toDataURL() !== A.card(m4, 'neat_3', 1, 256).toDataURL();
-    const digits = ['1', '2', '3', '4', '5', '7', '8'];
-    out.iconUnique = new Set(digits.map((n) => A.icon(n, 64).toDataURL())).size;
+    out.fonts = ['HW Neat', 'HW Round', 'HW Quick', 'HW Bold'].map((f) => document.fonts.check("40px '" + f + "'", '머신러닝'));
+    const ids = [...Object.keys(m4.cardTypes), ...m4.fakes.map((f) => f.id), ...m4.ambiguous.map((a) => a.id), ...m4.privacy.cards.map((d) => d.id), ...m4.privacy.cards.map((d) => d.id + '#masked')];
+    for (const id of ids) for (const v of [0, 1, 2, 3]) if (std(A.card(m4, id, v, 256)) <= 10) out.bad.push(id + ' v' + v);
+    out.fontOf = Object.fromEntries(['neat_ai', 'cur_ai', 'scrawl_ml', 'alt_ai'].map((k) => [k, [0, 1].map((v) => A.card(m4, k, v, 256).hwFont)]));
+    out.variantDiff = A.card(m4, 'neat_ai', 0, 256).toDataURL() !== A.card(m4, 'neat_ai', 1, 256).toDataURL();
+    // 4글자 낱말은 카드 폭의 60% 넘게 — 달리는 카드(368px 안)·썸네일에서 읽히게
+    out.inkFour = ['neat_data', 'neat_algo', 'neat_ai', 'neat_ml', 'cur_ai', 'cur_algo', 'scrawl_ml', 'alt_ml'].map((k) => [k, ink(A.card(m4, k, 0, 256))]);
+    out.inkShort = ['alt_ai', 'alt_data'].map((k) => [k, ink(A.card(m4, k, 0, 256))]);
+    // 같은 낱말의 손글씨 갈래끼리 썸네일에서 다르다
+    const T = (id, v = 0) => A.thumb(A.card(m4, id, v, 192), 24);
+    out.thumb = T('neat_ai').width + 'x' + T('neat_ai').height;
+    out.pairs = [['neat_ai', 'cur_ai'], ['neat_ml', 'scrawl_ml'], ['neat_ml', 'alt_ml'], ['cur_algo', 'cur_ai'], ['alt_ai', 'neat_ai']].map(([a, b]) => [a + '/' + b, diff(T(a), T(b))]);
     for (const s of m4.scenes) for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) if (std(A.scene(m4, s.id, o, 320)) > 10) out.scenes++;
     out.outcomesDiffer = new Set(['neutral', 'pass', 'danger', 'inconvenience'].map((o) => A.scene(m4, 'S4', o, 320).toDataURL())).size;
     for (const q of m4.ambiguous) q.clues.forEach((_, i) => { if (std(A.clue(m4, q.id, i, 256)) > 5) out.clues++; });
-    out.sheets = [true, false, null].map((x) => A.sheet(m4, 'senior', x, 360).toDataURL()).length === 3 && A.sheet(m4, 'senior', true, 360) !== A.sheet(m4, 'senior', false, 360);
-    // 닮은 짝은 썸네일에서 서로 다르다(같은 그림이 아니다)
-    const T = (id) => A.thumb(A.card(m4, id, 0, 256), 24);
-    out.pairs = [['neat_1', 'flag_1'], ['flag_1', 'slant_1'], ['neat_3', 'loop_3'], ['angular_2', 'round_5'], ['neat_2', 'angular_2']].map(([a, b]) => diff(T(a), T(b)));
+    out.sheets = new Set([true, false, 'hold', null].map((x) => A.sheet(m4, 'senior', x, 360).toDataURL())).size;
+    // 사람 눈 시트: 큰 그림(크게 보기) · 48칸 썸네일(검수 격자 크기 96px) · 단서 · 결과 컷 · 선배 답안
     const sheet = document.createElement('div');
     sheet.style.cssText = 'position:fixed;inset:0;z-index:99;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;overflow:hidden';
     const add = (c, label, w = 112) => { const f = document.createElement('figure'); f.style.cssText = 'margin:0;color:#fff;font:11px sans-serif'; c.style.width = w + 'px'; c.style.height = w + 'px'; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); sheet.append(f); };
-    // 큰 그림(크게 보기 크기 비슷)
-    for (const id of ids) add(A.card(m4, id, 0, 256), id, 120);
-    for (const id of ['flag_1', 'slant_1', 'loop_3']) add(A.card(m4, id, 1, 256), id + ' v1', 120);
-    // 24칸 썸네일 = 검수 격자·달리기 카드와 같은 크기: 1·7(깃발 1), 3·8(고리 3), 2·5 짝을 나란히
-    for (const id of ['neat_1', 'flag_1', 'slant_1', 'x_17', 'neat_3', 'loop_3', 'x_38', 'neat_2', 'angular_2', 'x_25', 'neat_5', 'round_5', 'neat_4', 'table_4', 'x_scribble', 'q_25', 'q_35']) add(T(id), 't ' + id, 72);
-    for (const n of digits) add(A.icon(n, 64), n, 40);
+    for (const id of ids.slice(0, 22)) add(A.card(m4, id, 0, 256), id, 120);
+    for (const id of ['neat_ai', 'cur_ai', 'scrawl_ml']) add(A.card(m4, id, 1, 256), id + ' v1', 120);
+    for (const id of ['neat_data', 'neat_algo', 'neat_ai', 'neat_ml', 'cur_ai', 'cur_algo', 'alt_ai', 'alt_data', 'alt_ml', 'scrawl_ml', 'x_neat_algo', 'x_date', 'x_ai_raw', 'x_scribble', 'q_ai', 'q_algo']) add(T(id), 't48 ' + id, 96);
     for (const q of m4.ambiguous) q.clues.forEach((_, i) => add(A.clue(m4, q.id, i, 256), q.id + ' clue' + i, 100));
     for (const o of ['neutral', 'pass', 'danger', 'inconvenience']) add(A.scene(m4, 'S2', o, 320), 'S2 ' + o, 100);
     for (const s of ['S1', 'S3', 'S4']) add(A.scene(m4, s, 'neutral', 320), s, 100);
-    add(A.sheet(m4, 'senior', false, 360), 'senior ✕', 140); add(A.sheet(m4, 'senior', true, 360), 'senior ○', 140);
+    for (const x of [true, false, 'hold']) add(A.sheet(m4, 'senior', x, 360), 'senior ' + x, 140);
     document.body.append(sheet);
     return out;
   });
@@ -269,14 +275,18 @@ try {
   assert.equal(rt.fallback.other, 'd04', 'other photos still used');
   // 일부러 없앤 사진 파일만 허용
   for (let i = errors.length - 1; i >= 0; i--) if (/__missing\.webp/.test(errors[i])) errors.splice(i, 1);
+  assert.deepEqual(r4.fonts, [true, true, true, true], 'four handwriting fonts loaded from base64 css (file://)');
   assert.deepEqual(r4.bad, [], 'm4 blank art');
+  assert.deepEqual(r4.fontOf, { neat_ai: ['HW Neat', 'HW Round'], cur_ai: ['HW Quick', 'HW Quick'], scrawl_ml: ['HW Bold', 'HW Bold'], alt_ai: ['HW Neat', 'HW Round'] }, 'hand → font (neat alternates two students)');
   assert.ok(r4.variantDiff, 'm4 variants differ');
-  assert.equal(r4.iconUnique, 7, 'digit icons unique');
+  for (const [k, b] of r4.inkFour) assert.ok(b.w >= 0.6 && b.h >= 0.12, k + ' word fills the answer box ' + JSON.stringify(b));
+  for (const [k, b] of r4.inkShort) assert.ok(b.h >= 0.18, k + ' short word is big ' + JSON.stringify(b));
+  assert.equal(r4.thumb, '192x192', 'word cards use 48-cell thumbnails like photos');
+  for (const [p, d] of r4.pairs) assert.ok(d > 8, 'hands differ in thumbnails ' + p + ' ' + d.toFixed(1));
   assert.equal(r4.scenes, 16, 'm4 scenes');
   assert.equal(r4.outcomesDiffer, 4, 'm4 outcomes differ');
   assert.equal(r4.clues, 4, 'm4 clues');
-  assert.ok(r4.sheets, 'senior sheet read/unread');
-  assert.ok(r4.pairs.every((d) => d > 3), 'look-alike pairs still differ ' + r4.pairs.map((d) => d.toFixed(1)));
+  assert.equal(r4.sheets, 4, 'senior sheet: unread / ○ / ✕ / person');
   assert.deepEqual(r.bad, []);
   assert.ok(r.sizes.every((s) => s === '256x256'), r.sizes.join());
   assert.ok(r.variantDiffers, 'variant');

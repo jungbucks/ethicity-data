@@ -121,10 +121,12 @@
       if (sheetBox && sheetBox.dataset.key === key) return;
       if (sheetBox) sheetBox.remove();
       var m = root.DR.Missions[sh.mission];
-      var cap = sh.read === true ? 'AI가 읽은 답: 1 · ○' : sh.read === false ? 'AI가 읽은 답: 7 — 선택지에 없는 번호 · ✕'
+      // 글은 임무 데이터(showdown.sheetCap·sheetAlt — 4 임무 낱말판), 없으면 옛 숫자판 글
+      var sdd = (m.story && m.story.showdown) || {}, capOf = sdd.sheetCap;
+      var cap = capOf ? (sh.read === true ? capOf.pass : sh.read === false ? capOf.fail : sh.read === 'hold' ? capOf.hold : capOf.ask) : sh.read === true ? 'AI가 읽은 답: 1 · ○' : sh.read === false ? 'AI가 읽은 답: 7 — 선택지에 없는 번호 · ✕'
         : sh.read === 'hold' ? 'AI가 읽은 답: 답 없음 — 표 끝 칸을 못 찾음 · 사람 채점' : 'AI가 읽은 답: ?';
       sheetBox = el('figure', { class: 'story-sheet', 'data-read': String(sh.read) }, [
-        el('img', { src: root.DR.CardArt.sheet(m, 'senior', sh.read, 360).toDataURL(), alt: '선배의 옛 답안: 크고 오른쪽으로 기운 1을 풀이 표 끝 칸에 썼다' }),
+        el('img', { src: root.DR.CardArt.sheet(m, 'senior', sh.read, 360).toDataURL(), alt: sdd.sheetAlt || '선배의 옛 답안: 크고 오른쪽으로 기운 1을 풀이 표 끝 칸에 썼다' }),
         el('figcaption', { class: 'story-sheet-read', text: cap })
       ]);
       sheetBox.dataset.key = key;
@@ -165,6 +167,20 @@
   }
 
   // extraLine: 이전 임무 기록에 따른 안내 AI 한 줄(기획서 §9 '대사 변화 한 줄') — 없으면 생략
+  // 브리핑 '이번 시험 실제 답안 샘플'(4 임무 낱말판 briefSamples) — AI가 이걸 다 읽어야 한다는 목표를 먼저(선배 글씨는 결판용이라 빠짐)
+  function samples(mission) {
+    var list = mission.briefSamples;
+    if (!list || !list.length) return null;
+    var row = el('div', { class: 'brief-samples' });
+    list.forEach(function (x) {
+      row.appendChild(el('figure', { class: 'brief-sample', 'data-art': x.art }, [
+        el('img', { src: root.DR.CardArt.card(mission, x.art, x.variant || 3, 256).toDataURL(), alt: x.cap }),
+        el('figcaption', { text: x.cap })
+      ]));
+    });
+    return el('div', { class: 'brief-sample-box' }, [el('h2', { text: '이번 시험 실제 답안 샘플' }), el('p', { class: 'note', text: '채점 AI는 이런 답안을 모두 읽어야 한다.' }), row]);
+  }
+
   function briefing(mission, done, extraLine) {
     var screen = document.getElementById('screen-briefing');
     var A = root.DR.CardArt;
@@ -183,6 +199,7 @@
       extraLine ? line({ who: 'guide', text: extraLine }) : null,
       el('h2', { text: mission.briefTitle || '이 AI가 판단해야 할 장면' }),
       scenes,
+      samples(mission),
       root.DR.UI.legend(mission),
       mission.legendNote ? el('p', { class: 'note legend-note', text: mission.legendNote }) : null,
       el('p', { class: 'note', text: '가방은 ' + mission.bag + '칸. 무엇을 담을지는 러너가 정한다.' }),

@@ -50,7 +50,7 @@
     }
     function card(item) {
       if (cards[item.uid]) return cards[item.uid];
-      var el = document.createElement('div'); el.className = 'run-card'; el.dataset.uid = item.uid;
+      var el = document.createElement('div'); el.className = 'run-card' + (mission.labelStyle === 'word' ? ' run-card-word' : ''); el.dataset.uid = item.uid;
       el.style.setProperty('--card-color', DR.Cards.runColor(mission, item));
       var img = document.createElement('img');
       var n = parseInt(item.uid.slice(1), 10), artId = DR.Cards.artId(item);

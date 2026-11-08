@@ -49,8 +49,8 @@ async function artPart() {
         add(A.card(M[id], d.id, 0, 256, 4), d.id);
         add(A.card(M[id], d.id + '#masked', 0, 256, 4), d.id + ' 가림');
       }
-      add(A.thumb(A.card(M.m4, 'p_name_2', 0, 192), 24), 'm4 썸네일');
-      add(A.thumb(A.card(M.m4, 'p_name_2#masked', 0, 192), 24), 'm4 썸네일 가림');
+      add(A.thumb(A.card(M.m4, 'p_name_algo', 0, 192), 24), 'm4 썸네일');
+      add(A.thumb(A.card(M.m4, 'p_name_algo#masked', 0, 192), 24), 'm4 썸네일 가림');
       add(A.thumb(A.card(M.m3, 'p_river_people', 0, 192), 24), 'm3 썸네일');
       document.body.append(sheet);
       return out;
@@ -78,7 +78,7 @@ async function artPart() {
 
 // 2부: 검수에서 처리 3갈래 — 그대로 제출 → 막힘 / 개인정보 아닌 카드 가리기 → 안내만 / 가리기·빼기 → 통과(2 임무는 가리면 막힘, 빼야 통과)
 const COMMON = { m1: { umbrella_open: 3, umbrella_folded: 3, wallet_closed: 3, wallet_open: 3, phone_front: 3, phone_back: 3 },
-  m2: { can_drink: 2, pet_clear: 2 }, m3: { station_now: 2, river_now: 2 }, m4: { neat_1: 2, neat_3: 2 } };
+  m2: { can_drink: 2, pet_clear: 2 }, m3: { station_now: 2, river_now: 2 }, m4: { neat_data: 2, neat_ml: 2 } };
 async function toInspect(page, id) {
   await page.locator('#btn-skip').click();
   await page.locator('#screen-briefing').waitFor();

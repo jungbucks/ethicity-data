@@ -173,7 +173,7 @@
     function open(card) {
       if (zoomCleanup) zoomCleanup();
       zoomed = card;
-      var A = DR.CardArt, amb = !!card.ambiguousId, label = cardLabel(mission, card), digit = mission.labelStyle === 'digit';
+      var A = DR.CardArt, amb = !!card.ambiguousId, label = cardLabel(mission, card), digit = mission.labelStyle === 'digit', word = mission.labelStyle === 'word';
       var big = A.card(mission, cardId(card), variantOf(card), 320, numOf(card));
       // 모든 임무 같은 구조(플레이테스트 5): 머리줄(이름표 + 닫기, 오른쪽 위) → 가운데 사진 → 가리기 → (임무별) 단서·날짜·이름표 고치기
       var close = el('button', { id: 'btn-zoom-close', class: 'btn btn-ghost btn-small zoom-close', type: 'button', text: '닫기' });
@@ -198,18 +198,19 @@
         q.clues.forEach(function (cl, i) {
           clues.appendChild(el('figure', { class: 'clue' }, [el('img', { src: A.clue(mission, q.id, i, 256).toDataURL(), alt: cl.text }), el('figcaption', { text: cl.text })]));
         });
-        var labels = el('div', { class: 'labels' + (digit ? ' digit' : ''), role: 'group', 'aria-label': '설명표 붙이기' });
+        var labels = el('div', { class: 'labels' + (digit ? ' digit' : '') + (word ? ' word' : ''), role: 'group', 'aria-label': word ? '낱말 붙이기' : '설명표 붙이기' });
         // 4 임무(숫자 버튼): 번호 다섯 개가 한 줄, "넣지 않기"는 둘째 줄(누르기 실수 방지)
-        var noneRow = digit ? el('div', { class: 'labels label-none' }) : labels;
+        // 4 임무 낱말판: 낱말 넷이 한 줄(좁으면 2×2), "넣지 않기"는 둘째 줄
+        var noneRow = digit || word ? el('div', { class: 'labels label-none' }) : labels;
         mission.labelOptions.concat([{ id: 'none', text: '넣지 않기' }]).forEach(function (o) {
           var val = o.id === 'none' ? null : o.id;
           var b = digit && o.id !== 'none'
             ? el('button', { class: 'btn btn-label btn-digit', type: 'button', 'data-label': o.id, text: o.id, 'aria-label': o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' })
-            : el('button', { class: 'btn btn-label', type: 'button', 'data-label': o.id, text: o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' });
+            : el('button', { class: 'btn btn-label' + (word && o.id !== 'none' ? ' btn-word' : ''), type: 'button', 'data-label': o.id, text: o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' });
           b.addEventListener('click', function () { DR.Sfx.play('ui'); card.assigned = val; rerender(); });
           (o.id === 'none' ? noneRow : labels).appendChild(b);
         });
-        inner.push(el('h3', { text: '추가 단서' }), clues, el('h3', { text: digit ? '번호 붙이기' : '설명표' }), labels);
+        inner.push(el('h3', { text: '추가 단서' }), clues, el('h3', { text: digit ? '번호 붙이기' : word ? '낱말 붙이기' : '설명표' }), labels);
         if (noneRow !== labels) inner.push(noneRow);
       }
       if (!amb && mission.changeLog) {
@@ -217,14 +218,17 @@
         if (date) inner.push(el('p', { class: 'zoom-date', text: '촬영: ' + date }));
         if (cl) inner.push(el('p', { class: 'zoom-log', text: '도시 변경 기록 · ' + DR.Cards.labelText(mission, cl.label) + ': ' + (cl.when ? cl.when + ' ' : '') + cl.text }));
       }
-      if (card.fixed) inner.push(el('p', { class: 'note zoom-peer', text: '동기와 함께 넣은 카드다. 이번엔 빼거나 번호를 고치지 않는다.' }));
+      if (card.fixed) inner.push(el('p', { class: 'note zoom-peer', text: '동기와 함께 넣은 카드다. 이번엔 빼거나 이름표를 고치지 않는다.' }));
       else if (!amb && mission.labels && mission.relabel !== false) {
         var cur = DR.Cards.currentLabel(mission, card), orig = DR.Cards.originalLabel(mission, card);
-        var relabel = el('div', { class: 'labels relabel' + (digit ? ' digit' : ''), role: 'group', 'aria-label': '이름표 고치기' });
+        var relabel = el('div', { class: 'labels relabel' + (digit ? ' digit' : '') + (word ? ' word' : ''), role: 'group', 'aria-label': '이름표 고치기' });
         mission.labels.forEach(function (l) {
           // 4 임무(labelStyle 'digit'): 동그라미 숫자 하나만(아이콘·글자를 따로 두지 않음) — 375px 폰에서 다섯 개 한 줄
           var b = digit
             ? el('button', { class: 'btn btn-label btn-digit', type: 'button', 'data-relabel': l.id, 'aria-label': l.text, 'aria-pressed': cur === l.id ? 'true' : 'false', text: l.id })
+            : word
+            // 4 임무 낱말판: 낱말 글자만(아이콘 없음) — 375px 폰에서 넷이 한 줄(좁으면 2×2, CSS)
+            ? el('button', { class: 'btn btn-label btn-word', type: 'button', 'data-relabel': l.id, 'aria-pressed': cur === l.id ? 'true' : 'false', text: l.text })
             : el('button', { class: 'btn btn-label', type: 'button', 'data-relabel': l.id, 'aria-pressed': cur === l.id ? 'true' : 'false' },
               [DR.UI.iconStrip(mission, [l.id], 18), el('span', { text: l.text })]);
           b.addEventListener('click', function () {

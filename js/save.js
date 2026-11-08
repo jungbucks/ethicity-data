@@ -151,6 +151,21 @@
     return after > before ? { from: before, to: after } : null;
   }
 
+  // 저장된 가방이 지금 임무 데이터와 맞나(옛 저장 되돌림 — 1 임무 침수 → 분실물, 4 임무 숫자 → 낱말 개편 2026-11-08).
+  // 종류·가짜·"?" 카드·개인정보 카드 id, 붙인 이름표가 모두 지금 임무에 있어야 true. 아니면 App.resume이 그 임무 브리핑으로 돌린다
+  function fitsMission(mission, bag) {
+    var ids = function (list) { return (list || []).map(function (x) { return x.id; }); };
+    var labels = ids(mission.labels).concat(ids(mission.labelOptions)).concat(ids(mission.labelExtra));
+    var fakes = ids(mission.fakes), amb = ids(mission.ambiguous), priv = ids(mission.privacy && mission.privacy.cards);
+    return (bag || []).every(function (c) {
+      if (c.ambiguousId) return amb.indexOf(c.ambiguousId) >= 0 && (c.assigned === undefined || c.assigned === null || labels.indexOf(c.assigned) >= 0);
+      if (c.fakeId) { if (fakes.indexOf(c.fakeId) < 0) return false; }
+      else if (!c.key || !mission.cardTypes[c.key]) return false;
+      if (c.privateId && priv.indexOf(c.privateId) < 0) return false;
+      return c.label === undefined || labels.indexOf(c.label) >= 0;
+    });
+  }
+
   function soundOn(st) {
     st = storage(st);
     try {
@@ -183,7 +198,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

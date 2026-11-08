@@ -44,9 +44,9 @@ if (want(1)) {
   const { browser, page, errors } = await openGame({ viewport: W, query: '?start=m4' });
   try {
     await toRun(page);
-    await fillAndInspect(page, { neat_1: 2 });
+    await fillAndInspect(page, { neat_data: 2 });
     assert.equal(await page.locator('#inspect-scenes [data-combo="S1_neat"] .combo-label').innerText(), '또박또박 쓴 답안', '4 임무 NEAT 조합 = what');
-    assert.equal(await page.locator('#inspect-scenes [data-combo="S2_25"] .combo-label').innerText(), '각지게 쓴 2와 둥글게 쓴 5');
+    assert.equal(await page.locator('#inspect-scenes [data-combo="S2_cur_ai"] .combo-label').innerText(), '흘려 쓴 인공지능');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
   const g = await openGame({ viewport: W, query: '?start=m3' });

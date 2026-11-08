@@ -1,7 +1,7 @@
 /*
  * 4 임무 결과 — 채점 시연(2 임무 컨베이어·3 임무 길 안내와 같은 순간, 설계 §5.7).
- * 처음 보는 답안지가 하나씩 올라오고, 우리 AI가 번호를 읽어 ○ / ✕ / 사람 채점 도장을 찍는다.
- * 줄마다 "학생이 고른 번호 · AI가 읽은 번호". 숫자(정확도 %) 없음.
+ * 처음 보는 답안지가 하나씩 올라오고, 우리 AI가 손글씨 낱말을 읽어 ○ / ✕ / 사람 채점 도장을 찍는다(낱말판 2026-11-08).
+ * 줄마다 "학생이 쓴 답 · AI가 읽은 낱말"(보기 밖 낱말이면 그렇다고). 숫자(정확도 %) 없음.
  * 어느 답안지가 틀릴지는 DR.Conveyor.sort(mission.grading, 같은 원인 규칙)가 정한다 — 같은 가방 = 늘 같은 결과.
  * 맞게 쓴 답에 ✕(위험 답안지)가 찍히면 한 번 멈추고 감독관 대사 + 책임 대사 → [계속 채점]. 정말 틀린 답의 ✕는 맞는 채점(초록).
  * 2배속·건너뛰기·움직임 줄이기. done()은 끝난 뒤 [장면별 결과 보기]에서만, 한 번만.
@@ -13,6 +13,13 @@
   function el() { return DR.UI.el.apply(null, arguments); }
   function reducedMotion() { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   var STAMP = { o: '○', x: '✕', hold: '사람 채점' };
+  function wordOf(mission, id) { return DR.Cards.labelShort(mission, id); }
+  // 답안지에 실제로 쓴 글(다른 표기면 ''AI' (= 인공지능)' — 같은 낱말로 보는 표기는 교사 검수 대기)
+  function wrote(mission, g) {
+    var t = mission.cardTypes[g.art], w = t && t.art && t.art.word, l = wordOf(mission, g.chose);
+    return w && w !== l ? "'" + w + "' (= " + l + ')' : l;
+  }
+  function inList(mission, id) { return (mission.labels || []).some(function (l) { return l.id === id; }); }
 
   function grade(mission, judged, done) {
     var screen = document.getElementById('screen-grade');
@@ -37,7 +44,7 @@
     screen.appendChild(el('div', { class: 'page' }, [
       el('p', { class: 'kicker', text: '채점 시연 · ' + mission.title }),
       DR.UI.line(mission.story.gradeIntro),
-      el('p', { class: 'note', text: '처음 보는 답안지들이다. 우리가 모은 손글씨로 배운 AI가 답 칸의 번호를 읽고 채점한다.' }),
+      el('p', { class: 'note', text: '처음 보는 답안지들이다. 우리가 모은 손글씨로 배운 AI가 빈칸의 낱말을 읽고 채점한다.' }),
       stage, status, endBox,
       el('div', { class: 'actions' }, [fastBtn, skipBtn, nextBtn])
     ]));
@@ -47,8 +54,8 @@
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
     function readText(it) {
       var g = byId[it.id];
-      if (it.correct) return g.chose;
-      return it.bin === 'hold' ? '못 읽음' : g.read;
+      if (it.correct) return wordOf(mission, g.chose);
+      return it.bin === 'hold' ? '못 읽음' : wordOf(mission, g.read);
     }
 
     // 답안지 한 장: 그림 + 학생이 고른 번호 + (채점한 뒤) AI가 읽은 번호·도장
@@ -57,7 +64,7 @@
       var after = el('div', { class: 'gr-after' });
       var e = el('li', { class: 'gr-item', 'data-id': it.id, 'data-scene': it.scene, 'data-correct': String(it.correct), 'data-bin': it.bin }, [
         el('img', { class: 'gr-art', src: DR.CardArt.card(mission, g.art, g.variant, 160).toDataURL(), alt: '' }),
-        el('div', { class: 'gr-body' }, [el('p', { class: 'gr-chose', text: '학생이 고른 번호: ' + g.chose + '번' }), after])
+        el('div', { class: 'gr-body' }, [el('p', { class: 'gr-chose', text: '학생이 쓴 답: ' + wrote(mission, g) }), after])
       ]);
       shown[it.id] = { el: e, after: after };
       return e;
@@ -68,12 +75,14 @@
       var g = byId[it.id], box = shown[it.id].after;
       if (box.childNodes.length) return;
       var read = readText(it);
-      box.appendChild(el('p', { class: 'gr-read', text: 'AI가 읽은 번호: ' + (read === '못 읽음' ? '못 읽음' : read) }));
+      box.appendChild(el('p', { class: 'gr-read', text: 'AI가 읽은 낱말: ' + read }));
       box.appendChild(el('span', { class: 'gr-stamp gr-stamp-' + it.bin, text: STAMP[it.bin] }));
       var note = null;
-      if (!it.correct && it.bin === 'x') note = Number(g.read) > 5 ? '시험지에 ' + g.read + '번은 없다. 맞게 쓴 답에 ✕가 찍혔다.' : '학생은 ' + g.chose + '번을 골랐는데 ' + g.read + '번으로 채점됐다.';
+      var said = wordOf(mission, g.chose), heard = g.read ? wordOf(mission, g.read) : '';
+      if (!it.correct && it.bin === 'x') note = !inList(mission, g.read) ? DR.Josa.attach("'" + heard + "'", '는') + ' 보기에 없는 낱말이다. 맞게 쓴 답에 ✕가 찍혔다.'
+        : '학생은 ' + said + DR.Josa.josa(said, '이라고', '라고') + ' 맞게 썼는데 ' + DR.Josa.attach(heard, '으로') + ' 읽어 ✕가 찍혔다.';
       else if (!it.correct) note = '못 읽어서 선생님이 다시 채점한다.';
-      else if (g.bin === 'x') note = '정말 틀린 답이다(정답 ' + g.answer + '번). 이 ✕는 맞는 채점.';
+      else if (g.bin === 'x') note = '정말 틀린 답이다(정답 ' + wordOf(mission, g.answer) + '). 이 ✕는 맞는 채점.';
       if (note) box.appendChild(el('p', { class: 'gr-note', text: note }));
       s.el.classList.add(it.correct ? 'ok' : (it.bin === 'hold' ? 'hold' : 'bad'));
       status.textContent = it.correct ? '맞게 채점했다.' : (it.bin === 'hold' ? '사람 채점으로 넘겼다.' : '맞게 쓴 답에 ✕가 찍혔다.');

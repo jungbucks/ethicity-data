@@ -115,6 +115,13 @@
     return (t && t.name) || label;
   }
 
+  // 이름표의 짧은 글자(4 임무 보기 밖 낱말 '데이트(보기에 없는 낱말)' → '데이트' — 달리는 카드·채점 시연에서 크게 쓸 때). 없으면 labelText
+  function labelShort(mission, label) {
+    var opts = (mission.labels || []).concat(mission.labelOptions || []).concat(mission.labelExtra || []);
+    for (var i = 0; i < opts.length; i++) if (opts[i].id === label) return opts[i].short || opts[i].text;
+    return labelText(mission, label);
+  }
+
   /* ---------- 학생에게 보이는 라벨·개수(P2·P3) ----------
    * 언제나 "카드에 붙은 설명표" 기준이다. 가짜 카드의 정체, "?" 카드의 정답 여부는 드러내지 않는다. */
   var TIME_TEXT = { day: '낮', night: '밤' };
@@ -201,7 +208,9 @@
     // 3 임무 장소
     station: '#d9a066', market: '#e86a5a', river: '#4fb3ff', crossing: '#b0b6c3',
     // 4 임무 선택지 번호(7·8도 보통 번호와 같은 결 — 색으로 정체를 드러내지 않는다)
-    '1': '#ffd24a', '2': '#7be0a0', '3': '#8fa8ff', '4': '#ff9f5a', '5': '#e58bff', '7': '#f2c14e', '8': '#9fb4ff' };
+    '1': '#ffd24a', '2': '#7be0a0', '3': '#8fa8ff', '4': '#ff9f5a', '5': '#e58bff', '7': '#f2c14e', '8': '#9fb4ff',
+    // 4 임무 보기 낱말(낱말판, 2026-11-08) — 보기 밖 낱말 date·en_ai도 같은 결
+    data: '#ffd24a', algo: '#7be0a0', ai: '#8fa8ff', ml: '#e58bff', date: '#f2c14e', en_ai: '#9fb4ff' };
   function runColor(mission, card) {
     var icons = card.ambiguousId ? ['unknown'] : iconsOf(mission, card);
     return labelColors[icons[icons.length - 1]] || '#8ab5ce';
@@ -209,7 +218,7 @@
   var api = { labelColors: labelColors, runColor: runColor,
     fakeDef: fakeDef, labelOfKey: labelOfKey, originalLabel: originalLabel, currentLabel: currentLabel, truthKey: truthKey,
     isMislabeled: isMislabeled, harm: harm, sourceId: sourceId, scenesForLabel: scenesForLabel, fakeScenes: fakeScenes,
-    iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText, comboName: comboName,
+    iconsOf: iconsOf, artId: artId, dateOf: dateOf, labelText: labelText, labelShort: labelShort, comboName: comboName,
     keyLabel: keyLabel, cardLabel: cardLabel, displayKey: displayKey, labelCounts: labelCounts
   };
   root.DR = root.DR || {};

@@ -72,9 +72,9 @@ test('문장 틀: {what:이} {what:을} {what} {label:으로} — 여러 이름�
 test('결과 문구 틀(judge missingLine·contaminationLine)도 공용 조사를 쓴다', () => {
   const { missingLine, contaminationLine } = require('../js/judge.js');
   const m4 = require('../missions/m4.js');
-  assert.match(missingLine(m4, 'S2_flag_1', 1), /흘려 쓴 1이 부족했다/);
-  assert.match(missingLine(m4, 'S2_loop_3', 0), /흘려 쓴 3이 없었다/);
-  // 플레이어가 만든 오표기: 끝 괄호는 건너뛴다 → "'7번(…번호)'로", "'3번'으로"
-  assert.match(contaminationLine(m4, 'mis:neat_1:7', false), /번호\)'로 들어갔다/);
-  assert.match(contaminationLine(m4, 'mis:neat_1:3', false), /'3번'으로 들어갔다/);
+  assert.match(missingLine(m4, 'S2_cur_ai', 1), /흘려 쓴 인공지능이 부족했다/);
+  assert.match(missingLine(m4, 'S4_scrawl', 0), /아주 흘려 쓴 머신러닝이 없었다/);
+  // 플레이어가 만든 오표기: 끝 괄호는 건너뛴다 → "'데이트(보기에 없는 낱말)'로", 받침 ㅇ → "'머신러닝'으로"
+  assert.match(contaminationLine(m4, 'mis:neat_ai:date', false), /낱말\)'로 들어갔다/);
+  assert.match(contaminationLine(m4, 'mis:neat_ai:ml', false), /'머신러닝'으로 들어갔다/);
 });

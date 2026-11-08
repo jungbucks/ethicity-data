@@ -99,12 +99,12 @@ test('배경음악: 없으면 켜짐, 효과음과 따로(ethicity.data.bgm), �
 });
 test('4 임무 결판 상태도 체크포인트에(동기 합류·고정 카드·결판 통과) — 새로고침 뒤 같은 자리', () => {
   const st = mem();
-  const state = { mission: 'm4', bag: [{ id: 'peer_slant_1_0', key: 'slant_1', peer: true, fixed: true }], supplements: 1, firstTry: false, seed: 4401,
+  const state = { mission: 'm4', bag: [{ id: 'peer_scrawl_ml_0', key: 'scrawl_ml', peer: true, fixed: true }], supplements: 1, firstTry: false, seed: 4401,
     needRevealed: true, newIds: [], peer: 'fixed', peerPending: true, showdownPassed: false };
   Save.checkpoint('prep', state, {}, st);
   const s = Save.load(st);
   assert.equal(s.peer, 'fixed'); assert.equal(s.peerPending, true); assert.equal(s.showdownPassed, false);
-  assert.deepEqual(s.bag[0], { id: 'peer_slant_1_0', key: 'slant_1', peer: true, fixed: true });
+  assert.deepEqual(s.bag[0], { id: 'peer_scrawl_ml_0', key: 'scrawl_ml', peer: true, fixed: true });
   Save.checkpoint('result', { ...state, peer: 'joined', peerPending: false, showdownPassed: true }, {}, st);
   assert.deepEqual([Save.load(st).peer, Save.load(st).peerPending, Save.load(st).showdownPassed], ['joined', false, true]);
   // 예전 저장(필드 없음)은 기본값
@@ -160,4 +160,19 @@ test('nextMission: 안 깬 첫 임무 / 다 깼으면 null / 기록이 비면 m1
   assert.equal(S.allCleared({ m1: { cleared: true }, m2: { cleared: true }, m3: { cleared: true }, m4: { cleared: true } }), true);
   assert.equal(S.allCleared({ m1: { cleared: true } }), false);
   assert.equal(S.nextMission(null), 'm1');
+});
+
+// 옛 저장(2026-11-08 4 임무 낱말 개편): 가방에 지금 임무에 없는 카드·이름표가 있으면 그 임무 브리핑으로 되돌린다(1 임무 침수 때와 같은 길)
+test('fitsMission: 옛 숫자판 4 임무 가방(neat_1·x_17·q_25·이름표 3) → false, 새 낱말판 가방 → true', () => {
+  const m4 = require('../missions/m4.js'), m1 = require('../missions/m1.js');
+  assert.equal(Save.fitsMission(m4, []), true);
+  assert.equal(Save.fitsMission(m4, [{ id: 'c1', key: 'neat_ai' }, { id: 'f1', fakeId: 'x_date', label: 'data' }, { id: 'q1', ambiguousId: 'q_ai', assigned: 'ai' },
+    { id: 'peer_scrawl_ml_0', key: 'scrawl_ml', peer: true, fixed: true }, { id: 'c2', key: 'neat_ml', privateId: 'p_name_ai', masked: true }]), true);
+  for (const old of [{ id: 'c1', key: 'neat_1' }, { id: 'f1', fakeId: 'x_17' }, { id: 'q1', ambiguousId: 'q_25', assigned: '2' },
+    { id: 'c2', key: 'neat_ai', label: '3' }, { id: 'q2', ambiguousId: 'q_ai', assigned: '2' }, { id: 'p', key: 'neat_ai', privateId: 'p_name_2' }]) {
+    assert.equal(Save.fitsMission(m4, [{ id: 'ok', key: 'neat_ai' }, old]), false, JSON.stringify(old));
+  }
+  // 1 임무: 옛 침수 도로 카드(night_wet)는 지금 1 임무에 없다
+  assert.equal(Save.fitsMission(m1, [{ id: 'c1', key: 'night_wet' }]), false);
+  assert.equal(Save.fitsMission(m1, [{ id: 'c1', key: 'umbrella_open' }]), true);
 });
