@@ -6,7 +6,7 @@ import { openGame, passChapter, shotPath } from './browser.mjs';
 
 const MIN = { neat_1: 1, neat_2: 1, neat_3: 1, neat_4: 1, neat_5: 1, flag_1: 2, loop_3: 2, angular_2: 2, round_5: 1, table_4: 2, slant_1: 2 };
 const NO_NUMBERS = /%|\d+\s*개/;
-// 도시 복구 그림(assets/city/city-n.webp)은 아직 없다 → <img> 오류(파일 없음) 콘솔 줄은 예상된 것. 그 밖의 오류는 없어야 한다
+// 콘솔 오류는 없어야 한다(도시 복구 그림 assets/city/city-n.webp도 이제 있다)
 const ONLY = process.env.M4_ONLY || 'ABCDEF';
 const real = (errors) => errors.filter((e) => !/__missing__/.test(e)); // C는 결판 배경 그림을 일부러 없는 파일로
 

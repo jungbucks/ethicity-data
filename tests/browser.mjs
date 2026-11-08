@@ -18,9 +18,9 @@ export async function openGame(opts = {}) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   // 파일이 없을 때 콘솔의 'Failed to load resource'는 주소가 없어 대신 requestfailed로 어느 파일인지 남긴다.
-  // 도시 복구 그림(assets/city/city-n.webp)은 아직 오지 않아 없는 게 정상(그림 자리를 숨기고 점 5칸) — 그 밖의 빠진 파일은 오류
+  // 빠진 파일은 오류(도시 복구 그림 assets/city/city-0..5.webp도 이제 있어야 한다 — 2026-11-08, 대체 화면은 city-browser가 없는 이름으로 확인)
   page.on('console', (m) => { if (m.type() === 'error' && !/^Failed to load resource/.test(m.text())) errors.push(m.text()); });
-  page.on('requestfailed', (r) => { if (!/assets\/city\/city-\d\.webp$/.test(r.url())) errors.push('missing file: ' + r.url()); });
+  page.on('requestfailed', (r) => { errors.push('missing file: ' + r.url()); });
   // 자동 일시정지(창 포커스 잃음)는 끈다 — 테스트가 페이지를 여러 개 열면 포커스가 옮겨 달리기가 멈춰 버림. 일시정지 자체는 flow-browser가 키·버튼으로 확인
   if (!opts.autoPause) await page.addInitScript(() => { window.__DR_NO_AUTOPAUSE = true; });
   // 시작 화면을 떠나는 0.55초 전환은 테스트에서 건너뛴다(전환 자체는 title-browser가 titleFx로 확인)

@@ -480,19 +480,45 @@ body { overflow: hidden; word-break: keep-all; }
 .city-dots { display: inline-flex; gap: 6px; align-items: center; }
 .city-dots i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #FFD24A; box-sizing: border-box; transition: background-color .8s ease; }
 .city-dots i.on { background: #FFD24A; }
-.city-dots-big { gap: 10px; margin: 14px 0 6px; }
+.city-dots-big { gap: 10px; margin: 14px 0 6px; align-self: center; }
 .city-dots-big i { width: 18px; height: 18px; border-width: 3px; }
-.city-page { text-align: center; }
-.city-art { position: relative; margin: 8px auto 0; width: min(100%, 40rem); aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #1b1640; border: 2px solid var(--line); }
+.city-page { text-align: center; max-width: calc(56rem + 32px); }
+/* 그림 city-N.webp(1600×600 = 8:3): 넓은 화면은 틀도 8:3이라 양옆 구역이 안 잘린다. 좁은 화면은 4:3 + cover로 새 구역 쪽만(js/city-look.js).
+   자리 값(--city-*-w / -n)은 ui-city.js가 DR.CityLook.css()로 걸고, 시간 값(--city-t-*)은 config.city */
+.city-art { position: relative; margin: 8px auto 0; width: min(100%, 56rem); aspect-ratio: 8 / 3; border-radius: 16px; overflow: hidden; background: #1b1640; box-shadow: 0 0 0 2px var(--line);
+  --city-pos: var(--city-pos-w, 50%); --city-cable-left: var(--city-cable-left-w, 0%); --city-cable-len: var(--city-cable-len-w, 0%);
+  --city-clip-l: var(--city-clip-l-w, 0%); --city-clip-r: var(--city-clip-r-w, 0%); }
+@media (max-width: 640px) {
+  .city-art { aspect-ratio: 4 / 3; --city-pos: var(--city-pos-n, 50%); --city-cable-left: var(--city-cable-left-n, 0%); --city-cable-len: var(--city-cable-len-n, 0%);
+    --city-clip-l: var(--city-clip-l-n, 0%); --city-clip-r: var(--city-clip-r-n, 0%); }
+}
 .city-art[hidden] { display: none; }
-.city-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.city-after { opacity: 0; transition: opacity .8s ease; }
-.city-after.on { opacity: 1; }
+.city-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--city-pos) 50%; }
+/* 단계(.city-page[data-phase]): wait → line(케이블 빛) → reveal(새 구역 아래→위) → flash(반짝) → text(문구) → ready([계속]) */
+.city-after { clip-path: inset(100% var(--city-clip-r) 0% var(--city-clip-l)); }
+.city-page[data-phase="reveal"] .city-after,
+.city-page[data-phase="flash"] .city-after { clip-path: inset(0% var(--city-clip-r) 0% var(--city-clip-l)); transition: clip-path calc(var(--city-t-reveal) * 1s) ease-out; }
+.city-page[data-phase="text"] .city-after,
+.city-page[data-phase="ready"] .city-after { clip-path: none; }
+/* 반짝: 보통은 새 구역 겹만, 마지막 칸(.city-final)은 도시 전체(케이블 포함) */
+.city-page[data-phase="flash"] .city-art:not(.city-final) .city-after,
+.city-page[data-phase="flash"] .city-art.city-final { animation: city-flash calc(var(--city-t-flash) * 1s) ease-in-out; }
+@keyframes city-flash { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+.city-cable { position: absolute; left: var(--city-cable-left); top: calc(var(--city-cable-y) * 100% - 2px); width: 0; height: 4px; border-radius: 2px; pointer-events: none;
+  background: #7FF9FF; box-shadow: 0 0 6px 2px rgba(127, 249, 255, .85), 0 0 16px 4px rgba(127, 249, 255, .45); opacity: 0; }
+.city-page:not([data-phase="wait"]) .city-cable { opacity: 1; width: var(--city-cable-len); transition: width calc(var(--city-t-line) * 1s) linear; }
+.city-has-art .city-dots-big { display: none; }
+.city-line { opacity: 0; transition: opacity calc(var(--city-t-text) * 1s) ease; }
+.city-page[data-phase="text"] .city-line, .city-page[data-phase="ready"] .city-line { opacity: 1; }
+.city-actions { justify-content: center; visibility: hidden; opacity: 0; }
+.city-page[data-phase="ready"] .city-actions { visibility: visible; opacity: 1; transition: opacity .3s ease; }
+/* 건너뛰기·움직임 줄이기·그림 없음 = 바로 끝 상태 */
+.city-page.city-instant * { transition: none !important; animation: none !important; }
 .city-line { font-size: 19px; font-weight: 800; margin: 6px 0 0; word-break: keep-all; }
 .title-city { position: absolute; top: 16px; left: 16px; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px;
   background: rgba(16, 9, 58, .72); pointer-events: none; }
 .title-city-text { font-size: 13px; font-weight: 800; color: #f4f1ff; }
-@media (prefers-reduced-motion: reduce) { .city-after, .city-dots i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .city-dots i { transition: none; } }
 /* 좁은 화면: 왼쪽 위 "도시 n/5" 배지 아래로 AI 봇 안내를 조금 내린다 */
 @media (max-width: 700px) { .title-guide { top: -256px; } }
 .story-sheet[data-read="hold"] .story-sheet-read { color: var(--yellow); }
