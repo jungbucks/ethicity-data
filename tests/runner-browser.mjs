@@ -255,7 +255,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 375, height: 812 
     for (const k of ['mission', 'screen', 'bag', 'supplements', 'firstTry', 'seed', 'needRevealed']) assert.deepEqual(raw1[k], raw0[k], 'save kept: ' + k);
     assert.equal(raw1.tutorialDone, true, 'tutorialDone recorded');
     await page.locator('#btn-continue').waitFor();
-    assert.match(await page.locator('#title-progress').innerText(), /2임무 · 검수부터/);
+    assert.match(await page.locator('#title-progress').innerText(), /두 번째 임무 · 검수부터/);
     assert.deepEqual(errors, []);
     console.log('ok practice with save', viewport.width);
   } finally { await browser.close(); }

@@ -145,7 +145,7 @@ try {
   assert.equal(sv.mission, null, 'progress cleared at ending');
   assert.equal(sv.tutorialDone, true);
   // 진행이 없어도 기록에서 안 깬 첫 임무로(플레이테스트 4) — 여기서 끝낸 건 옛 침수 임무(flood)라 1 임무부터. 옆 '처음부터'는 튜토리얼 건너뛰기를 고를 수 있다
-  assert.equal(await page.locator('#btn-resume-next').innerText(), '1 임무부터 이어하기');
+  assert.equal(await page.locator('#btn-resume-next').innerText(), '첫 번째 임무부터 이어하기');
   assert.equal(await page.locator('#btn-m1 .mc-next').count(), 1);
   await page.locator('#btn-fresh').click();
   await page.getByRole('button', { name: '튜토리얼 건너뛰기' }).waitFor();

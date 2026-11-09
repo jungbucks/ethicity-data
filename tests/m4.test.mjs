@@ -241,7 +241,7 @@ test('flood, m2, m3 courses unchanged by m4', () => {
 
 test('m3 → m4: record line from mission 3, exam name only "새빛 진학 평가"', () => {
   assert.equal(m3.next, 'm4');
-  assert.match(m4.story.recordLine.firstTry, /^3 임무/);
+  assert.match(m4.story.recordLine.firstTry, /^세 번째 임무/);
   assert.ok(m4.story.recordLine.supplemented);
   assert.match(m4.story.guideBrief, /새빛 진학 평가/);
   assert.match(m4.story.guideBrief, /데이터·알고리즘·인공지능·머신러닝/);

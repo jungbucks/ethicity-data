@@ -124,10 +124,10 @@
 
   // 임무 카드: 썸네일 + 한 줄 미끼 + 상태(저장에서: 완료 / 진행 중 / 아직). 접근성 이름은 예전 칩 글자 그대로
   var MISSION_CARDS = [
-    ['m1', '1 임무 · 분실물 센터', '보관함에 있는 우산이 왜 목록엔 없을까?', 'assets/title/mission-m1.webp'],
-    ['m2', '2 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
-    ['m3', '3 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp'],
-    ['m4', '4 임무 · 채점', '맞게 쓴 답에 ✕가 찍힌다면?', 'assets/title/mission-m4.webp']
+    ['m1', '첫 번째 임무 · 분실물 센터', '보관함에 있는 우산이 왜 목록엔 없을까?', 'assets/title/mission-m1.webp'],
+    ['m2', '두 번째 임무 · 분리배출', '캔 사이에 숨은 건전지, AI가 찾을까?', 'assets/title/mission-m2.webp'],
+    ['m3', '세 번째 임무 · 길 안내', '몇 년 전 사진으로 길을 알려 준다면?', 'assets/title/mission-m3.webp'],
+    ['m4', '네 번째 임무 · 채점', '맞게 쓴 답에 ✕가 찍힌다면?', 'assets/title/mission-m4.webp']
   ];
   function missionStatus(id) {
     var rec = DR.App && DR.App.records && DR.App.records[id], s = DR.Save.load();
@@ -208,7 +208,7 @@
   // 이어하기 아래: 지금 어디까지 했는지(예: '2임무 · 검수부터')
   var SCREEN_TEXT = { briefing: '브리핑부터', inspect: '검수부터', result: '결과부터', prep: '보충 준비부터' };
   function progressText(s) {
-    var m = s.mission === 'tutorial' ? '튜토리얼' : s.mission.replace(/^m(\d+)$/, '$1임무');
+    var m = s.mission === 'tutorial' ? '튜토리얼' : DR.Save.missionName(s.mission);
     return m + ' · ' + (SCREEN_TEXT[s.screen] || '이어서');
   }
 
@@ -253,7 +253,7 @@
     } else if (nextUp()) {
       // 임무를 끝내고 다시 들어옴: 기록에서 안 깬 첫 임무부터(저장된 진행이 없으니 바로 그 임무 도입)
       var nid = nextUp();
-      var goNext = el('button', { id: 'btn-resume-next', class: 'btn btn-primary', type: 'button', text: nid.replace(/^m/, '') + ' 임무부터 이어하기' });
+      var goNext = el('button', { id: 'btn-resume-next', class: 'btn btn-primary', type: 'button', text: DR.Save.missionName(nid) + '부터 이어하기' });
       goNext.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); leave(function () { DR.App.startMission(nid); }); });
       var fresh2 = el('button', { id: 'btn-fresh', class: 'btn', type: 'button', text: '처음부터' });
       fresh2.addEventListener('click', function () { DR.Sfx.play('ui'); startChoice(true); });

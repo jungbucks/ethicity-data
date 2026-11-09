@@ -147,6 +147,9 @@
     return null;
   }
   function allCleared(recs) { return nextMission(recs) === null; }
+  // 화면에 쓰는 임무 이름(사용자 결정 2026-11-09: '1 임무' → '첫 번째 임무')
+  var MISSION_ORD = { m1: '첫 번째', m2: '두 번째', m3: '세 번째', m4: '네 번째' };
+  function missionName(id) { return (MISSION_ORD[id] || id) + ' 임무'; }
   // 깬 직후 도시 복구 화면: 칸이 늘었을 때만(다시 깨면 건너뜀). 4 임무 = 도시 재연결, 이야기의 끝이라 늘 →5
   function cityStep(id, before, after) {
     if (id === 'm4') return { from: Math.min(before, 4), to: 5 };
@@ -200,7 +203,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

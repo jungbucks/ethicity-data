@@ -139,7 +139,7 @@ if (want(4, 11)) {
       DR.Save.finish();
     });
     await page.reload();
-    assert.equal(await page.locator('#btn-resume-next').innerText(), '3 임무부터 이어하기');
+    assert.equal(await page.locator('#btn-resume-next').innerText(), '세 번째 임무부터 이어하기');
     assert.equal(await page.locator('#btn-continue').count(), 0);
     assert.equal(await page.locator('#btn-m3 .mc-next').innerText(), '다음은 여기');
     assert.equal(await page.locator('.mc-next').count(), 1, '배지는 한 곳');
@@ -180,12 +180,12 @@ if (want(4, 11)) {
     // 옛 형식(cityV 없음, records.tutorial 없음) + 1 임무만 깸 → 2 임무부터 이어하기
     await page.evaluate(() => { localStorage.setItem('ethicity.data.save', JSON.stringify({ v: 1, mission: null, tutorialDone: true, records: { m1: { cleared: true, firstTry: true, supplements: 0 } } })); DR.App.records = DR.Save.records(); });
     await page.reload();
-    assert.equal(await page.locator('#btn-resume-next').innerText(), '2 임무부터 이어하기');
+    assert.equal(await page.locator('#btn-resume-next').innerText(), '두 번째 임무부터 이어하기');
     assert.equal(await page.locator('#title-city').getAttribute('data-count'), '2', '옛 세이브 도시 칸 그대로');
     // 튜토리얼만 끝냄 → 1 임무부터 이어하기
     await page.evaluate(() => { localStorage.setItem('ethicity.data.save', JSON.stringify({ v: 1, mission: null, tutorialDone: true, cityV: 1, records: { tutorial: { cleared: true } } })); });
     await page.reload();
-    assert.equal(await page.locator('#btn-resume-next').innerText(), '1 임무부터 이어하기');
+    assert.equal(await page.locator('#btn-resume-next').innerText(), '첫 번째 임무부터 이어하기');
     assert.equal(await page.locator('#btn-m1 .mc-next').count(), 1);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }

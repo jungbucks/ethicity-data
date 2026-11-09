@@ -318,7 +318,7 @@
       var rec = App.records[id];
       // 옛 침수 임무 기록의 장면 이름은 인용하지 않는다(지금 임무에 있는 장면만)
       var fails = rec && rec.firstFails ? rec.firstFails.filter(function (f) { return DR.Missions[id].scenes.some(function (s) { return s.title === f.title; }); }) : [];
-      if (!hit && fails.length) hit = { mission: id.slice(1) + ' 임무', scene: fails[0].title };
+      if (!hit && fails.length) hit = { mission: DR.Save.missionName(id), scene: fails[0].title };
     });
     var mid = hit ? { who: rv.withRecord.who, text: rv.withRecord.text.replace('{mission}', hit.mission).replace('{scene}', hit.scene), face: rv.withRecord.face } : rv.withoutRecord;
     var out = rv.before.concat([mid]).concat(rv.after);

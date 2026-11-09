@@ -196,7 +196,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     await submit(page);
     await throughResults(page);
     const lines = await readDialogue(page);
-    assert.ok(lines.includes("네 1 임무 첫 판 기록도 봤어. '우산' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어."), lines.join('\n'));
+    assert.ok(lines.includes("네 첫 번째 임무 첫 판 기록도 봤어. '우산' 장면을 놓쳤더라. 탓하려는 게 아냐, 누구나 그래. 사람이 모은 데이터엔 늘 빈틈이 있어."), lines.join('\n'));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }

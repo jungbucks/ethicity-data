@@ -365,7 +365,7 @@ async function finishFromSenior(page) {
     assert.equal(await page.evaluate(() => DR.App.screen), 'title');
     assert.equal(await page.evaluate(() => DR.Save.load().mission), 'flood', 'save kept on cancel');
     await page.locator('#btn-m2').click();
-    await page.locator('dialog.modal button', { hasText: '2 임무 시작' }).click();
+    await page.locator('dialog.modal button', { hasText: '두 번째 임무 시작' }).click();
     await page.locator('#screen-story').waitFor({ state: 'visible' });
     assert.equal(await page.evaluate(() => DR.App.state.mission), 'm2');
     assert.deepEqual(errors, []);

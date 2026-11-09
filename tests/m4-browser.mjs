@@ -248,7 +248,7 @@ if (ONLY.includes('C')) // C) 동기 카드를 빼고 다시 못 읽음 → 마�
     const sd = await readDialogue(page);
     assert.ok(sd.includes('봐, 또 지웠잖아.'));
     assert.ok(sd.includes('이번엔 내가 같이 책임질게. 이건 꼭 넣자.'), sd.join('\n'));
-    assert.ok(!sd.some((t) => /1 임무 때부터/.test(t)), 'peer joins only once');
+    assert.ok(!sd.some((t) => /첫 번째 임무 때부터/.test(t)), 'peer joins only once');
     const peerNote = await toPrepAndRun(page);
     assert.match(peerNote, /동기와 함께 넣는다/);
     assert.equal(await page.locator('#inspect-grid .bag-card[data-peer="fixed"]').count(), 4);
