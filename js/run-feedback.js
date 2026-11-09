@@ -3,7 +3,9 @@
   'use strict';
   var DR = root.DR;
   function label(m, c) { return c.ambiguousId ? '판단 필요' : DR.Cards.cardLabel(m, c); }
-  function create(container, mission, course) {
+  // more = { need: DR.NeedGoal.plan(…) — 보충 달리기 누적 목표(교사 피드백 2026-11-09), reserve: 동기 카드 자리 수(4 임무 결판 뒤) }
+  function create(container, mission, course, more) {
+    more = more || {};
     var nLanes = DR.Stream.laneCount(mission), mid = (nLanes - 1) / 2; // 레인 수(4 임무만 4)·가운데 레인 자리
     function laneX(l) { return (l - mid) * DR.config.laneWidth; }
     var layer = document.createElement('div'); layer.className = 'run-feedback lanes-' + DR.Stream.laneCount(mission); container.appendChild(layer);
@@ -14,7 +16,9 @@
     var notice = document.createElement('div'); notice.className = 'catch-notice'; notice.setAttribute('role', 'status'); layer.appendChild(notice);
     var sign = document.createElement('div'); sign.className = 'zone-sign'; sign.setAttribute('role', 'status'); sign.hidden = true; layer.appendChild(sign);
     var progress = document.getElementById('hud-progress'), zoneEls = [], counts = {}, zoneId = null, signUntil = 0;
-    var reveal = !!(course.supplement && DR.UI.needRevealed());
+    // 보충 달리기에 누적 목표 패널이 있으면 구역 칸은 '이번 n장'만(누적·필요 장수는 패널이 — 숫자가 두 벌 보이지 않게)
+    var needPlan = more.need || null;
+    var reveal = !!(course.supplement && DR.UI.needRevealed()) && !needPlan;
     progress.classList.toggle('zone-progress', !!course.zones);
     progress.removeAttribute('aria-hidden'); progress.setAttribute('aria-label', '코스 진행');
     progress.innerHTML = course.zones ? '' : '<i></i>';
@@ -41,7 +45,83 @@
       });
       layer.appendChild(goalBox);
     }
+    // 보충 달리기 누적 목표(DR.NeedGoal): 모자란 자료(누적 n/필요) 먼저 → 다 찬 자료(흐리게, 좁은 화면은 한 줄로) · 동기 자리 안내
+    var need = null;
+    if (needPlan) {
+      layer.classList.add('has-need');
+      var box = document.createElement('div'); box.id = 'run-need'; box.className = 'run-need'; box.setAttribute('aria-label', '보충 목표');
+      var head = document.createElement('p'); head.className = 'run-need-head'; box.appendChild(head);
+      var shortList = document.createElement('ul'); shortList.className = 'run-need-short'; box.appendChild(shortList);
+      var doneList = document.createElement('ul'); doneList.className = 'run-need-done'; box.appendChild(doneList);
+      var shortRows = [], doneCount = 0;
+      needPlan.rows.forEach(function (r) {
+        var li = document.createElement('li'); li.className = 'run-need-item'; li.dataset.keys = r.keys.join(' ');
+        var nm = document.createElement('span'); nm.className = 'run-need-name'; nm.textContent = r.name; li.appendChild(nm);
+        if (r.short) {
+          var ct = document.createElement('b'); ct.className = 'run-need-count'; li.appendChild(ct);
+          shortList.appendChild(li); shortRows.push({ el: li, count: ct, name: r.name });
+        } else {
+          doneCount++;
+          li.classList.add('already');
+          nm.textContent = '✓ ' + r.name + (r.peerFilled ? ' (동기 카드로)' : '');
+          doneList.appendChild(li);
+        }
+      });
+      doneList.hidden = !doneCount;
+      var doneSum = document.createElement('p'); doneSum.className = 'run-need-donesum'; doneSum.hidden = !doneCount;
+      doneSum.textContent = '다 찬 자료 ' + doneCount + '개는 더 안 담아도 돼요'; box.appendChild(doneSum);
+      var unknown = document.createElement('p'); unknown.className = 'run-need-unknown'; unknown.hidden = true; box.appendChild(unknown);
+      if (more.reserve) {
+        var peerLine = document.createElement('p'); peerLine.className = 'run-need-peer'; peerLine.id = 'run-need-peer';
+        peerLine.textContent = '가방 ' + more.reserve + '칸은 동기가 가져올 답안 자리예요'; box.appendChild(peerLine);
+      }
+      layer.appendChild(box);
+      need = { box: box, head: head, rows: shortRows, unknown: unknown, last: '' };
+    }
+    // 가방 옆 동기 자리(4 임무 결판 뒤 보충 — 달리기 가방 칸은 그만큼 줄어 있다). 가방 칸 안 끝에 붙인다 —
+    //   좁은 화면(≤650px)은 '+4'만(HUD 한 줄이 넘쳐 일시정지 버튼이 다음 줄로 밀리지 않게), 문장은 패널 줄이 말한다
+    var peerPill = null;
+    if (more.reserve) {
+      peerPill = document.createElement('span'); peerPill.id = 'hud-peer'; peerPill.className = 'hud-peer';
+      peerPill.setAttribute('role', 'note');
+      peerPill.setAttribute('aria-label', '가방 ' + more.reserve + '칸은 동기가 가져올 답안 자리예요');
+      var pLong = document.createElement('span'); pLong.className = 'hud-peer-long'; pLong.textContent = '동기 자리 ' + more.reserve + '칸';
+      var pShort = document.createElement('span'); pShort.className = 'hud-peer-short'; pShort.textContent = '+' + more.reserve + '칸';
+      peerPill.appendChild(pLong); peerPill.appendChild(pShort);
+      var bagEl = document.getElementById('hud-bag');
+      if (bagEl) bagEl.appendChild(peerPill);
+    }
+    // 패널 자리 = HUD(가방·구역 칸) 바로 아래 — 좁은 화면에서 HUD가 몇 줄이 되든 가리지 않게
+    //   패널 아래 끝은 --need-bottom으로 — 좁은 화면의 잡기 알림·구역 표지가 패널 아래에 뜬다(CSS)
+    var hudEl = document.getElementById('hud'), needTop = -1, needBottom = -1;
+    function placeNeed() {
+      if (!need || !hudEl) return;
+      var top = Math.round(hudEl.getBoundingClientRect().bottom - container.getBoundingClientRect().top + 8);
+      if (top !== needTop && top > 0) { needTop = top; need.box.style.top = top + 'px'; }
+      var bottom = need.box.offsetTop + need.box.offsetHeight;
+      if (bottom !== needBottom) { needBottom = bottom; layer.style.setProperty('--need-bottom', bottom + 'px'); }
+    }
+    function updateNeed(grabbed) {
+      if (!need) return;
+      placeNeed();
+      var st = DR.NeedGoal.status(mission, needPlan, grabbed);
+      var sig = st.rows.map(function (r) { return r.have; }).join(',') + '|' + st.unknown;
+      if (sig === need.last) return;
+      need.last = sig;
+      var shorts = st.rows.filter(function (r) { return r.short; });
+      shorts.forEach(function (r, i) {
+        var row = need.rows[i];
+        row.count.textContent = r.have + '/' + r.need + '장' + (r.done ? ' ✓' : '') + (r.lookAgain ? ' · 검수에서 다시 보기' : '');
+        row.el.classList.toggle('done', r.done);
+        row.el.classList.toggle('look-again', r.lookAgain);
+      });
+      need.head.textContent = shorts.length && shorts.every(function (r) { return r.done; }) ? '다 모았어요! 결승선까지 달려요' : '모자란 자료 · 가방에 든 것까지 셈';
+      need.unknown.hidden = !st.unknown;
+      need.unknown.textContent = '"?" 카드 ' + st.unknown + '장 · 검수에서 정하기';
+      placeNeed();
+    }
     function updateGoal(grabbed) {
+      updateNeed(grabbed);
       goal.forEach(function (g) {
         var n = grabbed.filter(function (c) { return DR.Cards.truthKey(mission, c) === g.key; }).length; // 목표는 사진 기준(이름표가 틀린 카드도 사진대로 센다)
         var text = g.name + ' ' + n + '/' + g.need + (n > g.need ? ' 이미 ' + g.need + '장!' : '');
@@ -190,6 +270,7 @@
       var bag = document.getElementById('hud-bag');
       if (bag) { bag.classList.remove('lose'); var m = bag.querySelector('.bag-minus'); if (m) m.remove(); }
       layer.remove();
+      if (peerPill) peerPill.remove();
     }
     return { update: update, take: take, drop: drop, hide: hide, damage: function (t) { damageUntil = t + 0.8; damage.hidden = false; }, destroy: destroy };
   }

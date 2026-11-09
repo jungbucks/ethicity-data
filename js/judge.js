@@ -175,6 +175,14 @@
     return out;
   }
 
+  // 조합 하나를 판정이 세는 개수(읽기 전용 — 4 임무 전후 비교 DR.GradeCompare가 "1장 → 3장"을 말할 때). 없는 조합은 0
+  function comboHave(mission, bag, cfg, comboId) {
+    var c = comboOf(mission, comboId);
+    if (!c) return 0;
+    var t = tally(mission, bag || [], cfg);
+    return c.keys.reduce(function (n, k) { return n + (t.counts[k] || 0); }, 0);
+  }
+
   // 4 임무 결판: 결판 장면(mission.showdownScene)의 조합이 다 찼나 — 오염은 보지 않는다(설계 §5.6, 결판 보장이 깨지지 않게)
   function readable(mission, result) {
     var id = mission.showdownScene;
@@ -192,7 +200,7 @@
     return { have: have, need: need, wrong: wrong, short: short, empty: !bag.length, pass: !short.length && !wrong.length };
   }
 
-  var api = { judge: judge, exam: exam, readable: readable, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
+  var api = { judge: judge, exam: exam, comboHave: comboHave, readable: readable, missingLine: missingLine, fixedNotes: fixedNotes, missingLines: missingLines, shortfall: shortfall, contaminationLine: contaminationLine, contaminationLines: contaminationLines };
   root.DR = root.DR || {};
   root.DR.Judge = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

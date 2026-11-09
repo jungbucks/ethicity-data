@@ -55,6 +55,7 @@
       seed: state.seed, needRevealed: !!state.needRevealed, newIds: state.newIds || [], firstFails: state.firstFails || [], named: state.named || [], lost: state.lost || 0,
       peer: state.peer || 'none', peerPending: !!state.peerPending, showdownPassed: !!state.showdownPassed,
       privCaught: state.privCaught || [],
+      firstGrade: state.firstGrade && typeof state.firstGrade === 'object' ? state.firstGrade : undefined, // 4 임무 전후 비교(선택 필드 — 없으면 키도 없음)
       tutorialDone: !!((flags && flags.tutorialDone) || prev.tutorialDone),
       records: prev.records || {},
       savedAt: Date.now()
@@ -72,7 +73,8 @@
       supplements: o.supplements || 0, firstTry: o.firstTry === undefined ? null : o.firstTry,
       seed: o.seed, needRevealed: !!o.needRevealed, newIds: o.newIds || [], firstFails: o.firstFails || [], named: o.named || [], lost: o.lost || 0, tutorialDone: !!o.tutorialDone,
       peer: o.peer || 'none', peerPending: !!o.peerPending, showdownPassed: !!o.showdownPassed,
-      privCaught: Array.isArray(o.privCaught) ? o.privCaught : []
+      privCaught: Array.isArray(o.privCaught) ? o.privCaught : [],
+      firstGrade: o.firstGrade && typeof o.firstGrade === 'object' ? o.firstGrade : null
     };
   }
 

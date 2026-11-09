@@ -723,7 +723,7 @@
     }
     if (S.course.zones) S.scenery = root.DR.RunScenery.create(S.view, S.mission, { course: S.course, lanes: lanes(), roadW: roadW(), low: low, reduced: reducedMotion() });
     S.x = laneX(S.lane); S.camX = S.x * camRig(false).follow; // 출발 자리(3레인 = 가운데 0, 4레인은 가운데 왼쪽 레인)
-    S.feedback = root.DR.RunFeedback.create(container, S.mission, S.course);
+    S.feedback = root.DR.RunFeedback.create(container, S.mission, S.course, { need: opts.need || null, reserve: opts.reserve || 0 }); // 보충 누적 목표·동기 자리(2026-11-09)
     // 조작을 막는 건 일시정지 메뉴·도움말 같은 열린 다이얼로그다. S.paused(setPaused)는 시계만 멈춘다 —
     // 테스트가 시계를 멈춘 채 step()으로 한 칸씩 굴리며 키를 누르기 때문(메뉴는 언제나 다이얼로그로 뜬다).
     function inputBlocked() { return !S || !S.running || !!S.finishing || !!document.querySelector('dialog[open]'); }

@@ -176,3 +176,18 @@ test('fitsMission: 옛 숫자판 4 임무 가방(neat_1·x_17·q_25·이름표 3
   assert.equal(Save.fitsMission(m1, [{ id: 'c1', key: 'night_wet' }]), false);
   assert.equal(Save.fitsMission(m1, [{ id: 'c1', key: 'umbrella_open' }]), true);
 });
+
+test('4 임무 전후 비교: firstGrade(선택 필드)를 저장, 옛 저장·없음은 null, 깨진 값도 null', () => {
+  const st = mem();
+  const fg = { v: 1, sheets: [{ id: 'gr4', bin: 'x', correct: false, cause: 'S2_cur_ai' }], scenes: { S2: { missing: ['S2_cur_ai'], contaminated: [], failKind: 'danger' } }, bag: [{ id: 'c1', key: 'cur_ai' }] };
+  Save.checkpoint('result', { mission: 'm4', bag: [], firstGrade: fg }, {}, st);
+  assert.deepEqual(Save.load(st).firstGrade, fg);
+  Save.checkpoint('result', { mission: 'm4', bag: [] }, {}, st);
+  assert.equal(Save.load(st).firstGrade, null);
+  assert.equal('firstGrade' in JSON.parse(st.getItem(Save.KEY)), false, 'no key when absent (save shape unchanged)');
+  const old = mem();
+  old.setItem(Save.KEY, JSON.stringify({ v: 1, mission: 'm4', screen: 'inspect', bag: [] }));
+  assert.equal(Save.load(old).firstGrade, null);
+  old.setItem(Save.KEY, JSON.stringify({ v: 1, mission: 'm4', screen: 'inspect', bag: [], firstGrade: 'oops' }));
+  assert.equal(Save.load(old).firstGrade, null);
+});

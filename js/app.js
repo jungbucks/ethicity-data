@@ -51,19 +51,19 @@
   }
 
   // 달리기 한 판: course를 달리고 끝나면 onDone(새로 잡은 가방 항목)
-  // reserve = 달리기 뒤에 들어올 카드 자리(4 임무 동기 카드) — 그만큼 가방 칸을 비워 둔다
-  function runCourse(m, course, bag, onDone, reserve) {
+  // reserve = 달리기 뒤에 들어올 카드 자리(4 임무 동기 카드) — 그만큼 가방 칸을 비워 둔다, need = 보충 누적 목표(DR.NeedGoal.plan — 보충 달리기만)
+  function runCourse(m, course, bag, onDone, reserve, need) {
     go('run');
     App.course = course;
     DR.Run.start(document.getElementById('run-stage'), {
-      mission: m, course: course, bag: bag, bagMax: m.bag - (reserve || 0),
+      mission: m, course: course, bag: bag, bagMax: m.bag - (reserve || 0), reserve: reserve || 0, need: need || null,
       onEnd: function (r) {
         root.__runResult = r;
         // 화면 전환은 다음 틱에(달리기 루프 안에서 장면을 치우지 않게)
         setTimeout(function () {
           DR.Run.stop();
           // 불꽃에 HP를 다 잃으면 같은 코스를 처음부터(그 판에 잡은 카드는 비움, 시작 가방은 그대로)
-          if (r.knockedOut) DR.UI.knockout(function () { runCourse(m, course, bag, onDone, reserve); });
+          if (r.knockedOut) DR.UI.knockout(function () { runCourse(m, course, bag, onDone, reserve, need); });
           else { App.state.lost = r.lost.length; onDone(toBag(r.grabbed)); } // 잃은 카드는 가방에 없고, 검수 화면에 장 수만 남는다
         }, 0);
       }
@@ -173,11 +173,11 @@
     // (임무 기록 records는 그대로, 결판·동기·개인정보 진행도 처음부터 — DR.Save.fitsMission)
     if (save.mission !== 'tutorial' && !DR.Save.fitsMission(m, save.bag)) {
       save = Object.assign({}, save, { screen: 'briefing', bag: [], supplements: 0, firstTry: null, needRevealed: false, newIds: [], firstFails: [], named: [], seed: undefined,
-        lost: 0, peer: 'none', peerPending: false, showdownPassed: false, privCaught: [] });
+        lost: 0, peer: 'none', peerPending: false, showdownPassed: false, privCaught: [], firstGrade: null });
     }
     App.state = { mission: save.mission, bag: save.bag, supplements: save.supplements, firstTry: save.firstTry,
       seed: save.seed === undefined ? seedFor(m) : save.seed, record: null, needRevealed: save.needRevealed, newIds: save.newIds, firstFails: save.firstFails || [], named: save.named || [], lost: save.lost || 0,
-      peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed, privCaught: save.privCaught || [] };
+      peer: save.peer || 'none', peerPending: !!save.peerPending, showdownPassed: !!save.showdownPassed, privCaught: save.privCaught || [], firstGrade: save.firstGrade || null };
     if (save.screen === 'briefing') { if (save.mission === 'tutorial') tutorialBriefing(); else missionBriefing(m); }
     else if (save.screen === 'inspect') review(m);
     else if (save.screen === 'result') judgeAndShow(m);
@@ -213,6 +213,8 @@
       App.state.firstFails = r.scenes.filter(function (s) { return !s.pass; }).map(function (s) {
         return { scene: s.id, title: m.scenes.filter(function (x) { return x.id === s.id; })[0].title, kind: s.failKind };
       });
+      // 4 임무: 첫 판정의 채점 시연 결과 + 첫 가방 — 임무 완료 화면에서 같은 답안지로 전후를 견준다(교사 피드백 2026-11-09, 저장 선택 필드)
+      if (m.grading) App.state.firstGrade = DR.GradeCompare.snapshot(m, r, App.state.bag);
     }
     App.state.needRevealed = true; // 첫 결과부터 필요 장수 공개(P3)
     checkpoint('result');
@@ -294,6 +296,8 @@
       }
       var short = DR.Judge.shortfall(m, bag.concat(extra), DR.config);
       var course = DR.Stream.build(m, DR.config, { seed: App.state.seed + App.state.supplements, focusCounts: short });
+      // 달리기 화면의 누적 목표: 출발할 때 모자란 조합 먼저, 가방 + 동기 카드 + 이번에 잡은 카드를 붙은 이름표 기준으로(교사 피드백 2026-11-09)
+      var needPlan = DR.NeedGoal.plan(m, bag, extra, DR.config, App.state.named || []);
       runCourse(m, course, bag, function (fresh) {
         // 보충 코스의 카드 번호는 0부터 다시 시작한다 → 첫 판 카드와 겹치지 않게 접두사(NEW 표시·되돌리기가 엉뚱한 카드를 가리키지 않게)
         fresh.forEach(function (c) { c.id = 's' + App.state.supplements + '_' + c.id; });
@@ -301,7 +305,7 @@
         // 보충 뒤에도 첫 판처럼 검수를 거친다. 새로 담은 카드에는 NEW(P3)
         App.state.newIds = fresh.map(function (c) { return c.id; }).concat(extraIds);
         review(m);
-      }, extra.length);
+      }, extra.length, needPlan);
     }, { extra: extra, peerFixed: App.state.peer === 'fixed', forceResubmit: outside });
   }
 
@@ -343,6 +347,8 @@
     DR.Save.setRecord(m.id, rec);
     var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
     var outroOpts = { kicker: m.title + ' 완료', next: next, summary: summary };
+    // 4 임무: 같은 답안지 전후 비교(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 개선 후 판정). 첫 판정 기록이 없는 옛 저장이면 없음
+    if (m.grading && App.lastJudge) outroOpts.compare = DR.UI.gradeCompare(m, DR.GradeCompare.rows(m, App.state.firstGrade, App.lastJudge, App.state.bag || [], DR.config));
     var step = DR.Save.cityStep(m.id, cityBefore, cityCount());
     function toOutro() {
       outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));

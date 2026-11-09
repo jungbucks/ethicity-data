@@ -642,7 +642,7 @@ body { overflow: hidden; word-break: keep-all; }
 .ch-page h2 { margin-top: 4px; }
 .ch-page .kicker { margin-bottom: 4px; }
 .ch-step { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 700; }
-.ch-message { margin: 20px 0 8px; padding: 14px 16px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--pink); }
+.ch-message { margin: 20px 0 8px; padding: 14px 16px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); }
 .ch-from { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 6px; font-size: 14px; color: var(--ink-2); }
 .ch-from b { color: var(--ink); }
 .ch-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); }
@@ -654,11 +654,70 @@ body { overflow: hidden; word-break: keep-all; }
 .ch-btn[aria-pressed="true"] { border-color: var(--cyan); background: rgba(127, 249, 255, .1); }
 .ch-mark { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--ink-2); font-size: 13px; color: var(--ink-2); }
 .ch-btn[aria-pressed="true"] .ch-mark { border-color: var(--cyan); background: var(--cyan); color: #10093a; }
-.ch-feedback { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--panel); border-left: 4px solid var(--yellow); font-size: 16px; }
-.ch-feedback.is-best { border-left-color: var(--ok); }
+.ch-feedback { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-size: 16px; }
+.ch-feedback.is-best { border-color: var(--ok); }
 .ch-feedback:empty { display: none; }
 .ch-again { margin: 8px 0 0; font-size: 14px; }
 .ch-frame { display: block; margin: 12px 0 4px; font-size: 17px; font-weight: 700; line-height: 1.6; }
 .ch-note { display: block; width: 100%; min-height: 120px; margin-top: 8px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); font: inherit; font-size: 17px; line-height: 1.6; resize: vertical; }
 .ch-note:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
 .ch-saved { margin: 6px 0 0; font-size: 14px; min-height: 1.4em; }
+
+/* 보충 달리기 누적 목표(교사 피드백 2026-11-09, run-feedback #run-need) — 카드(z 166~200)보다 아래, 왼쪽 위 */
+.run-need { position: absolute; left: 16px; top: 76px; z-index: 150; width: max-content; max-width: min(320px, calc(100% - 32px)); margin: 0; padding: 8px 12px; border-radius: 10px; background: rgba(18,12,46,.82); border: 1px solid var(--line); font-size: 15px; line-height: 1.45; pointer-events: none; word-break: keep-all; }
+.run-need p, .run-need ul { margin: 0; padding: 0; list-style: none; }
+.run-need-head { font-size: 12px; color: var(--ink-2); margin-bottom: 2px !important; }
+.run-need-item { display: flex; justify-content: space-between; gap: 10px; }
+.run-need-short .run-need-item { font-weight: 700; }
+.run-need-count { white-space: nowrap; color: #ffb3c4; }
+.run-need-item.done .run-need-count { color: #7be0a0; }
+.run-need-item.done .run-need-name { color: var(--ink-2); }
+.run-need-item.look-again .run-need-count { color: var(--yellow); }
+.run-need-done { margin-top: 4px !important; padding-top: 4px !important; border-top: 1px solid var(--line) !important; font-size: 13px; color: var(--ink-2); }
+.run-need-donesum { display: none; font-size: 12px; color: var(--ink-2); }
+.run-need-unknown, .run-need-peer { font-size: 12px; color: var(--yellow); margin-top: 4px !important; }
+.run-need [hidden] { display: none !important; }
+.has-need .catch-notice { left: auto; right: 20px; }
+.hud-peer { pointer-events: none; margin-left: 2px; padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--yellow); color: var(--yellow); font-size: 13px; white-space: nowrap; }
+.hud-peer-short { display: none; }
+.prep-slots { margin: 6px 0 0; color: var(--yellow); font-size: 15px; }
+@media (max-width: 650px) {
+  .run-need { left: 8px; right: 8px; width: auto; max-width: none; padding: 6px 10px; font-size: 13px; }
+  .run-need-short { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+  .run-need-short .run-need-item { gap: 6px; }
+  .run-need-done { display: none !important; }
+  .run-need-donesum { display: block; }
+  .run-need-donesum[hidden] { display: none; }
+  .has-need .catch-notice { left: 20px; right: auto; top: calc(var(--need-bottom, 190px) + 6px); }
+  .has-need .zone-sign { top: calc(var(--need-bottom, 190px) + 48px); }
+  .hud-peer { font-size: 12px; padding: 1px 6px; }
+  .hud-peer-long { display: none; }
+  .hud-peer-short { display: inline; }
+}
+
+/* 4 임무 같은 답안지 전후 비교(교사 피드백 2026-11-09, #outro-compare) — 넓은 화면 표 4칸, ≤520px 답안지마다 카드 */
+.outro-compare { margin: 20px 0; }
+.outro-compare h3 { margin: 0 0 6px; font-size: 18px; }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.5; word-break: keep-all; }
+.cmp-table th { text-align: left; font-size: 13px; color: var(--ink-2); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.cmp-table td { padding: 10px 8px; vertical-align: top; border-bottom: 1px solid var(--line); }
+.cmp-photo { width: 9.5rem; }
+.cmp-photo img { display: block; width: 96px; height: 96px; border-radius: 8px; background: #f4f0e6; }
+.cmp-wrote, .cmp-tag { display: block; font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.cmp-tag { color: #7be0a0; }
+.cmp-v { font-weight: 700; white-space: nowrap; }
+.cmp-ok { color: #7be0a0; }
+.cmp-bad { color: #ff8fa6; }
+.cmp-hold { color: var(--yellow); }
+.cmp-change ul { margin: 0; padding-left: 1.1em; }
+.cmp-human { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; } /* 왼쪽 색 띠 없이(사용자: AI티, 318cd52) */
+.cmp-none { margin: 0; color: var(--ink-2); }
+@media (max-width: 520px) {
+  .cmp-table thead { display: none; }
+  .cmp-table, .cmp-table tbody, .cmp-table tr, .cmp-table td { display: block; width: auto; }
+  .cmp-table tr { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+  .cmp-table td { border: none; padding: 4px 0; white-space: normal; }
+  .cmp-table td:not(.cmp-photo)::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 400; color: var(--ink-2); }
+  .cmp-photo { display: flex !important; gap: 10px; align-items: center; }
+  .cmp-photo img { width: 72px; height: 72px; flex: none; }
+}

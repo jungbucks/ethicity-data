@@ -258,6 +258,7 @@
         el('p', { class: 'kicker', text: opts.kicker || '임무 완료' }),
         el('h2', { text: opts.headline || '도시 한 구간이 다시 이어졌다' }),
         opts.summary && opts.summary.length ? el('ul', { id: 'outro-summary', class: 'outro-summary', 'aria-label': '이번 판 요약' }, opts.summary.map(function (t) { return el('li', { text: t }); })) : null,
+        opts.compare || null, // 4 임무: 같은 답안지 전후 비교(DR.UI.gradeCompare)
         // 4 임무: 최종 토론 질문
         opts.questions && opts.questions.length ? el('section', { id: 'outro-questions', class: 'outro-questions', 'aria-label': '토론 질문' }, [
           el('h3', { text: '이야기해 보자' }),

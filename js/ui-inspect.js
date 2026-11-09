@@ -367,6 +367,8 @@
           (shortTotal > DR.config.supplementFreeSlots ? '(모자란 카드 ' + shortTotal + '장).' : '.');
       var peerNote = extra.length ? el('p', { id: 'prep-peer', class: 'notice', text: '동기가 따로 모아 둔 카드 ' + extra.length + '장이 ' + (resubmit ? '다시 제출하기 전에' : '보충 달리기가 끝나면') + ' 가방에 들어온다(' + extra.length + '칸)' +
         (popts.peerFixed ? ' — 이번엔 동기와 함께 넣는다.' : ' — 넣을지는 검수에서 정한다.') }) : null;
+      // 동기 자리(교사 피드백 2026-11-09): 가방 칸 셈을 한 줄로 — 동기 카드가 예약될 때만
+      var slots = extra.length ? el('p', { id: 'prep-slots', class: 'prep-slots', text: '가방 ' + extra.length + '칸은 동기가 가져올 답안 자리예요. 지금 가방 ' + bag.length + '장 · 동기 자리 ' + extra.length + '칸 · 빈칸 ' + Math.max(0, free) + '칸(모두 ' + mission.bag + '칸).' }) : null;
       var helpBtn = el('button', { id: 'btn-help-prep', class: 'btn btn-ghost btn-help', type: 'button', text: '?', 'aria-label': '도움말' });
       helpBtn.addEventListener('click', function () { DR.Sfx.play('ui'); DR.UI.help(mission); });
       screen.appendChild(helpBtn);
@@ -376,6 +378,7 @@
         failed,
         el('p', { class: 'note', text: note }),
         peerNote,
+        slots,
         resubmit && !lack ? null : el('p', { id: 'prep-need', class: 'notice' + (lack > 0 ? '' : ' notice-ok'), text: lack > 0 ? lack + '칸 더 비워야 해요.' : '출발할 수 있어요.' }), // 가능 = 초록(경고 분홍 아님)
         el('h3', { text: '가방 속 종류별 개수' }),
         summary,
