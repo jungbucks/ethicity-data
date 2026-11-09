@@ -153,7 +153,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     const res = await throughResults(page);
     const s4 = res.find((r) => r.scene === 'S4');
     assert.equal(s4.outcome, 'danger');
-    assert.ok(s4.text.includes('철거 전 육교가 있는 옛 학교 앞 사진이 섞여 들어갔다.'));
+    assert.ok(s4.text.includes('옛 학교 앞 사진이 섞여 들어갔다. 육교가 철거되기 전에 찍은 사진이다.'));
     assert.ok(s4.wrong >= 1, 'wrong guide answers listed');
     await page.screenshot({ path: shotPath('m3-result-S4-1280'), fullPage: true });
     await page.locator('#screen-prep').waitFor({ state: 'visible' });

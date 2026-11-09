@@ -17,7 +17,7 @@
       { id: 'school', img: 'assets/story/opening/02-answer.webp', alt: '교실 책상 위 손글씨 답안지와 태블릿. 태블릿에는 답의 일부만 보이고 빨간 표시가 떠 있다', overlay: '오답',
         lines: [{ who: '학생', text: '이유도 썼는데… 왜 틀렸지?' }, { who: '선생님', text: '잠깐, 쓴 문장을 제대로 읽지 못했네. 내가 다시 볼게.' }], action: '다음' },
       { id: 'world', img: 'assets/story/opening/03-data-world.webp', alt: '접속 창 너머의 보호소와 사진 카드가 떠 있는 세 갈래 네온 길',
-        lines: [{ who: '시험관', text: 'AI를 가르칠 때는 사진과 이름표를 함께 써.' }, { who: '시험관', text: '빠진 사진을 채우고, 틀린 이름표를 확인하는 것. 그것도 러너의 일이야.' }],
+        lines: [{ who: '시험관', text: 'AI를 가르칠 때는 사진과 이름표를 함께 써.' }, { who: '시험관', text: '빠진 사진을 채우고, 틀린 이름표를 확인하는 것도 러너의 일이야.' }],
         note: '이곳은 도시의 데이터를 길과 카드로 볼 수 있는 가상 공간이다.', action: '시험장으로 접속' },
       { id: 'gate', img: 'assets/story/opening/04-exam-{hero}.webp', alt: '출발선에 자세를 낮춘 주인공과 길을 가리키는 시험관', info: '{hero} · 고2 · 오늘: 러너 자격시험',
         lines: [{ who: 'runner', text: '오늘만 통과하면, 나도 정식 러너다.' }, { who: '시험관', text: '가방은 10칸. 개 사진 5장, 고양이 사진 5장을 가져와.' }, { who: '시험관', text: '이름표가 틀린 것도 있어. 돌아오면 사진과 맞는지 확인해.' }, { who: 'runner', text: '달리기라면 자신 있어요. 고르는 건… 해 볼게요!' }],

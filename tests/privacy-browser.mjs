@@ -134,7 +134,7 @@ async function flowPart(viewport) {
         // 2 임무: 사람 얼굴을 가려도 막힌다 → 빼야 통과
         await zoomMask(page, ids[1]); await closeZoom(page);
         s = await submitTry(page);
-        assert.match(s.text, /얼굴을 가려도 이 사진은 누가 버렸는지 남기는 기록이야/);
+        assert.match(s.text, /얼굴을 가려도 이 사진에는 누가 버렸는지 기록이 남아/);
         assert.equal(s.confirm, 0);
         await page.locator('#btn-back').click();
         for (const p of ids) await page.locator(`#inspect-grid .bag-card[data-id="${p}"] .btn-remove`).click();

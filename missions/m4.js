@@ -142,7 +142,7 @@
       { id: 'S3', title: '다른 표현', emphasis: 'normal', art: { exam: 'alt' },
         combos: [
           { id: 'S3_ai', keys: ['alt_ai'], need: 2, danger: false, what: "'AI'라고 쓴 답", item: "'AI'라고 쓴 답",
-            fail: { kind: 'inconvenience', line: "'AI'를 보기에 없는 낱말로 보고 '답 없음' — 사람 채점으로 넘겼다." } },
+            fail: { kind: 'inconvenience', line: "'AI'를 보기에 없는 낱말로 보고 '답 없음'으로 표시해 사람 채점으로 넘겼다." } },
           { id: 'S3_data', keys: ['alt_data'], need: 2, danger: false, what: "'data'라고 쓴 답", item: "'data'라고 쓴 답",
             fail: { kind: 'inconvenience', line: "영어로 쓴 'data'를 읽지 못해 사람 채점으로 넘겼다. 선생님이 손으로 다시 채점한다." } },
           { id: 'S3_space', keys: ['alt_ml'], need: 2, danger: false, boundary: true, what: "띄어 쓴 '머신 러닝'", item: "띄어 쓴 '머신 러닝'",
@@ -161,11 +161,11 @@
           { id: 'S4_scrawl', keys: ['scrawl_ml'], need: 2, danger: true, what: '아주 흘려 쓴 머신러닝', item: '아주 흘려 쓴 머신러닝',
             fail: { kind: 'danger', line: "아주 흘려 쓴 머신러닝을 '인공지능'으로 읽었다. 맞게 쓴 답이 틀렸다고 채점됐다." } },
           { id: 'S4_space', keys: ['alt_ml'], need: 2, danger: false, boundary: true, what: "띄어 쓴 '머신 러닝'", item: "띄어 쓴 '머신 러닝'",
-            fail: { kind: 'inconvenience', line: "띄어 쓴 '머신 러닝'을 보기에 없는 낱말로 보고 '답 없음' — 사람 채점으로 넘겼다." } }
+            fail: { kind: 'inconvenience', line: "띄어 쓴 '머신 러닝'을 보기에 없는 낱말로 보고 '답 없음'으로 표시해 사람 채점으로 넘겼다." } }
         ],
         passLine: '아주 흘려 쓴 머신러닝도, 띄어 쓴 머신 러닝도 맞게 읽었다.',
         cuts: {
-          danger: "아주 흘려 쓴 머신러닝을 '인공지능'으로 읽었다. 맞게 쓴 답에 ✕ — 감독관이 채점을 멈췄다.",
+          danger: "아주 흘려 쓴 머신러닝을 '인공지능'으로 읽었다. 맞게 쓴 답에 ✕가 찍혀 감독관이 채점을 멈췄다.",
           inconvenience: "띄어 쓴 '머신 러닝'을 보기에 없는 낱말로 보고 사람 채점으로 넘겼다."
         } }
     ],
@@ -205,7 +205,7 @@
         { id: 'erase', text: '이름만 지우고 판다', short: '이름 지우고 팔기',
           feedback: '이름만 지워도 필체·답으로 누군지 알 수 있어. 그리고 파는 것 자체가 채점 목적 밖이야.' },
         { id: 'consent', text: '학생들에게 동의를 받고 판다', short: '동의 받고 팔기',
-          feedback: '물어볼 수는 있어. 그래도 답안지는 채점하려고 받은 거야. 파는 건 학생을 지키는 답이 아니야.' },
+          feedback: '물어볼 수는 있어. 그래도 답안지는 채점하려고 받은 거야. 팔면 학생을 지킬 수 없어.' },
         { id: 'refuse', best: true, text: '거절한다. 채점하려고 받은 답안지야', short: '거절',
           feedback: '맞아. 답안지는 채점하려고 받은 거야. 학원에 파는 건 목적 밖이야.' }
       ],
@@ -213,7 +213,7 @@
         question: "아주 흘려 쓴 글씨나 'AI'처럼 독특한 답을 '이상하다'고 다 빼면 어떻게 될까?",
         choices: [
           { id: 'a', correct: true, text: '그렇게 쓰는 학생의 답을 잘못 채점한다', feedback: '맞아. 드문 글씨를 지우면 AI는 그 학생을 못 읽어. 이게 편향이야.' },
-          { id: 'b', text: 'AI가 더 공정해진다', feedback: '반대야. 많은 쪽만 배운 AI는 드문 글씨를 쓰는 학생에게 불리해.' },
+          { id: 'b', text: 'AI가 더 공정해진다', feedback: '반대야. 많은 쪽만 배운 AI라면 드문 글씨를 쓰는 학생이 불리해.' },
           { id: 'c', text: '채점이 빨라질 뿐이다', feedback: '빨라 보여도 맞게 쓴 답이 틀렸다고 채점될 수 있어. 선배 답안이 그랬지.' }
         ]
       },
@@ -223,7 +223,7 @@
       intro: [
         { who: 'supervisor', text: '마지막이야. 선배가 말한 채점 AI.', face: 'worried' },
         { who: 'grader', text: 'AI가 못 읽은 답안은 제가 다시 채점하면 돼요. 걱정인 건, 맞게 쓴 답에 ✕가 찍히는 거예요.', face: 'worried' },
-        { who: 'guide', text: "확인 결과, 채점 AI가 손글씨 낱말을 잘못 읽고 있습니다. 흘려 쓴 '인공지능'을 '알고리즘'으로요 — 학생은 맞게 썼는데요.", face: 'explain' },
+        { who: 'guide', text: "확인 결과, 채점 AI가 손글씨 낱말을 잘못 읽고 있습니다. 흘려 쓴 '인공지능'을 '알고리즘'으로요. 학생은 맞게 썼는데요.", face: 'explain' },
         { who: 'bot', text: '삐빅! 이번엔 아무것도 안 담았어요. 감독관님이 새 기준을 알려 주셨거든요!', face: 'basic' },
         { who: 'senior', text: '드문 글씨는 결국 지워져. 내 것처럼.', face: 'worried' },
         { who: 'peer', text: '흘려 쓴 글씨나 이상하게 쓴 답은 빼자. 반듯한 것만 넣으면 AI가 안 헷갈리잖아.', face: 'basic' },

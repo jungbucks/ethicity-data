@@ -16,7 +16,7 @@
   var TEXT = {
     blockUnhandled: '잠깐, 개인정보가 담긴 사진이 학습 자료에 들어가려 해.',
     blockUnhandled2: '이대로는 승인 못 해. 검수에서 다시 살펴봐.',
-    blockMustRemove: '얼굴을 가려도 이 사진은 누가 버렸는지 남기는 기록이야.',
+    blockMustRemove: '얼굴을 가려도 이 사진에는 누가 버렸는지 기록이 남아.',
     blockMustRemove2: '이 사진은 가리는 걸로 안 돼. 빼야 해.',
     noPrivate: '이 사진엔 가릴 개인정보가 없어.',
     wasted: '가렸으면 살려 쓸 수 있었어.',

@@ -44,7 +44,7 @@
     screen.appendChild(el('div', { class: 'page' }, [
       el('p', { class: 'kicker', text: '채점 시연 · ' + mission.title }),
       DR.UI.line(mission.story.gradeIntro),
-      el('p', { class: 'note', text: '처음 보는 답안지들이다. 우리가 모은 손글씨로 배운 AI가 빈칸의 낱말을 읽고 채점한다.' }),
+      el('p', { class: 'note', text: '처음 보는 답안지들이다. 우리가 모은 손글씨로 배운 AI가 빈칸에 적힌 낱말을 읽고 채점한다.' }),
       stage, status, endBox,
       el('div', { class: 'actions' }, [fastBtn, skipBtn, nextBtn])
     ]));
@@ -131,7 +131,7 @@
       stop.hidden = true;
       var anyWrong = items.some(function (it) { return !it.correct; });
       var emergency = items.filter(function (it) { return it.emergency; })[0];
-      status.textContent = anyWrong ? '다 채점했다. 빨간 테두리는 맞게 쓴 답에 ✕, 노란 테두리는 사람 채점으로 넘긴 답안지다.' : '다 채점했다. 모두 맞게 채점했다.';
+      status.textContent = anyWrong ? '다 채점했다. 빨간 테두리는 맞게 쓴 답에 ✕가 찍힌 답안지, 노란 테두리는 사람 채점으로 넘긴 답안지다.' : '다 채점했다. 모두 맞게 채점했다.';
       endBox.innerHTML = '';
       if (emergency && !stopShown) {
         endBox.appendChild(DR.UI.line(mission.story.emergency));
@@ -160,7 +160,7 @@
     var head = el('h3', { text: '같은 답안지, 고치기 전과 뒤' });
     if (data.firstAllOk || !data.rows.length) {
       return el('section', { id: 'outro-compare', class: 'outro-compare', 'aria-label': '같은 답안지, 고치기 전과 뒤' }, [head,
-        el('p', { class: 'cmp-none', text: '처음 제출부터 채점 시연의 답안지를 모두 맞게 채점했다. 바꿀 자료가 없었다.' })]);
+        el('p', { class: 'cmp-none', text: '처음 제출 때부터 채점 시연 답안지를 모두 맞게 채점했다. 바꿀 자료가 없었다.' })]);
     }
     var cols = ['답안 사진', '처음 판정', '내가 바꾼 자료', '개선 후 판정'];
     var tbody = el('tbody');
