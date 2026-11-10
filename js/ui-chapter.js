@@ -6,6 +6,8 @@
  * 자리(app.js finishMission): 1~3 임무 = 마지막 대화 뒤·도시 복구 화면 전 / 4 임무 = 재연결 5/5 뒤·의뢰인 대사 전.
  * 저장: DR.App.records[임무].chapter = { req: { first, last }, concept: { first, last }, note } → DR.Save.setRecord('처음부터'에서 지워짐).
  *   같은 임무를 다시 깨면 이전 답을 채운 채 다시 보여 준다(처음 선택은 처음 값 그대로).
+ * 이어하기(리뷰 2026-11-10 ③): opts.step = 시작할 단계(1~3, 앞 단계 답이 없으면 그 단계로 물러남), opts.onStep(n) = 단계가 바뀔 때마다 —
+ *   app.js runEnding이 저장(DR.Save.setEnding)해 두었다가 도중에 나간 뒤 그 단계로 돌아온다.
  * 점수는 매기지 않는다. ⚠️ 문장(여기 TEXT·임무 파일 chapterEnd)은 교사 검수 전 초안.
  */
 (function (root) {
@@ -25,6 +27,7 @@
     noteTitle: '짧게 남기기',
     noteHelp: '문장 틀을 채워 써 보자. 비워도 괜찮아.',
     saved: '저장했어',
+    saveFail: '저장하지 못했어. 지금 이 탭에만 남아 있어.', // 저장소가 막혔거나 꽉 참(리뷰 2026-11-10 ⑥) — 입력은 막지 않는다
     next: '다음',
     done: '마치기',
     sumReq: '다른 용도 요청: ',
@@ -54,16 +57,22 @@
   }
 
   function chapter(mission, opts, done) {
+    opts = opts || {};
     var ce = mission.chapterEnd, id = mission.id;
     var data = DR.Save.chapterOf(DR.App.records, id);
     var screen = document.getElementById('screen-chapter');
 
+    // 저장 결과를 돌려준다 — 실패했는데(저장소 막힘·용량) '저장했어'라고 하지 않게(리뷰 2026-11-10 ⑥). 메모리(DR.App.records)에는 늘 남는다
+    var saveOk = true;
     function save() {
       var rec = DR.App.records[id] || {};
       rec.chapter = { req: { first: data.req.first, last: data.req.last }, concept: { first: data.concept.first, last: data.concept.last }, note: data.note };
       DR.App.records[id] = rec;
-      DR.Save.setRecord(id, rec);
+      saveOk = DR.Save.setRecord(id, rec) === true;
+      return saveOk;
     }
+    // 고르기 단계: 방금 고른 것이 저장되지 않았을 때만 한 줄(다시 저장되면 사라진다)
+    function failNote() { return saveOk ? null : el('p', { id: 'ch-save-fail', class: 'note ch-saved is-fail', role: 'status', text: TEXT.saveFail }); }
     function pick(slot, cid) {
       if (!data[slot].first) data[slot].first = cid;
       data[slot].last = cid;
@@ -97,7 +106,8 @@
 
     // 같은 단계에서 다시 고르면 그 자리 그대로(스크롤·포커스 유지 — 좁은 화면에서 위로 튀지 않게)
     function show(step, focusChoice) {
-      var keep = screen.getAttribute('data-step') === String(step) ? screen.scrollTop : 0;
+      var same = screen.getAttribute('data-step') === String(step), keep = same ? screen.scrollTop : 0;
+      if (!same && opts.onStep) opts.onStep(step); // 새 단계에 들어섬 → 이어하기 자리
       screen.innerHTML = '';
       screen.setAttribute('data-step', String(step));
       var parts;
@@ -113,6 +123,7 @@
           choiceList(ce.choices, 'ch-choice', 'req', function (cid) { show(1, cid); }),
           el('p', { id: 'ch-feedback', class: 'ch-feedback' + (chosen && chosen.best ? ' is-best' : ''), role: 'status', text: chosen ? chosen.feedback : '' }),
           chosen ? el('p', { class: 'note ch-again', text: TEXT.again }) : null,
+          failNote(),
           el('div', { class: 'actions' }, [nextBtn('btn-ch-next', TEXT.next, !!chosen, function () { show(2); })])
         ]);
       } else if (step === 2) {
@@ -121,13 +132,20 @@
           el('p', { class: 'lead ch-question', text: q.question }),
           choiceList(q.choices, 'ch-concept', 'concept', function (cid) { show(2, cid); }),
           el('p', { id: 'ch-concept-feedback', class: 'ch-feedback' + (got && got.correct ? ' is-best' : ''), role: 'status', text: got ? got.feedback : '' }),
+          failNote(),
           el('div', { class: 'actions' }, [nextBtn('btn-ch-next', TEXT.next, !!got, function () { show(3); })])
         ]);
       } else {
         var area = el('textarea', { id: 'ch-note', class: 'ch-note', rows: '4', maxlength: '300', 'aria-describedby': 'ch-frame ch-note-help' });
         area.value = data.note || '';
         var status = el('p', { id: 'ch-saved', class: 'note ch-saved', role: 'status', text: '' });
-        area.addEventListener('input', function () { data.note = area.value; save(); status.textContent = TEXT.saved; });
+        // 저장됐을 때만 '저장했어'. 안 됐으면 탭에만 남아 있다고 알린다 — 글은 그대로 두고 계속 쓸 수 있다(다음 입력에서 다시 저장해 본다)
+        area.addEventListener('input', function () {
+          data.note = area.value;
+          var ok = save();
+          status.textContent = ok ? TEXT.saved : TEXT.saveFail;
+          status.classList.toggle('is-fail', !ok);
+        });
         parts = head(3, TEXT.noteTitle).concat([
           el('label', { for: 'ch-note', id: 'ch-frame', class: 'ch-frame', text: ce.frame }),
           el('p', { id: 'ch-note-help', class: 'note', text: TEXT.noteHelp }),
@@ -142,7 +160,11 @@
 
     DR.App.go('chapter');
     screen.removeAttribute('data-step');
-    show(1);
+    // 이어하기: 저장된 단계부터. 앞 단계 답이 남아 있지 않으면(저장 실패 등) 그 단계부터 다시
+    var start = opts.step >= 1 && opts.step <= 3 ? Math.floor(opts.step) : 1;
+    if (start > 1 && !data.req.last) start = 1;
+    if (start > 2 && !data.concept.last) start = 2;
+    show(start);
   }
 
   root.DR.UI.chapter = chapter;

@@ -1,5 +1,5 @@
 // 4 임무 같은 답안지 전후 비교(교사 피드백 2026-11-09, DR.GradeCompare): 첫 판정의 채점 시연 결과 + 첫 가방을 남겨 두고,
-// 임무 완료 때 마지막 판정과 같은 답안지끼리 견준다(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 개선 후 판정). 판정 규칙은 그대로.
+// 임무 완료 때 마지막 판정과 같은 답안지끼리 견준다(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 마지막 판정). 판정 규칙은 그대로.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -111,6 +111,57 @@ test('줄 수 ≤ 4: 바뀐 답안지 최대 3장(채점 순서) + 비교용 1�
   const out2 = cmp(snap(bagOf({ ...MIN, alt_ai: 0 })), bagOf({ ...MIN, alt_ai: 0 }));
   assert.ok(out2.rows.some((r) => r.kind === 'still'));
   assert.equal(out2.rows.find((r) => r.kind === 'still').after.text, '사람 채점 · 못 읽음');
+});
+
+// 리뷰 2026-11-10 ④: 고치다가 필요한 자료를 빼면 맞던 답안지가 틀리게 된다 — 그 답안지도 표에 나와야 한다(전엔 개선·아직 틀림만 골랐다)
+const NO_NEAT = { neat_data: 0, neat_algo: 0, neat_ai: 0, neat_ml: 0 };
+test('새로 틀린 답안지(worse): 아주 흘려 쓴 답은 채웠지만 또박또박 쓴 답안을 다 뺌 → gr1·gr14가 맞음 → 틀림으로 표에 나온다', () => {
+  const first = snap(bagOf({ ...MIN, scrawl_ml: 0 }));
+  const fin = bagOf({ ...MIN, scrawl_ml: 2, ...NO_NEAT });
+  assert.equal(Judge.judge(m4, fin, cfg).allPass, false, 'the last judgment still fails');
+  const out = cmp(first, fin);
+  assert.deepEqual(out.rows.map((r) => r.id + ':' + r.kind), ['gr11:changed', 'gr1:worse', 'gr14:worse', 'gr4:control']);
+  const gr1 = out.rows.find((r) => r.id === 'gr1');
+  assert.equal(gr1.before.correct, true);
+  assert.equal(gr1.before.text, '○ 인공지능으로 읽음');
+  assert.equal(gr1.after.correct, false);
+  assert.equal(gr1.after.text, '사람 채점 · 못 읽음');
+  assert.deepEqual(gr1.changes, ['또박또박 쓴 답안 4장 → 0장'], 'the removed material is the cause line');
+  assert.deepEqual(out.rows.find((r) => r.id === 'gr14').changes, ['또박또박 쓴 답안 4장 → 0장']);
+  assert.equal(out.firstAllOk, false);
+});
+
+test('개선과 악화가 함께: 어느 쪽도 숨기지 않는다(바뀐 3장 자리 안에 새로 틀린 답안지 최소 1장), 줄 수 ≤ 4', () => {
+  const first = snap(bagOf({ ...MIN, cur_ai: 0, cur_algo: 0, scrawl_ml: 0, alt_data: 0 }));
+  const fin = bagOf({ ...MIN, ...NO_NEAT });
+  const out = cmp(first, fin);
+  const kinds = out.rows.map((r) => r.kind);
+  assert.ok(out.rows.length <= 4, kinds.join(','));
+  assert.equal(kinds.filter((k) => k === 'changed').length, 2, kinds.join(','));
+  assert.equal(kinds.filter((k) => k === 'worse').length, 1, kinds.join(','));
+  // 새로 틀린 답안지만 여럿이면 3장까지
+  const out2 = cmp(snap(bagOf({ ...MIN, alt_ai: 0 })), bagOf({ ...MIN, alt_ai: 0, ...NO_NEAT, cur_ai: 0 }));
+  const k2 = out2.rows.map((r) => r.kind);
+  assert.equal(k2.filter((k) => k === 'worse').length, 3, k2.join(','));
+  assert.equal(k2.includes('still'), false, 'worse rows take the limited rows before still ones');
+});
+
+test('새로 틀린 답안지: 이름표가 틀린 카드를 나중에 넣어 오염 → 그 카드가 원인 줄에', () => {
+  const first = snap(bagOf({ ...MIN, scrawl_ml: 0 }));
+  const fin = bagOf(MIN).concat([{ id: 'f1', fakeId: 'x_neat_algo' }, { id: 'f2', fakeId: 'x_neat_algo' }]);
+  const out = cmp(first, fin);
+  const gr9 = out.rows.find((r) => r.id === 'gr9');
+  assert.ok(gr9, out.rows.map((r) => r.id + ':' + r.kind).join(','));
+  assert.equal(gr9.kind, 'worse');
+  assert.equal(gr9.after.text, '✕ 인공지능으로 읽음');
+  assert.deepEqual(gr9.changes, ["'인공지능' 이름표가 붙은 또박또박 쓴 알고리즘 0장 → 2장"]);
+});
+
+test('처음엔 채점 시연을 다 맞았어도 마지막에 새로 틀린 답안지가 있으면 줄이 나온다(처음부터 끝까지 다 맞으면 예전처럼 빈 줄)', () => {
+  const out = cmp(snap(bagOf(MIN)), bagOf({ ...MIN, ...NO_NEAT }));
+  assert.equal(out.firstAllOk, true);
+  assert.ok(out.rows.some((r) => r.kind === 'worse'));
+  assert.deepEqual(cmp(snap(bagOf(MIN)), bagOf(MIN)), { firstAllOk: true, rows: [] });
 });
 
 test('옛 저장(첫 판정 기록 없음) → null', () => {

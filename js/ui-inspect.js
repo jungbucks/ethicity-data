@@ -95,14 +95,26 @@
     return grid;
   }
 
+  // 가방을 바꾼 것(빼기·되돌리기·이름표 고치기·설명표 붙이기·가리기)은 그 자리에서 지금 화면의 체크포인트로 다시 저장한다 —
+  //   전엔 화면에 들어올 때만 저장해서, 새로고침·탭 되살아남 뒤 정리한 가방이 예전으로 돌아갔다(리뷰 2026-11-10 ②).
+  //   검수 = 'inspect', 보충 준비 = 'prep' 그대로(다시 들어오면 그 화면). 연습은 본편 저장을 덮지 않고, 튜토리얼 검수(ui-exam)는 여기를 쓰지 않는다
+  function saveBag(bag) {
+    var App = DR.App, st = App && App.state, scr = App && App.screen;
+    if (!st || st.practice || st.mission === 'tutorial' || st.bag !== bag) return false;
+    if (scr !== 'inspect' && scr !== 'prep') return false;
+    return DR.Save.checkpoint(scr, st, {});
+  }
+
   // 빼기 + 되돌리기(마지막 1장만, 5초)
   function removeWithUndo(mission, bag, card, rerender) {
     var at = bag.indexOf(card);
     if (at < 0 || card.fixed) return; // 동기와 함께 넣은 카드는 빼지 않는다
     bag.splice(at, 1);
+    saveBag(bag);
     rerender();
     DR.UI.undoToast('뺐어요: ' + cardLabel(mission, card), function () {
       bag.splice(Math.min(at, bag.length), 0, card);
+      saveBag(bag);
       rerender();
     });
   }
@@ -112,7 +124,7 @@
   function inspect(mission, bag, done, opts) {
     opts = opts || {};
     var screen = document.getElementById('screen-inspect');
-    var zoom = zoomer(mission, screen, 'inspect-zoom', function () { render(); });
+    var zoom = zoomer(mission, screen, 'inspect-zoom', function () { saveBag(bag); render(); });
 
     function render() {
       var undecided = bag.filter(function (c) { return c.ambiguousId && c.assigned === undefined; }).length;
@@ -168,9 +180,14 @@
   /* ---------- 카드 크게 보기(검수·보충 준비 공용) ----------
    * "?" 카드: 단서 + 설명표 붙이기(1 임무). 2 임무(mission.labels): 모든 카드에 이름표 7종 버튼 — 가짜만 버튼이 있으면 그 자체가 정답 단서라서.
    * 이름표를 원래 것으로 되돌리면 card.label을 지운다("고침" 표시도 사라진다). 고친 이름표가 맞는지는 어디에도 표시하지 않는다.
-   * rerender()가 화면을 다시 그리면 reopen()으로 같은 카드 창을 다시 연다. keydown 정리 함수는 하나만(다시 그릴 때 쌓이지 않게). */
-  function zoomer(mission, host, zoomId, rerender) {
-    var zoomed = null, zoomCleanup = null;
+   * rerender()가 화면을 다시 그리면 reopen()으로 같은 카드 창을 다시 연다. keydown 정리 함수는 하나만(다시 그릴 때 쌓이지 않게).
+   * 포커스(리뷰 2026-11-10 ⑤): 창이 떠 있는 동안 Tab·Shift+Tab은 창 안에서만 돌고(전엔 Shift+Tab이 배경 '제출'로 빠졌다), 배경(화면의 다른 자식)은 inert —
+   *   창은 화면을 다시 그릴 때마다 새로 만들어 화면 안에 붙이는 div라 <dialog>(공용 modal)로 바꾸지 않고, 대화 창(ui-story)처럼 키로 가둔다.
+   *   닫기·Esc·바깥 누르기로 닫으면 열었던 카드 버튼으로 포커스를 돌려준다. 창 안 버튼을 눌러 다시 그릴 때는 같은 버튼으로(닫기로 튀지 않게) — rerender(sel). */
+  function zoomer(mission, host, zoomId, rerenderHost) {
+    var zoomed = null, zoomCleanup = null, focusSel = null;
+    // 창 안 조작으로 화면을 다시 그린다 — sel = 다시 그린 창에서 포커스를 줄 조작
+    function rerender(sel) { focusSel = sel || null; rerenderHost(); focusSel = null; }
 
     function open(card) {
       if (zoomCleanup) zoomCleanup();
@@ -199,10 +216,8 @@
             if (st && st.bag && st.bag.indexOf(card) >= 0) {
               // 한 번 가려 본 카드는 나중에 빼도 "가렸으면 살려 쓸 수 있었어"를 듣지 않는다(가릴 줄 알고 뺀 것)
               if (nowMasked && st.privCaught) { var pi = st.privCaught.indexOf(card.id); if (pi >= 0) st.privCaught.splice(pi, 1); }
-              // 검수 화면에서 가린 것은 바로 저장 — 새로고침·탭 되살아남 뒤에도 가림이 남게(전엔 검수 들어올 때만 저장)
-              if (DR.App.screen === 'inspect' && !st.practice) DR.Save.checkpoint('inspect', st, {});
             }
-            rerender();
+            rerender('#btn-mask'); // 가린 것도 바로 저장된다(크게 보기에서 바꾼 것은 모두 — inspect·supplementPrep이 넘긴 rerender가 saveBag)
           }
           else maskNote.textContent = DR.Privacy.text(mission, 'noPrivate');
         });
@@ -223,7 +238,7 @@
           var b = digit && o.id !== 'none'
             ? el('button', { class: 'btn btn-label btn-digit', type: 'button', 'data-label': o.id, text: o.id, 'aria-label': o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' })
             : el('button', { class: 'btn btn-label' + (word && o.id !== 'none' ? ' btn-word' : ''), type: 'button', 'data-label': o.id, text: o.text, 'aria-pressed': card.assigned === val ? 'true' : 'false' });
-          b.addEventListener('click', function () { DR.Sfx.play('ui'); card.assigned = val; rerender(); });
+          b.addEventListener('click', function () { DR.Sfx.play('ui'); card.assigned = val; rerender('[data-label="' + o.id + '"]'); });
           (o.id === 'none' ? noneRow : labels).appendChild(b);
         });
         inner.push(el('h3', { text: '추가 단서' }), clues, el('h3', { text: digit ? '번호 붙이기' : word ? '낱말 붙이기' : '설명표' }), labels);
@@ -250,7 +265,7 @@
           b.addEventListener('click', function () {
             DR.Sfx.play('ui');
             if (l.id === orig) delete card.label; else card.label = l.id;
-            rerender();
+            rerender('[data-relabel="' + l.id + '"]');
           });
           relabel.appendChild(b);
         });
@@ -259,15 +274,40 @@
       }
       var panel = el('div', { class: 'zoom-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': '카드 크게 보기: ' + label }, inner);
       var overlay = el('div', { id: zoomId, class: 'zoom' }, [panel]);
-      function cleanup() { overlay.remove(); root.removeEventListener('keydown', onKey); zoomCleanup = null; }
-      function shut() { zoomed = null; cleanup(); }
-      function onKey(e) { if (e.key === 'Escape') shut(); }
+      // 배경 = 화면(host)의 다른 자식들. 창이 떠 있는 동안 inert(누를 수도 포커스할 수도 없음), 닫으면 되돌린다
+      var behind = [];
+      function cleanup() {
+        behind.forEach(function (n) { n.removeAttribute('inert'); });
+        overlay.remove(); root.removeEventListener('keydown', onKey); zoomCleanup = null;
+      }
+      // 사람이 닫음(닫기·Esc·바깥): 열었던 카드로 포커스. 화면이 넘어갈 때 닫는 것(shutAll)은 포커스를 건드리지 않는다
+      function shut() {
+        zoomed = null; cleanup();
+        var cells = host.querySelectorAll('.bag-card'), back = null;
+        for (var i = 0; i < cells.length && !back; i++) if (cells[i].getAttribute('data-id') === String(card.id)) back = cells[i].querySelector('.bag-open');
+        if (back && back.offsetParent !== null) back.focus();
+      }
+      function focusables() {
+        return Array.prototype.filter.call(panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'), function (n) { return !n.disabled && n.offsetParent !== null; });
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { shut(); return; }
+        if (e.key !== 'Tab') return;
+        if (document.querySelector('dialog[open]')) return; // 도움말 같은 <dialog>가 위에 떠 있으면 그쪽이 가둔다
+        var list = focusables(), first = list[0], last = list[list.length - 1], at = document.activeElement;
+        if (!first) { e.preventDefault(); return; }
+        if (!panel.contains(at)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+        else if (e.shiftKey && at === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
+      }
       close.addEventListener('click', shut);
       overlay.addEventListener('click', function (e) { if (e.target === overlay) shut(); });
       root.addEventListener('keydown', onKey);
       zoomCleanup = cleanup;
+      Array.prototype.forEach.call(host.children, function (n) { if (!n.hasAttribute('inert')) { n.setAttribute('inert', ''); behind.push(n); } });
       host.appendChild(overlay);
-      close.focus();
+      var keep = focusSel && panel.querySelector(focusSel);
+      (keep || close).focus();
     }
     function reopen() { if (zoomed && document.contains(host)) open(zoomed); }
     function shutAll() { zoomed = null; if (zoomCleanup) zoomCleanup(); }
@@ -304,7 +344,7 @@
     var needByKey = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { c.keys.forEach(function (k) { needByKey[k] = Math.max(needByKey[k] || 0, c.need); }); }); });
 
-    var zoom = zoomer(mission, screen, 'prep-zoom', function () { render(); });
+    var zoom = zoomer(mission, screen, 'prep-zoom', function () { saveBag(bag); render(); });
 
     // 종류별 "1장 빼기"는 바로 빼지 않는다 — 그 라벨의 카드 썸네일을 펼쳐 학생이 사진을 보고 직접 고른다
     // (가장 최근 카드를 몰래 빼면 가짜가 남고 진짜가 빠질 수 있다)

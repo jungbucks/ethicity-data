@@ -153,23 +153,25 @@
   }
 
   // 임무 완료 화면 — 같은 답안지 전후 비교(교사 피드백 2026-11-09, DR.GradeCompare.rows). data가 null(옛 저장)이면 null
-  //   넓은 화면 = 표 4칸(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 개선 후 판정), 좁은 화면(≤520px) = 답안지마다 카드(CSS)
+  //   넓은 화면 = 표 4칸(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 마지막 판정), 좁은 화면(≤520px) = 답안지마다 카드(CSS)
+  //   마지막 칸 이름은 '개선 후'가 아니라 '마지막 판정' — 고치다가 맞던 답안지가 새로 틀릴 수도 있다(kind 'worse', 리뷰 2026-11-10 ④)
   function verdictCls(v) { return v.bin === 'hold' ? 'hold' : v.correct ? 'ok' : 'bad'; }
   function gradeCompare(mission, data) {
     if (!data) return null;
     var head = el('h3', { text: '같은 답안지, 고치기 전과 뒤' });
-    if (data.firstAllOk || !data.rows.length) {
+    if (!data.rows.length) {
       return el('section', { id: 'outro-compare', class: 'outro-compare', 'aria-label': '같은 답안지, 고치기 전과 뒤' }, [head,
         el('p', { class: 'cmp-none', text: '처음 제출 때부터 채점 시연 답안지를 모두 맞게 채점했다. 바꿀 자료가 없었다.' })]);
     }
-    var cols = ['답안 사진', '처음 판정', '내가 바꾼 자료', '개선 후 판정'];
+    var cols = ['답안 사진', '처음 판정', '내가 바꾼 자료', '마지막 판정'];
     var tbody = el('tbody');
     data.rows.forEach(function (r) {
       var photo = el('td', { class: 'cmp-photo', 'data-label': cols[0] }, [
         el('img', { src: DR.CardArt.card(mission, r.art, r.variant, 160).toDataURL(), alt: '답안지: ' + r.wrote }),
         el('div', null, [
           el('span', { class: 'cmp-wrote', text: '학생이 쓴 답: ' + r.wrote }),
-          r.kind === 'control' ? el('span', { class: 'cmp-tag', text: '비교용 · 처음부터 맞음' }) : null
+          r.kind === 'control' ? el('span', { class: 'cmp-tag', text: '비교용 · 처음부터 맞음' })
+            : r.kind === 'worse' ? el('span', { class: 'cmp-tag cmp-tag-worse', text: '새로 틀림 · 처음엔 맞았음' }) : null
         ])
       ]);
       tbody.appendChild(el('tr', { 'data-id': r.id, 'data-kind': r.kind }, [
@@ -183,11 +185,13 @@
       el('thead', null, [el('tr', null, cols.map(function (c) { return el('th', { scope: 'col', text: c }); }))]),
       tbody
     ]);
-    var changed = data.rows.some(function (r) { return r.kind === 'changed'; });
+    var worse = data.rows.some(function (r) { return r.kind === 'worse'; });
+    var changed = worse || data.rows.some(function (r) { return r.kind === 'changed'; });
     return el('section', { id: 'outro-compare', class: 'outro-compare', 'aria-label': '같은 답안지, 고치기 전과 뒤' }, [
       head,
       el('p', { class: 'note', text: '채점 시연에 나온 답안지 그대로다. 처음 제출과 마지막 제출을 나란히 놓았다.' }),
       table,
+      worse ? el('p', { id: 'cmp-worse-note', class: 'note', text: '자료를 고치는 동안 필요한 자료가 빠지면, 맞던 답안지도 새로 틀린다.' }) : null,
       el('p', { class: 'cmp-human', text: (changed ? '같은 답안지인데 결과가 바뀌었다. ' : '') + '어떤 자료를 고칠지는 AI가 아니라 사람이 정했다.' })
     ]);
   }

@@ -860,22 +860,56 @@
   // 3 임무 거리 사진(Codex 2026-11-08, 384²): 카드 종류·옛 사진(가짜)·개인정보 카드(행인·택시 번호판) 모두. 장면 결과 컷·길 안내 시연은 Canvas
   var CITY_DIR = 'assets/cards/city/', CITY = ['station_now', 'station_rain', 'station_old', 'station_plate', 'market_now', 'market_old', 'market_eve_old', 'river_now', 'river_night', 'river_old', 'river_people', 'crossing_now', 'crossing_rain', 'crossing_old'];
   var photoImgs = {};
+  /* 더블클릭(file://, 보안 플래그 없음)으로 열면 파일에서 읽은 사진은 '다른 출처'라 그 사진을 그린 캔버스가 오염된다 —
+   * 그림을 내보낼 수도(toDataURL·getImageData) 3D 카드 텍스처로 올릴 수도 없어 브리핑·달리기·검수가 멈췄다(리뷰 2026-11-10 ①).
+   * 그래서 사진이 캔버스를 오염시키면(clean) 그 사진은 쓰지 않고, 같은 사진을 data URL로 담은 파일(EMBED — 그때만 읽는다)로 바꿔 읽는다.
+   * 그 파일마저 못 읽으면 사진 없이 Canvas 그림(사진이 아직 안 온 것과 같은 길 — 빈 그림·멈춤 없음).
+   * 배포 주소(http)·플래그를 넣은 테스트에서는 오염이 없어 예전 그대로 파일에서 읽는다. EMBED는 사진을 바꾸면 다시 만든다: node assets/cards/embed-photos.mjs */
+  var EMBED = 'assets/cards/photos-embedded.js';
+  var embed = 'none'; // 'none' 파일 사진 그대로 | 'loading' 담은 파일 읽는 중 | 'done' 담은 사진으로 바꿈 | 'failed' 못 읽음(Canvas 그림)
+  function clean(im) {
+    if (im._clean === undefined) {
+      try {
+        var c = document.createElement('canvas'); c.width = c.height = 1;
+        var g = c.getContext('2d'); g.drawImage(im, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1);
+        im._clean = true;
+      } catch (e) { im._clean = false; }
+    }
+    return im._clean;
+  }
+  function loadEmbedded() {
+    if (embed !== 'none') return;
+    embed = 'loading';
+    var s = document.createElement('script');
+    s.src = root.__DR_PHOTO_EMBED || EMBED; // 테스트는 없는 이름으로 바꿔 '못 읽음'을 본다
+    s.onload = function () {
+      var data = (root.DR && root.DR.PhotoData) || {};
+      Object.keys(photoImgs).forEach(function (id) {
+        if (!data[id]) return;
+        var im = new Image(); im.decoding = 'async'; im.src = data[id]; photoImgs[id] = im;
+      });
+      embed = 'done';
+    };
+    s.onerror = function () { embed = 'failed'; };
+    document.head.appendChild(s);
+  }
+  function addPhoto(dir, id) {
+    if (photoImgs[id]) return;
+    var im = new Image(); im.decoding = 'async';
+    im.onload = function () { if (!clean(im)) loadEmbedded(); };
+    im.src = dir + id + '.webp'; photoImgs[id] = im;
+  }
   function preloadPhotos() {
     if (typeof Image === 'undefined') return;
-    Object.keys(PHOTOS).forEach(function (k) {
-      PHOTOS[k].forEach(function (id) {
-        if (photoImgs[id]) return;
-        var im = new Image(); im.decoding = 'async'; im.src = PHOTO_DIR + id + '.webp'; photoImgs[id] = im;
-      });
-    });
+    Object.keys(PHOTOS).forEach(function (k) { PHOTOS[k].forEach(function (id) { addPhoto(PHOTO_DIR, id); }); });
     [[LOST_DIR, LOST], [RECYCLE_DIR, RECYCLE], [CITY_DIR, CITY]].forEach(function (set) {
-      set[1].forEach(function (id) {
-        if (photoImgs[id]) return;
-        var im = new Image(); im.decoding = 'async'; im.src = set[0] + id + '.webp'; photoImgs[id] = im;
-      });
+      set[1].forEach(function (id) { addPhoto(set[0], id); });
     });
   }
-  function photoReady(im) { return !!(im && im.complete && im.naturalWidth > 0); }
+  // 쓸 수 있는 사진 = 다 읽혔고 캔버스를 오염시키지 않는 것
+  function photoReady(im) { return !!(im && im.complete && im.naturalWidth > 0 && clean(im)); }
+  // 사진을 어디서 읽고 있나(테스트·점검용): 'file' 파일 그대로 | 'loading' | 'embedded' 담은 파일 | 'canvas' 사진 없이 Canvas 그림
+  function photoMode() { return embed === 'done' ? 'embedded' : embed === 'failed' ? 'canvas' : embed === 'loading' ? 'loading' : 'file'; }
   // 이 카드에 쓸 사진 id(사진 카드가 아니거나 사진을 못 쓰면 '') — n = 카드 번호(uid 'c12' → 12)
   function photoId(mission, id, n) {
     var o = artOf(mission, id), list = o.animal && PHOTOS[o.animal];
@@ -885,7 +919,12 @@
     var pid = list[((Math.floor(n) || 0) % list.length + list.length) % list.length];
     return photoReady(photoImgs[pid]) ? pid : '';
   }
-  function photosReady() { var ids = Object.keys(photoImgs); return ids.length > 0 && ids.every(function (k) { return photoImgs[k].complete; }); }
+  // 사진 읽기가 끝났나(더 기다려도 달라질 게 없나): 담은 파일로 바꾸는 중이면 아직, 오염시키는 사진이 남아 있으면 아직(곧 바뀐다) — 담은 파일을 못 읽었으면 끝난 것
+  function photosReady() {
+    var ids = Object.keys(photoImgs);
+    if (!ids.length || embed === 'loading' || !ids.every(function (k) { return photoImgs[k].complete; })) return false;
+    return embed === 'failed' || ids.every(function (k) { return photoImgs[k].naturalWidth === 0 || clean(photoImgs[k]); });
+  }
 
   function shade(hex) { var n = parseInt(hex.slice(1), 16); var f = function (v) { return Math.round(v * 0.7); }; return 'rgb(' + f(n >> 16) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')'; }
 
@@ -1682,7 +1721,7 @@
   }
 
   loadWords(); // 손글씨 글꼴을 바로 읽기 시작(base64라 금방 — 4 임무 카드를 그릴 때쯤엔 준비됨)
-  var api = { card: card, photoId: photoId, preloadPhotos: preloadPhotos, photosReady: photosReady, _photos: photoImgs, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, wordsReady: wordsReady, binColors: BIN_COLORS };
+  var api = { card: card, photoId: photoId, preloadPhotos: preloadPhotos, photosReady: photosReady, photoMode: photoMode, _photos: photoImgs, thumb: thumb, icon: icon, clue: clue, scene: scene, sprite: sprite, sheet: sheet, wordsReady: wordsReady, binColors: BIN_COLORS };
   root.DR = root.DR || {};
   root.DR.CardArt = api;
 })(window);

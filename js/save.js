@@ -4,6 +4,8 @@
  *   ethicity.data.sound  효과음 켬/끔('1'/'0'). 없으면 켜짐. 옛 키 dr.muted는 읽기만 해서 이어받는다.
  *   ethicity.data.bgm    달리기 배경음악 켬/끔('1'/'0', js/bgm.js). 없으면 켜짐. 효과음과 따로.
  *   (save.records = 임무 완료 기록, 체크포인트·임무 끝에도 남고 '처음부터'에서 지워진다)
+ *   (save.ending = 임무를 끝낸 뒤의 활동(마지막 대화 → 챕터 끝 → 도시 복구 → 임무 완료 화면)을 하는 중 — 선택 필드, 다 마치면 없어진다.
+ *    게임 결과 완료(records[임무].cleared, mission:null)와 따로라서 도중에 나가도 그 활동으로 돌아온다. 옛 저장엔 없음 = 뒤 활동 없음)
  *   ethicity.data.hero   달릴 주인공(공통 팩 'onyu' 온유 / 'daon' 다온). 없거나 모르는 값이면 온유.
  * 저장소가 막혀 있으면(사생활 보호 창 등) 조용히 실패하고 게임은 그대로 진행한다.
  */
@@ -106,6 +108,40 @@
     return write({ v: 1, mission: null, tutorialDone: !!prev.tutorialDone }, st);
   }
 
+  /* ---------- 임무 뒤 활동 이어하기(리뷰 2026-11-10 ③) ----------
+   * ending = { mission, step, city, peer, compare }
+   *   step  0 = 챕터 끝 앞(1~3 임무 마지막 대화 / 4 임무 도시 재연결) · 1~3 = 챕터 끝 단계 · 4 = 챕터 끝 뒤(도시 복구·마무리 대화·임무 완료 화면)
+   *   city  아직 보지 않은 도시 복구 화면 { from, to }(보고 나면 null — 이어 해도 두 번 뜨지 않는다)
+   *   peer  4 임무 마무리 대화 갈래(동기가 합류한 적 없으면 'none') · compare = 4 임무 전후 비교 줄(DR.GradeCompare.rows 결과, 없으면 null)
+   * 임무 기록(records)은 여기서 건드리지 않는다 — 이어 해도 완료 기록·도시 칸이 다시 세어지지 않는다.
+   * 새 체크포인트·finish·clear는 저장을 새로 쓰므로 ending이 떨어진다(다른 진행을 시작하면 뒤 활동은 버림). */
+  function validEnding(e) {
+    if (!e || typeof e !== 'object' || typeof e.mission !== 'string') return null;
+    if (typeof e.step !== 'number' || e.step < 0 || e.step > 4 || Math.floor(e.step) !== e.step) return null;
+    var c = e.city, city = c && typeof c === 'object' && typeof c.from === 'number' && typeof c.to === 'number' ? { from: c.from, to: c.to } : null;
+    return { mission: e.mission, step: e.step, city: city, peer: typeof e.peer === 'string' ? e.peer : 'none',
+      compare: e.compare && typeof e.compare === 'object' ? e.compare : null };
+  }
+  function ending(st) {
+    var o = read(storage(st));
+    return o ? validEnding(o.ending) : null;
+  }
+  function setEnding(e, st) {
+    st = storage(st);
+    var v = validEnding(e);
+    if (!v) return false;
+    var o = read(st) || { v: 1, mission: null };
+    o.ending = v;
+    return write(o, st);
+  }
+  function endingDone(st) {
+    st = storage(st);
+    var o = read(st);
+    if (!o) return !!st; // 저장이 없으면 지울 것도 없다(저장소가 없으면 false)
+    delete o.ending;
+    return write(o, st);
+  }
+
   // 임무 완료 기록 { 임무 id: { cleared, firstTry, supplements, firstFails } } — 다음 임무 대사·3 임무 정체 공개·도시 복구 화면이 읽는다
   function records(st) {
     var o = read(storage(st));
@@ -203,7 +239,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -332,47 +332,81 @@
   // 임무 끝: 기록을 한 곳(DR.App.records + 저장소 records)에 남긴다 — 다음 임무 브리핑 한 줄, 3 임무 정체 공개, (검토 중인) 도시 복구 화면이 읽는다
   function finishMission(m) {
     App.state.record = { firstTry: App.state.firstTry, supplements: App.state.supplements };
-    var relabels = !!(m.labels && m.relabel !== false);
     var fixed = (App.state.bag || []).filter(function (c) { return c.label !== undefined && !c.ambiguousId; }).length;
     var rec = { cleared: true, passed: !!(App.lastJudge && App.lastJudge.allPass), firstTry: App.state.firstTry === true,
       supplements: App.state.supplements, firstFails: App.state.firstFails || [], fixedLabels: fixed };
-    // 이번 판 요약: 첫 제출에서 놓친 장면 · 보충 달리기 횟수 · 고친 이름표 수(이름표를 고칠 수 있는 임무만)
-    var summary = [
-      '첫 제출에서 놓친 장면: ' + (rec.firstFails.length ? rec.firstFails.map(function (f) { return f.title; }).join(', ') : '없음'),
-      '보충 달리기: ' + rec.supplements + '번'
-    ];
-    if (relabels) summary.push('고친 이름표: ' + fixed + '장');
     var cityBefore = cityCount();
     // 챕터 끝 답(설계 2026-11-08 ②)은 다시 깨도 이어 간다 — 이전 답을 채운 채 보여 주고, 처음 선택은 처음 값 그대로
     if (m.chapterEnd) rec.chapter = DR.Save.chapterOf(App.records, m.id);
     App.records[m.id] = rec;
     DR.Save.finish();
     DR.Save.setRecord(m.id, rec);
-    var next = m.next && DR.Missions[m.next] ? function () { startMission(m.next); } : null;
-    var outroOpts = { kicker: m.title + ' 완료', next: next, summary: summary };
-    // 4 임무: 같은 답안지 전후 비교(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 개선 후 판정). 첫 판정 기록이 없는 옛 저장이면 없음
-    if (m.grading && App.lastJudge) outroOpts.compare = DR.UI.gradeCompare(m, DR.GradeCompare.rows(m, App.state.firstGrade, App.lastJudge, App.state.bag || [], DR.config));
-    var step = DR.Save.cityStep(m.id, cityBefore, cityCount());
+    // 여기까지 = 게임 결과 완료(기록·도시 칸). 뒤 활동(마지막 대화 → 챕터 끝 → 도시 복구 → 임무 완료 화면)은 따로 저장해
+    //   도중에 나가도 그 자리로 돌아온다(리뷰 2026-11-10 ③ — 전엔 다음 접속에서 '다음 임무부터'만 나와 챕터 끝으로 못 돌아갔다)
+    var e = { mission: m.id, step: 0, city: DR.Save.cityStep(m.id, cityBefore, cityCount()), peer: App.state.peer || 'none',
+      // 4 임무: 같은 답안지 전후 비교 줄(답안 사진 · 처음 판정 · 내가 바꾼 자료 · 마지막 판정). 첫 판정 기록이 없는 옛 저장이면 없음
+      compare: m.grading && App.lastJudge ? DR.GradeCompare.rows(m, App.state.firstGrade, App.lastJudge, App.state.bag || [], DR.config) : null };
+    DR.Save.setEnding(e);
+    runEnding(m, e);
+  }
+
+  // 임무 뒤 활동 — e = DR.Save.ending 꼴({ mission, step, city, peer, compare }). 끝낸 직후(step 0)에도, 이어하기(resumeEnding)에도 이 길 하나.
+  //   기록(records)은 여기서 새로 쓰지 않는다 → 이어 해도 완료 기록·도시 칸이 두 번 세어지지 않는다(챕터 끝 답만 ui-chapter가 기록에 채움).
+  //   1~3 임무: [step 0] 마지막 대화(선배·정체 공개) → [1~3] 챕터 끝 → [4] 도시 복구(아직 안 봤으면) → 마무리 대화 → 임무 완료 화면
+  //   4 임무:   [step 0] 도시 재연결(아직 안 봤으면) → [1~3] 챕터 끝 → [4] 의뢰인·동기·해커의 이후 → 마무리 대화 → 임무 완료 화면(토론 질문·비교표)
+  //   임무 완료 화면의 [타이틀로]·[다음 임무로]를 눌러야 뒤 활동 완료(DR.Save.endingDone) — 그 전에 나가면 '임무 마무리부터' 다시 본다
+  function runEnding(m, e) {
+    var rec = App.records[m.id] || {};
+    function mark(patch) { Object.keys(patch).forEach(function (k) { e[k] = patch[k]; }); DR.Save.setEnding(e); }
+    function leave(fn) { return function () { DR.Save.endingDone(); fn(); }; }
+    // 이번 판 요약: 첫 제출에서 놓친 장면 · 보충 달리기 횟수 · 고친 이름표 수(이름표를 고칠 수 있는 임무만) — 기록에서 읽는다
+    var fails = rec.firstFails || [];
+    var summary = [
+      '첫 제출에서 놓친 장면: ' + (fails.length ? fails.map(function (f) { return f.title; }).join(', ') : '없음'),
+      '보충 달리기: ' + (rec.supplements || 0) + '번'
+    ];
+    if (m.labels && m.relabel !== false) summary.push('고친 이름표: ' + (rec.fixedLabels || 0) + '장');
+    var outroOpts = { kicker: m.title + ' 완료', next: m.next && DR.Missions[m.next] ? leave(function () { startMission(m.next); }) : null };
     function toOutro() {
       outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));
-      DR.UI.outro(m.story.outro, function () { DR.Sfx.play('ui'); go('title'); }, outroOpts);
+      outroOpts.compare = DR.UI.gradeCompare(m, e.compare);
+      DR.UI.outro(m.story.outro, leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
     }
-    // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)는 건너뜀
-    function chapterEnd(next) { if (m.chapterEnd) DR.UI.chapter(m, {}, next); else next(); }
+    // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)·이미 마친 경우는 건너뜀
+    function chapterPart(then) {
+      if (e.step >= 4) { then(); return; }
+      if (!m.chapterEnd) { mark({ step: 4 }); then(); return; }
+      DR.UI.chapter(m, { step: Math.max(1, e.step), onStep: function (n) { mark({ step: n }); } }, function () { mark({ step: 4 }); then(); });
+    }
+    // 도시 복구: 아직 안 본 것만(보고 [계속]을 누르면 지운다 — 이어 해도 다시 뜨지 않음)
+    function cityPart(then) {
+      if (!e.city) { then(); return; }
+      cityScreen(m, e.city, function () { mark({ city: null }); then(); });
+    }
     if (m.story.after) {
-      // 4 임무: 도시 재연결(늘 5/5) → 의뢰인 한 줄 → (동기가 합류한 적 없으면) 동기의 상자 → 해커의 이후(bg) → 마무리(최종 토론 질문)
+      // 4 임무: 도시 재연결(늘 5/5) → 챕터 끝 → 의뢰인 한 줄 → (동기가 합류한 적 없으면) 동기의 상자 → 해커의 이후(bg) → 마무리(최종 토론 질문)
       var lines = (rec.passed ? m.story.reconnect.pass : m.story.reconnect.partial).slice();
-      if (App.state.peer === 'none') lines.push(m.story.showdown.peerBox);
+      if (e.peer === 'none') lines.push(m.story.showdown.peerBox);
       var af = m.story.after;
       lines = lines.concat(af.lines.map(function (l) { return Object.assign({ bg: af.bg }, l); }));
       outroOpts.headline = '도시가 다시 이어졌다';
       outroOpts.questions = m.story.questions;
       // 챕터 끝 = 재연결 5/5 뒤·의뢰인 대사 전
-      cityScreen(m, step, function () { chapterEnd(function () { DR.UI.dialogue(lines, toOutro); }); });
+      cityPart(function () { chapterPart(function () { DR.UI.dialogue(lines, toOutro); }); });
       return;
     }
     // 1~3 임무: 마지막 대화(선배·정체 공개) → 챕터 끝 → 도시 복구(칸이 늘었을 때만) → 임무 완료
-    DR.UI.dialogue(revealLines(m).concat(m.story.senior), function () { chapterEnd(function () { cityScreen(m, step, toOutro); }); });
+    function lastTalk(then) { if (e.step === 0) DR.UI.dialogue(revealLines(m).concat(m.story.senior), then); else then(); }
+    lastTalk(function () { chapterPart(function () { cityPart(toOutro); }); });
+  }
+
+  // 타이틀 '이어하기'(뒤 활동 도중에 나갔을 때): 기록이 남은 임무만. 깨진 값이면 지우고 타이틀로
+  function resumeEnding(e) {
+    var m = e && DR.Missions[e.mission];
+    if (!m || !(App.records[m.id] && App.records[m.id].cleared)) { DR.Save.endingDone(); go('title'); return; }
+    App.state = { mission: m.id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: true, newIds: [],
+      peer: e.peer, peerPending: false, showdownPassed: false, privCaught: [] };
+    runEnding(m, e);
   }
 
   // 테스트 훅: 달리는 중 현재 코스에서 key(또는 ambiguousId) 카드를 앞에서부터 골라 가방에 넣는다
@@ -405,7 +439,7 @@
 
   var App = {
     screen: 'title', state: null, lastJudge: null, course: null, records: DR.Save.records(),
-    go: go, cityCount: cityCount, startTutorial: startTutorial, practiceTutorial: practiceTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume,
+    go: go, cityCount: cityCount, startTutorial: startTutorial, practiceTutorial: practiceTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume, resumeEnding: resumeEnding,
     mission: function () { return App.state ? DR.Missions[App.state.mission] : null; }
   };
   DR.App = App;

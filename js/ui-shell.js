@@ -205,6 +205,13 @@
     return DR.Save.nextMission(DR.App.records || {});
   }
 
+  // 임무를 끝낸 뒤의 활동(마지막 대화 → 챕터 끝 → 도시 복구 → 임무 완료 화면)을 하다 나갔나(DR.Save.ending, 리뷰 2026-11-10 ③) — 기록이 남은 임무만
+  function endingUp() {
+    var e = DR.Save.ending();
+    return e && DR.Missions[e.mission] && DR.App.records && DR.App.records[e.mission] && DR.App.records[e.mission].cleared ? e : null;
+  }
+  function endingText(e) { return DR.Save.missionName(e.mission) + ' · ' + (e.step >= 1 && e.step <= 3 ? '챕터 끝부터' : '임무 마무리부터'); }
+
   // 이어하기 아래: 지금 어디까지 했는지(예: '2임무 · 검수부터')
   var SCREEN_TEXT = { briefing: '브리핑부터', inspect: '검수부터', result: '결과부터', prep: '보충 준비부터' };
   function progressText(s) {
@@ -245,6 +252,16 @@
       box.appendChild(cont); box.appendChild(fresh);
       var prog = document.getElementById('title-progress');
       if (prog) { prog.textContent = progressText(s); prog.hidden = false; }
+    } else if (endingUp()) {
+      // 임무는 끝냈고 뒤 활동(챕터 끝·마무리)을 하다 나감: 그 자리부터. 다 깬 뒤(4 임무)에도 이쪽이 먼저 — 마무리 질문·비교표를 다시 본다
+      var ending = endingUp();
+      var contE = el('button', { id: 'btn-continue', class: 'btn btn-primary', type: 'button', text: '이어하기' });
+      contE.addEventListener('click', function () { DR.Sfx.unlock(); DR.Sfx.play('ui'); leave(function () { DR.App.resumeEnding(ending); }); });
+      var freshE = el('button', { id: 'btn-fresh', class: 'btn', type: 'button', text: '처음부터' });
+      freshE.addEventListener('click', function () { DR.Sfx.play('ui'); startChoice(true); });
+      box.appendChild(contE); box.appendChild(freshE);
+      var progE = document.getElementById('title-progress');
+      if (progE) { progE.textContent = endingText(ending); progE.hidden = false; }
     } else if (DR.Save.hasSave() && DR.Save.allCleared(DR.App.records || {})) {
       // 다 깸: 처음부터 다시(확인 창 — 기록이 지워진다)
       var again = el('button', { id: 'btn-restart', class: 'btn btn-primary', type: 'button', text: '처음부터 다시' });

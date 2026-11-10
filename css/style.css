@@ -662,6 +662,7 @@ body { overflow: hidden; word-break: keep-all; }
 .ch-note { display: block; width: 100%; min-height: 120px; margin-top: 8px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); font: inherit; font-size: 17px; line-height: 1.6; resize: vertical; }
 .ch-note:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
 .ch-saved { margin: 6px 0 0; font-size: 14px; min-height: 1.4em; }
+.ch-saved.is-fail { color: var(--yellow); font-weight: 700; } /* 저장하지 못함(리뷰 2026-11-10 ⑥) */
 
 /* 보충 달리기 누적 목표(교사 피드백 2026-11-09, run-feedback #run-need) — 카드(z 166~200)보다 아래, 왼쪽 위 */
 .run-need { position: absolute; left: 16px; top: 76px; z-index: 150; width: max-content; max-width: min(320px, calc(100% - 32px)); margin: 0; padding: 8px 12px; border-radius: 10px; background: rgba(18,12,46,.82); border: 1px solid var(--line); font-size: 15px; line-height: 1.45; pointer-events: none; word-break: keep-all; }
@@ -705,6 +706,7 @@ body { overflow: hidden; word-break: keep-all; }
 .cmp-photo img { display: block; width: 96px; height: 96px; border-radius: 8px; background: #f4f0e6; }
 .cmp-wrote, .cmp-tag { display: block; font-size: 13px; color: var(--ink-2); margin-top: 4px; }
 .cmp-tag { color: #7be0a0; }
+.cmp-tag-worse { color: #ff8fa6; }
 .cmp-v { font-weight: 700; white-space: nowrap; }
 .cmp-ok { color: #7be0a0; }
 .cmp-bad { color: #ff8fa6; }

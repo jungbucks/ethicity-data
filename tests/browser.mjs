@@ -10,9 +10,10 @@ export const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 export const shotPath = (name) => path.join(DATA_DIR, 'tests', `_shot-${name}.png`);
 
 export async function openGame(opts = {}) {
+  // opts.bare = 더블클릭과 같은 조건(--allow-file-access-from-files 없음) — 기본 실행 조건 검사(bare-browser)가 쓴다
   const browser = opts.browser || await chromium.launch({
     channel: 'msedge', headless: true,
-    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required']
+    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'].concat(opts.bare ? [] : ['--allow-file-access-from-files'])
   });
   const page = await browser.newPage({ viewport: opts.viewport || { width: 1366, height: 900 }, hasTouch: !!opts.hasTouch });
   const errors = [];
