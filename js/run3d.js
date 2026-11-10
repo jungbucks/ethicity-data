@@ -280,8 +280,9 @@
   function bagCount() { return S.startBag + S.grabbed.length; }
 
   function updateHud() {
-    var el = document.querySelector('#hud-bag b');
-    if (el) el.textContent = bagCount() + '/' + S.bagMax;
+    // 값이 바뀔 때만 DOM에 쓴다(매 프레임 같은 값을 다시 쓰면 배치 계산이 다시 돈다 — 2026-11-10)
+    var el = document.querySelector('#hud-bag b'), bagText = bagCount() + '/' + S.bagMax;
+    if (el && el.textContent !== bagText) el.textContent = bagText;
     var box = document.getElementById('hud-bag');
     if (box) { box.classList.toggle('full', bagCount() >= S.bagMax); if (S.t > (S.emptyUntil || 0)) box.classList.remove('empty-grab'); }
     var hpBox = document.getElementById('hud-hp');
@@ -291,7 +292,8 @@
         for (var h = 0; h < cfg().hp; h++) { var sp = document.createElement('span'); sp.className = 'heart'; hpBox.appendChild(sp); }
       }
       Array.prototype.forEach.call(hpBox.children, function (el, k) { el.classList.toggle('on', k < S.hp); });
-      hpBox.setAttribute('aria-label', 'HP ' + S.hp + '/' + cfg().hp);
+      var hpLabel = 'HP ' + S.hp + '/' + cfg().hp;
+      if (hpBox.getAttribute('aria-label') !== hpLabel) hpBox.setAttribute('aria-label', hpLabel);
     }
     var p = document.querySelector('#hud-progress i');
     if (p) p.style.width = Math.min(100, (S.z / S.course.length) * 100) + '%';

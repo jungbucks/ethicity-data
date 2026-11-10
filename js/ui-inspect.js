@@ -11,7 +11,9 @@
   function el() { return DR.UI.el.apply(null, arguments); }
 
   function variantOf(card) { return numOf(card) % 3 || 0; }
-  function numOf(card) { return parseInt(String(card.id).replace(/\D/g, ''), 10) || 0; } // 카드 번호(사진 카드가 사진을 고를 때)
+  // 카드 번호(사진 카드가 사진을 고를 때) = id의 마지막 숫자 묶음. 보충 카드 id 's1_c5'는 5 — 전엔 숫자를 다 이어 15가 돼, 달릴 때(c5)와 검수에서 그림 변형·사진이 달랐다(2026-11-10)
+  function numOf(card) { var m = String(card.id).match(/(\d+)\D*$/); return m ? parseInt(m[1], 10) : 0; }
+  var maskLast = { id: null, at: 0 }; // 마지막으로 가림을 바꾼 카드와 때(ms) — 같은 카드를 바로 다시 누른 것만 무시한다
   function cardId(card) { return DR.Cards.artId(card); }
   function ambDef(mission, id) { return mission.ambiguous.filter(function (a) { return a.id === id; })[0]; }
   function labelText(mission, id) { var o = mission.labelOptions.filter(function (x) { return x.id === id; })[0]; return o ? o.text : ''; }
@@ -146,7 +148,7 @@
         opts.lost ? el('p', { id: 'inspect-lost', class: 'lost-line', text: '이번 달리기에서 노이즈로 잃은 카드 ' + opts.lost + '장' }) : null, // 직전 달리기 하나 기준(플레이테스트 8)
         changeLogBoard(mission),
         el('p', { class: 'note', text: mission.inspectNote ? mission.inspectNote : mission.changeLog ? '카드를 누르면 크게 볼 수 있다. 언제 찍은 사진인지 도시 변경 기록과 맞춰 보고, 지금의 거리가 아닌 사진은 뺀다.' : mission.labels ? (mission.relabel !== false ? '카드를 누르면 크게 볼 수 있다. 그림과 이름표가 안 맞으면 이름표를 고치거나 뺀다.' : '카드를 누르면 크게 볼 수 있다. 그림을 보고 필요 없는 카드는 뺀다.') : '카드를 누르면 크게 볼 수 있다. "?" 카드는 단서를 보고 설명표를 붙이거나, 넣지 않기로 정한다.' }),
-        DR.Privacy.on(mission) ? el('p', { id: 'inspect-privacy-note', class: 'note', text: DR.Privacy.TEXT.inspectNote }) : null,
+        DR.Privacy.on(mission) ? el('p', { id: 'inspect-privacy-note', class: 'note', text: DR.Privacy.text(mission, 'inspectNote') }) : null,
         notice,
         bagGrid(mission, bag, 'inspect-grid', {
           onOpen: zoom.open, newIds: opts.newIds,
@@ -186,9 +188,23 @@
           text: card.masked ? DR.Privacy.TEXT.unmaskButton : DR.Privacy.TEXT.maskButton });
         var maskNote = el('p', { id: 'zoom-mask-note', class: 'note zoom-mask-note', role: 'status' });
         maskBtn.addEventListener('click', function () {
+          // 더블 클릭·더블 탭: 다시 그린 '되돌리기' 버튼이 같은 자리라 두 번째 누름이 가림을 바로 풀었다 → 잠깐은 무시(2026-11-10)
+          var now = Date.now();
+          if (DR.Privacy.canMask(mission, card) && maskLast.id === card.id && now - maskLast.at < 450) return;
           DR.Sfx.play('ui');
-          if (DR.Privacy.canMask(mission, card)) { DR.Privacy.toggleMask(mission, card); rerender(); }
-          else maskNote.textContent = DR.Privacy.TEXT.noPrivate;
+          if (DR.Privacy.canMask(mission, card)) {
+            maskLast = { id: card.id, at: now };
+            var nowMasked = DR.Privacy.toggleMask(mission, card);
+            var st = DR.App && DR.App.state;
+            if (st && st.bag && st.bag.indexOf(card) >= 0) {
+              // 한 번 가려 본 카드는 나중에 빼도 "가렸으면 살려 쓸 수 있었어"를 듣지 않는다(가릴 줄 알고 뺀 것)
+              if (nowMasked && st.privCaught) { var pi = st.privCaught.indexOf(card.id); if (pi >= 0) st.privCaught.splice(pi, 1); }
+              // 검수 화면에서 가린 것은 바로 저장 — 새로고침·탭 되살아남 뒤에도 가림이 남게(전엔 검수 들어올 때만 저장)
+              if (DR.App.screen === 'inspect' && !st.practice) DR.Save.checkpoint('inspect', st, {});
+            }
+            rerender();
+          }
+          else maskNote.textContent = DR.Privacy.text(mission, 'noPrivate');
         });
         inner.push(el('div', { class: 'zoom-mask' }, [maskBtn, maskNote]));
       }

@@ -194,9 +194,12 @@
 
   function askSupervisor(m) {
     // 목적 밖 개인정보 카드를 처리하지 않았으면 감독관이 막는다(설계 2026-11-08 ①) — 장면 판정과는 따로
-    var pc = DR.Privacy.check(m, App.state.bag), T = DR.Privacy.TEXT;
+    var pc = DR.Privacy.check(m, App.state.bag), T = {};
+    ['blockMustRemove', 'blockMustRemove2', 'blockUnhandled', 'blockUnhandled2', 'blockMore'].forEach(function (k) { T[k] = DR.Privacy.text(m, k); }); // 임무별 문구(4 임무 = 답안지·학생 이름)
     if (!pc.ok) {
-      var lines = pc.reason === 'mustRemove' ? [T.blockMustRemove, T.blockMustRemove2] : [T.blockUnhandled, T.blockUnhandled2];
+      // 일부만 가리고 다시 냈으면 같은 말을 되풀이하지 않고 남은 장 수를 말한다(어느 카드인지는 여전히 말하지 않는다)
+      var first = pc.handled > 0 ? T.blockMore.replace('{n}', pc.open) : T.blockUnhandled;
+      var lines = pc.reason === 'mustRemove' ? [T.blockMustRemove, T.blockMustRemove2] : [first, T.blockUnhandled2];
       DR.UI.supervisorBlock(lines.map(function (t, i) { return { who: 'supervisor', text: t, face: i ? 'explain' : 'worried' }; }), function () { review(m); });
       return;
     }
@@ -411,6 +414,8 @@
   if (params.get('run')) debugRun(params.get('run'));
   else if (params.get('start')) startMission(params.get('start'));
   else DR.Shell.renderTitle();
-  // 첫 타이틀은 go()를 거치지 않는다 — 사진 미리 받기는 타이틀이 뜬 뒤에(시작 화면을 막지 않게)
-  setTimeout(function () { if (DR.CardArt.preloadPhotos) DR.CardArt.preloadPhotos(); }, 300);
+  // 첫 타이틀은 go()를 거치지 않는다 — 카드 사진 미리 받기(약 0.7MB)는 시작 화면 그림·초상을 다 받은 뒤에(2026-11-10 — 전엔 0.3초 뒤라 느린 회선에서 시작 화면 그림과 회선을 나눠 썼다)
+  //   그 전에 임무로 들어가면 go('briefing'|'run')이 바로 받는다
+  function preloadSoon() { setTimeout(function () { if (DR.CardArt.preloadPhotos) DR.CardArt.preloadPhotos(); }, 300); }
+  if (document.readyState === 'complete') preloadSoon(); else root.addEventListener('load', preloadSoon);
 })(window);

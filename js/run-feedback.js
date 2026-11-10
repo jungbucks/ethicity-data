@@ -2,6 +2,16 @@
 (function (root) {
   'use strict';
   var DR = root.DR;
+  // 카드 그림 → data URL. 같은 그림(DR.CardArt가 캐시한 같은 canvas)은 한 번만 PNG로 바꾼다 — 카드가 나타날 때마다 바꾸면 그 프레임이 끊긴다(2026-11-10 계측)
+  //   캐시된 canvas는 다시 그려지지 않는다(글꼴·사진이 늦게 오면 새 canvas가 만들어져 새로 바꾼다)
+  var urls = new WeakMap();
+  function urlOf(canvas) {
+    var u = urls.get(canvas);
+    if (!u) { u = canvas.toDataURL(); urls.set(canvas, u); }
+    return u;
+  }
+  // 값이 바뀔 때만 DOM에 쓴다(매 프레임 같은 글자를 다시 쓰면 그때마다 배치 계산이 다시 돈다)
+  function setText(el, text) { if (el._t !== text) { el._t = text; el.textContent = text; } }
   function label(m, c) { return c.ambiguousId ? '판단 필요' : DR.Cards.cardLabel(m, c); }
   // more = { need: DR.NeedGoal.plan(…) — 보충 달리기 누적 목표(교사 피드백 2026-11-09), reserve: 동기 카드 자리 수(4 임무 결판 뒤) }
   function create(container, mission, course, more) {
@@ -136,7 +146,7 @@
       el.style.setProperty('--card-color', DR.Cards.runColor(mission, item));
       var img = document.createElement('img');
       var n = parseInt(item.uid.slice(1), 10), artId = DR.Cards.artId(item);
-      img.src = DR.CardArt.card(mission, artId, n % 3, 384, n).toDataURL();
+      img.src = urlOf(DR.CardArt.card(mission, artId, n % 3, 384, n));
       img.dataset.photo = DR.CardArt.photoId(mission, artId, n); // 사진 카드면 사진 id(테스트용), 아니면 ''
       img.alt = ''; el.appendChild(img);
       if (item.glitch) el._art = { src: img.src, n: n, artId: artId, frames: {} }; // "지지직" 효과 그림은 처음 켜질 때 만든다
@@ -161,6 +171,21 @@
       }
       img.src = f >= 0 ? art.frames[f] : art.src;
     }
+    // 출발 뒤 카드가 오기 전(첫 3초)에 이 코스의 카드 그림을 한 장씩 미리 바꿔 둔다 — 달리는 중 처음 나타나는 순간에 끊기지 않게
+    var warmList = course.items.filter(function (it) { return it.kind === 'card'; }), warmAt = 0, warmTimer = null;
+    function warm() {
+      warmTimer = null;
+      var t0 = Date.now();
+      // 그림을 내보낼 수 없는 환경(플래그 없이 file://로 연 사진 카드 — 캔버스가 오염됨)에서는 미리 만들기를 그만둔다(전처럼 카드가 올 때 처리)
+      try {
+        while (warmAt < warmList.length && Date.now() - t0 < 6) {
+          var it = warmList[warmAt++], n = parseInt(it.uid.slice(1), 10);
+          urlOf(DR.CardArt.card(mission, DR.Cards.artId(it), n % 3, 384, n));
+        }
+      } catch (e) { warmAt = warmList.length; }
+      if (warmAt < warmList.length) warmTimer = setTimeout(warm, 30);
+    }
+    warmTimer = setTimeout(warm, 100);
     function project(pos, camera) {
       var p = pos.clone().project(camera);
       return { x: (p.x + 1) * container.clientWidth / 2, y: (1 - p.y) * container.clientHeight / 2 };
@@ -169,9 +194,10 @@
       updateGoal(s.grabbed);
       zoneEls.forEach(function (e, i) {
         var active = s.z >= e.zone.start && s.z < e.zone.end;
-        e.cell.classList.toggle('current', active);
-        e.cell.style.setProperty('--zone-progress', Math.max(0, Math.min(100, (s.z - e.zone.start) / (e.zone.end - e.zone.start) * 100)) + '%');
-        e.count.textContent = '이번 ' + counts[e.zone.id] + (reveal ? '/' + e.need : '장');
+        if (e._active !== active) { e._active = active; e.cell.classList.toggle('current', active); }
+        var zp = Math.max(0, Math.min(100, (s.z - e.zone.start) / (e.zone.end - e.zone.start) * 100)).toFixed(1) + '%';
+        if (e._zp !== zp) { e._zp = zp; e.cell.style.setProperty('--zone-progress', zp); }
+        setText(e.count, '이번 ' + counts[e.zone.id] + (reveal ? '/' + e.need : '장'));
         if (active && zoneId !== e.zone.id) { zoneId = e.zone.id; signUntil = s.t + 2; sign.textContent = '구역 ' + (i + 1) + ' · ' + e.zone.title; }
       });
       sign.hidden = !zoneId || s.t >= signUntil;
@@ -181,7 +207,9 @@
         el.hidden = !warn;
         if (warn) { var p = project(new THREE.Vector3(laneX(lane), 0.5, -s.z - 8), s.camera); el.style.left = p.x + 'px'; el.style.top = Math.min(container.clientHeight - 90, p.y) + 'px'; }
       });
-      var seen = {};
+      // 카드 배치는 세 묶음으로: ① 폭 쓰기 → ② 높이 읽기(폭이 바뀐 카드만) → ③ 자리 쓰기.
+      //   카드마다 쓰고 바로 읽으면 보이는 카드 수만큼 배치 계산이 다시 돈다(2026-11-10 계측: 프레임당 평균 10ms)
+      var seen = {}, placed = [];
       s.course.items.forEach(function (it) {
         if (it.kind !== 'card' || s.taken.has(it.uid)) return;
         var d = it.z - s.z, phase = DR.Catch.phase(it, s.z, s.speed, DR.config);
@@ -202,12 +230,18 @@
           var next = project(new THREE.Vector3(DR.config.laneWidth, 2.2, -it.z), s.camera);
           p.x = middle.x + (it.lane - 1) * Math.max(next.x - middle.x, width + 16);
         }
+        width = Math.round(width);
         var x = Math.max(width / 2 + 8, Math.min(container.clientWidth - width / 2 - 8, p.x));
-        el.style.width = width + 'px';
-        var y = Math.max(85, Math.min(container.clientHeight - el.offsetHeight - 55, p.y - width / 2));
-        el.style.left = x + 'px'; el.style.top = y + 'px';
-        el.style.zIndex = String(Math.round(200 - d));
-        el.classList.toggle('catch-active', phase === 'active' && it.lane === s.lane && !s.full);
+        if (el._w !== width) { el._w = width; el._h = 0; el.style.width = width + 'px'; }
+        placed.push({ el: el, x: x, py: p.y - width / 2, z: String(Math.round(200 - d)), on: phase === 'active' && it.lane === s.lane && !s.full });
+      });
+      placed.forEach(function (c) { if (!c.el._h) c.el._h = c.el.offsetHeight; });
+      var viewH = container.clientHeight;
+      placed.forEach(function (c) {
+        var el = c.el, y = Math.max(85, Math.min(viewH - el._h - 55, c.py));
+        el.style.left = c.x + 'px'; el.style.top = y + 'px';
+        if (el._z !== c.z) { el._z = c.z; el.style.zIndex = c.z; }
+        if (el._on !== c.on) { el._on = c.on; el.classList.toggle('catch-active', c.on); }
       });
       Object.keys(cards).forEach(function (id) { if (!seen[id]) cards[id].hidden = true; });
       notice.hidden = !notice.textContent || s.t > noticeUntil;
@@ -266,7 +300,7 @@
     }
     function hide() { layer.style.visibility = 'hidden'; }
     function destroy() {
-      clearTimeout(loseTimer);
+      clearTimeout(loseTimer); clearTimeout(warmTimer);
       var bag = document.getElementById('hud-bag');
       if (bag) { bag.classList.remove('lose'); var m = bag.querySelector('.bag-minus'); if (m) m.remove(); }
       layer.remove();

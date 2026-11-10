@@ -110,10 +110,14 @@ async function flowPart(viewport) {
       await toInspect(page, id);
       const ids = await privIds(page);
       assert.equal(ids.length, 2, id + ' two private cards caught');
-      assert.match(await page.locator('#screen-inspect').innerText(), /개인정보가 보이는 사진은 크게 보기에서 가리거나 뺀다/);
+      // 문구는 임무마다 다를 수 있다(4 임무 = 답안지·학생 이름, 2026-11-10) — DR.Privacy.text
+      const T = await page.evaluate((mid) => { const m = DR.Missions[mid]; return { note: DR.Privacy.text(m, 'inspectNote'), block: DR.Privacy.text(m, 'blockUnhandled'), more: DR.Privacy.text(m, 'blockMore') }; }, id);
+      if (id === 'm4') { assert.match(T.note, /학생 이름이 적힌 답안지/); assert.match(T.block, /학생 이름이 적힌 답안지/); }
+      else { assert.match(T.note, /개인정보가 보이는 사진은 크게 보기에서 가리거나 뺀다/); assert.match(T.block, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/); }
+      assert.ok((await page.locator('#screen-inspect').innerText()).includes(T.note), id + ' inspect note');
       // 그대로 제출 → 감독관이 막는다(어느 카드인지 말하지 않음), 승인 버튼 없음
       let s = await submitTry(page);
-      assert.match(s.text, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/, id);
+      assert.ok(s.text.includes(T.block), id + ' block line');
       assert.equal(s.confirm, 0, id + ' no confirm while blocked');
       await page.locator('#btn-back').click();
       // 개인정보 아닌 카드를 가리기 → 안내만, 그대로
@@ -123,12 +127,31 @@ async function flowPart(viewport) {
       assert.equal(await page.evaluate((p) => !!DR.App.state.bag.find((c) => c.id === p).masked, plain), false);
       await closeZoom(page);
       // 개인정보 카드 가리기 → '가림' 표시, 그림이 가린 모습
-      await zoomMask(page, ids[0]);
+      // 4 임무는 더블 클릭으로 — 두 번째 누름이 새로 그린 '되돌리기'에 떨어져 가림이 바로 풀리면 안 된다(2026-11-10)
+      if (id === 'm4') {
+        await page.locator('#inspect-grid .bag-card[data-id="' + ids[0] + '"] .bag-open').click();
+        await page.locator('#btn-mask').dblclick();
+      } else await zoomMask(page, ids[0]);
       assert.equal(await page.locator('#btn-mask').innerText(), '가린 것 되돌리기');
+      // 가린 것은 바로 저장된다(새로고침·탭 되살아남 뒤에도 남게)
+      assert.equal(await page.evaluate((p) => { const sv = DR.Save.load(); return !!(sv && sv.bag.find((c) => c.id === p) || {}).masked; }, ids[0]), true, id + ' mask saved at once');
       if (id === 'm1' && viewport.width === 1280) await page.screenshot({ path: shotPath('privacy-zoom-m1-1280') });
       if (id === 'm3') await page.screenshot({ path: shotPath('privacy-zoom-m3-' + viewport.width) });
       await closeZoom(page);
       assert.equal(await page.locator(`#inspect-grid .bag-card[data-id="${ids[0]}"] .bag-masked`).count(), 1);
+      if (id !== 'm2') {
+        // 한 장만 가리고 내면: 같은 말을 되풀이하지 않고 남은 장 수를 말한다(어느 카드인지는 말하지 않는다)
+        s = await submitTry(page);
+        assert.ok(s.text.includes(T.more.replace('{n}', '1')), id + ' partial: ' + s.text.slice(0, 80));
+        assert.equal(s.confirm, 0);
+        if (id === 'm4' && viewport.width === 1280) await page.screenshot({ path: shotPath('privacy-partial-m4-1280') });
+        await page.locator('#btn-back').click();
+        if (id === 'm4' && viewport.width === 1280) {
+          await page.locator('#inspect-grid .bag-card[data-id="' + ids[1] + '"] .bag-open').click();
+          await page.screenshot({ path: shotPath('privacy-zoom-m4-1280') });
+          await closeZoom(page);
+        }
+      }
       const before = await page.evaluate(() => DR.App.state.bag.length);
       if (id === 'm2') {
         // 2 임무: 사람 얼굴을 가려도 막힌다 → 빼야 통과
@@ -179,7 +202,8 @@ async function reloadPart() {
     await page.locator('#btn-back').click();
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ethicity.data.save')));
     assert.ok(saved.bag.some((c) => c.privateId && c.masked), 'masked flag saved at the inspect checkpoint');
-    assert.deepEqual(saved.privCaught.sort(), ids.slice().sort());
+    // 한 번 가려 본 카드는 '가릴 수 있었는데 뺐다' 목록에서 빠진다(2026-11-10 — 가린 뒤 칸을 비우려고 빼도 "가렸으면…"을 듣지 않게)
+    assert.deepEqual(saved.privCaught, [ids[1]]);
     assert.deepEqual(errors, []);
     console.log('privacy save OK');
   } finally { await browser.close(); }

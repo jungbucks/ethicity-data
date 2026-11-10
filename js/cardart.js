@@ -1255,25 +1255,23 @@
     });
     return c;
   }
-  // 4 임무 개인정보 카드: 위쪽 '이름' 칸 + 읽히지 않는 흘림 획(이어 쓴 고리 — 숫자 모양이 아니게). 답 칸(y 0.18 아래)은 손대지 않는다
-  function nameLine(c, seed) {
-    var g = c.getContext('2d'), S = c.width, r = rng(seed);
+  // 4 임무 개인정보 카드: 위쪽 '이름' 칸에 학생 이름을 답과 같은 손글씨로 또렷하게. 답 칸(y 0.18 아래)은 손대지 않는다
+  //   2026-11-10 교사 플레이 — 전엔 읽히지 않는 흘림 획(작은 고리 여섯 개)이라 "개인정보가 없는데 있다고 한다"로 보였다. 이제 누가 봐도 이름
+  //   이름 글자 = 임무 데이터 art.name(문자열). 손글씨 글꼴은 낱말 넷의 글자만 남긴 서브셋이라 그 안의 글자로 지은 가상의 이름을 쓴다(css/hw-fonts.css, README "글꼴")
+  //   true(옛 데이터)면 기본 이름. 가림 상자(mask)는 이 칸 전체(x 0.57·y 0.02·w 0.39·h 0.13)
+  function nameLine(c, seed, o, variant) {
+    var g = c.getContext('2d'), S = c.width;
+    var name = o && typeof o.name === 'string' ? o.name : '이지인';
     g.fillStyle = PAPER; g.fillRect(S * 0.57, S * 0.02, S * 0.39, S * 0.13);
-    g.fillStyle = BOX; g.font = 'bold ' + Math.round(S * 0.045) + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
-    g.fillText('이름', S * 0.59, S * 0.085);
+    g.fillStyle = BOX; g.font = 'bold ' + Math.round(S * 0.042) + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText('이름', S * 0.58, S * 0.09);
     g.strokeStyle = 'rgba(90,95,120,.6)'; g.lineWidth = Math.max(1, S * 0.004);
-    g.beginPath(); g.moveTo(S * 0.69, S * 0.12); g.lineTo(S * 0.94, S * 0.12); g.stroke();
-    g.strokeStyle = PENCIL; g.lineWidth = Math.max(1.5, S * 0.013); g.lineCap = 'round'; g.lineJoin = 'round';
-    var x = S * 0.7, y = S * 0.1;
-    g.beginPath(); g.moveTo(x, y);
-    for (var k = 0; k < 6; k++) {
-      var w = S * (0.03 + r.next() * 0.012), up = S * (0.04 + r.next() * 0.02);
-      // 앞으로 기운 고리 하나(위로 올라갔다 되감아 내려옴) + 아래로 잇는 획
-      g.bezierCurveTo(x + w * 0.7, y - up, x + w * 1.1, y - up * 0.6, x + w * 0.45, y - up * 0.15);
-      g.bezierCurveTo(x + w * 0.2, y + S * 0.005, x + w * 0.7, y + S * 0.012, x + w, y);
-      x += w;
-    }
-    g.stroke();
+    g.beginPath(); g.moveTo(S * 0.67, S * 0.142); g.lineTo(S * 0.95, S * 0.142); g.stroke();
+    var font = o && (o.word || o.hand) ? fontOf(o, variant) : 'HW Neat';
+    g.fillStyle = PENCIL; g.font = 'bold ' + Math.round(S * 0.092) + "px '" + font + "', 'Malgun Gothic', sans-serif";
+    g.save(); g.translate(S * 0.675, S * 0.085); g.rotate(-0.03);
+    g.fillText(name, 0, 0, S * 0.27);
+    g.restore();
     return c;
   }
 
@@ -1302,7 +1300,7 @@
       else if (o.place === 'pool' || o.place === 'fountain') drawPlace(c, o, seed);
       else if (o.object) drawObject(c, o, seed, variant);
       else drawRoad(c, Object.assign({}, o, { place: PLACES[(hash(drawId) + variant) % PLACES.length] }), seed);
-      if (o.name) nameLine(c, seed + 17);
+      if (o.name) nameLine(c, seed + 17, o, variant);
       // Canvas 대체 그림은 얼굴·번호판 자리가 사진과 다를 수 있다 → canvasMask(3 임무), 없으면 mask
       if (masked && pdef) maskOver(c, pdef.canvasMask || pdef.mask);
       return c;

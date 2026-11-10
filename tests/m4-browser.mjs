@@ -138,7 +138,7 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     await page.evaluate(() => DR.Run.setPaused(false));
     await fillAndInspect(page, { ...MIN, scrawl_ml: 0, neat_data: 0, x_date: 1, x_neat_algo: 1 });
     // '데이트'가 붙은 카드: 지금 이름표 = 데이트(보기에 없는 낱말), 낱말 버튼 넷 중 눌린 것 없음
-    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_date"] .bag-label').innerText(), /^데이트\(보기에 없는 낱말\)$/);
+    assert.match(await page.locator('#inspect-grid .bag-card[data-key="x_date"] .bag-label').innerText(), /^date\(보기에 없는 낱말\)$/);
     // ③ 반듯한데 틀린 카드는 겉보기에 평범한 이름표('인공지능')
     assert.equal(await page.locator('#inspect-grid .bag-card[data-key="x_neat_algo"] .bag-label').innerText(), '인공지능');
     await page.locator('#inspect-grid .bag-card[data-key="x_date"] .bag-open').click();

@@ -78,7 +78,19 @@ test('course marks private cards: deterministic, outside the first 15%, only on 
 
 test('check: untouched → unhandled, masked a must-remove card → mustRemove, handled → ok', () => {
   const m1 = M.m1, d = m1.privacy.cards[0];
-  assert.deepEqual(Privacy.check(m1, [{ id: 'c1', key: 'umbrella_open' }]), { ok: true, reason: null });
+  assert.deepEqual(Privacy.check(m1, [{ id: 'c1', key: 'umbrella_open' }]), { ok: true, reason: null, open: 0, handled: 0 });
+  // 일부만 가림: 남은 장 수(open)와 가린 장 수(handled)를 같이 돌려준다 → 감독관이 "아직 n장 더"를 말한다(2026-11-10)
+  {
+    const m4 = M.m4, [a, b] = m4.privacy.cards;
+    const two = [{ id: 'c1', key: a.key, privateId: a.id, masked: true }, { id: 'c2', key: b.key, privateId: b.id }];
+    assert.deepEqual(Privacy.check(m4, two), { ok: false, reason: 'unhandled', open: 1, handled: 1 });
+    two[1].masked = true;
+    assert.deepEqual(Privacy.check(m4, two), { ok: true, reason: null, open: 0, handled: 2 });
+    assert.ok(Privacy.text(m4, 'blockMore').includes('학생 이름이 적힌 답안지가 아직 {n}장 더'));
+    assert.ok(Privacy.text(m1, 'blockMore').includes('개인정보가 담긴 사진이 아직 {n}장 더'));
+    assert.ok(Privacy.text(m4, 'blockUnhandled2').includes('검수에서 다시 살펴봐')); // 임무에 없는 키는 공통 문구
+    assert.equal(typeof m4.privacy.cards[0].art.name, 'string');
+  }
   assert.equal(Privacy.check(m1, [{ id: 'c2', key: d.key, privateId: d.id }]).reason, 'unhandled');
   assert.equal(Privacy.check(m1, [{ id: 'c2', key: d.key, privateId: d.id, masked: true }]).ok, true);
   const m2 = M.m2, f = m2.privacy.cards[0];

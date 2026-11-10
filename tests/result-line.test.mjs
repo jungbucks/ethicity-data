@@ -96,7 +96,7 @@ test('4 임무: 흘려 쓴 인공지능만 부족 / 둘 다 부족 → "A와 B�
   assert.match(lineOf(m4, bagOf({ ...M4_ALL, cur_ai: 0, cur_algo: 0 }), 'S2').line, /흘려 쓴 인공지능과 흘려 쓴 알고리즘을 다른 낱말로 읽어/);
   const neat = lineOf(m4, bagOf(M4_ALL).concat(fakes('x_neat_algo', 2)), 'S1');
   assert.equal(neat.r.failKind, 'danger'); assert.match(neat.line, /반듯하게 쓴 '알고리즘'을 '인공지능'으로/);
-  assert.match(lineOf(m4, bagOf(M4_ALL).concat(fakes('x_date', 2)), 'S3').line, /'데이트'로 읽었다/);
+  assert.match(lineOf(m4, bagOf(M4_ALL).concat(fakes('x_date', 2)), 'S3').line, /'date'로 읽었다/);
   // 플레이어 오표기: 반듯한 인공지능을 '머신러닝'으로 2장 → 틀(조사 자동)
   const mis = lineOf(m4, bagOf(M4_ALL).concat([{ id: 'w1', key: 'neat_ai', label: 'ml' }, { id: 'w2', key: 'neat_ai', label: 'ml' }]), 'S1');
   assert.match(mis.line, /또박또박 쓴 인공지능이 '머신러닝' 이름표로 섞여/);

@@ -31,7 +31,7 @@
   function characterPortrait(id, size, expression) {
     var names = SHEET_NAMES, S = size || 72;
     var frame = el('span', { class: 'portrait character-portrait', 'data-character': id, style: 'width:' + S + 'px;height:' + S + 'px' });
-    var img = el('img', { src: 'assets/characters/' + id + '-portraits.png', alt: names[id], draggable: 'false' });
+    var img = el('img', { src: 'assets/characters/' + id + '-portraits.webp', alt: names[id], draggable: 'false' });
     img.style.transform = 'translateX(-' + ((expression || 0) * 25) + '%)';
     frame.appendChild(img);
     return frame;

@@ -32,7 +32,7 @@ test('m4 well-formed: labels are the four words, two off-list words only on fake
   assert.deepEqual([m4.bag, m4.runSeconds, m4.supplementSeconds, m4.seed, m4.fires], [30, 90, 30, 4401, 8]);
   assert.deepEqual(m4.labels.map((l) => [l.id, l.text]), [['data', '데이터'], ['algo', '알고리즘'], ['ai', '인공지능'], ['ml', '머신러닝']]);
   assert.deepEqual(m4.labelOptions.map((l) => l.id), WORDS);
-  assert.deepEqual(m4.labelExtra.map((l) => [l.id, l.short]), [['date', '데이트'], ['en_ai', 'AI']]);
+  assert.deepEqual(m4.labelExtra.map((l) => [l.id, l.short]), [['date', 'date'], ['en_ai', 'AI']]);
   for (const l of m4.labelExtra) assert.match(l.text, /보기에 없는 낱말/);
   assert.equal(m4.labelStyle, 'word');
   assert.equal(m4.showdownScene, 'S4');
@@ -80,8 +80,8 @@ test('three kinds of card: ③ neat-but-wrong = 4, ① odd-but-right about twice
 
 test('label text: the four words and the off-list words', () => {
   assert.equal(Cards.labelText(m4, 'ai'), '인공지능');
-  assert.match(Cards.labelText(m4, 'date'), /^데이트.*보기에 없는 낱말/);
-  assert.equal(Cards.labelShort(m4, 'date'), '데이트');
+  assert.match(Cards.labelText(m4, 'date'), /^date.*보기에 없는 낱말/);
+  assert.equal(Cards.labelShort(m4, 'date'), 'date');
   assert.equal(Cards.labelShort(m4, 'en_ai'), 'AI');
   assert.equal(Cards.labelShort(m4, 'ml'), '머신러닝');
   assert.match(Cards.cardLabel(m4, { fakeId: 'x_date' }), /보기에 없는 낱말/);
@@ -357,7 +357,7 @@ test('m4 story: speakers in cast, backdrops exist, showdown copy in words, no sc
   assert.ok(lines.length > 25);
   for (const l of lines) { assert.ok(cast[l.who], l.who); assert.ok([undefined, 'basic', 'happy', 'worried', 'explain'].includes(l.face), l.who + ' ' + l.face); }
   const sd = m4.story.showdown;
-  for (const f of [sd.bg, m4.story.after.bg, 'assets/characters/grader-portraits.png', 'assets/title/mission-m4.webp']) assert.ok(fs.existsSync(new URL('../' + f, import.meta.url)), f);
+  for (const f of [sd.bg, m4.story.after.bg, 'assets/characters/grader-portraits.webp', 'assets/title/mission-m4.webp']) assert.ok(fs.existsSync(new URL('../' + f, import.meta.url)), f);
   assert.match(sd.readPass.text, /머신러닝 · ○/);
   assert.match(sd.readFail.text, /인공지능 · ✕/);
   assert.match(sd.readHold.text, /보기에 없는 낱말 · 사람 채점/);

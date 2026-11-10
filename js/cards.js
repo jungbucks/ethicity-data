@@ -115,7 +115,7 @@
     return (t && t.name) || label;
   }
 
-  // 이름표의 짧은 글자(4 임무 보기 밖 낱말 '데이트(보기에 없는 낱말)' → '데이트' — 달리는 카드·채점 시연에서 크게 쓸 때). 없으면 labelText
+  // 이름표의 짧은 글자(4 임무 보기 밖 낱말 'date(보기에 없는 낱말)' → 'date' — 달리는 카드·채점 시연에서 크게 쓸 때). 없으면 labelText
   function labelShort(mission, label) {
     var opts = (mission.labels || []).concat(mission.labelOptions || []).concat(mission.labelExtra || []);
     for (var i = 0; i < opts.length; i++) if (opts[i].id === label) return opts[i].short || opts[i].text;

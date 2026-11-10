@@ -5,7 +5,7 @@
  *   group 1 = ① 이상해 보이지만 맞는 카드(드묾 = 앞에 벽) — 꼭 지켜야 한다. S2~S4엔 평범한 카드가 없어 rareLate(구역 앞은 평범한 카드)는 쓰지 않는다
  *   group 2 = ② 이상하고 틀린 카드(가짜) — 고치거나 뺀다 · group 3 = ③ 반듯해 보이지만 이름표가 틀린 카드(가짜) — 고치거나 뺀다
  *   판단 기준은 "모양이 이상한가"가 아니라 "글씨와 이름표 낱말이 맞는가". 동기처럼 이상한 걸 다 빼면 S4(결판)는 반드시 실패(테스트).
- * labelExtra = 가짜에만 붙는 보기 밖 낱말('데이트'·'AI' — 글자만, 고치기 버튼 없음, 옛 7·8 자리). labelStyle 'word' = 고치기·"?" 버튼이 낱말 넷.
+ * labelExtra = 가짜에만 붙는 보기 밖 낱말('date'·'AI' — 글자만, 고치기 버튼 없음, 옛 7·8 자리). labelStyle 'word' = 고치기·"?" 버튼이 낱말 넷.
  * 위험 = 맞게 쓴 답을 다른 낱말로 읽어 ✕(S2 흘림·S4 아주 흘림 — 닮은 다른 낱말이 있음 / 잘못 붙은 이름표로 자신 있게 잘못 배움)
  * 불편 = 못 읽어 사람 채점(S1 반듯한 글씨가 모자람 · S3 다른 표기 — 보기에 없는 낱말이라 '답 없음').
  * fakes[].scenes = 그 가짜가 쌓이는 장면. S4를 노리는 가짜는 없다(결판 보장).
@@ -35,7 +35,7 @@
       { id: 'data', text: '데이터' }, { id: 'algo', text: '알고리즘' }, { id: 'ai', text: '인공지능' }, { id: 'ml', text: '머신러닝' }
     ],
     labelExtra: [
-      { id: 'date', text: '데이트(보기에 없는 낱말)', short: '데이트' },
+      { id: 'date', text: 'date(보기에 없는 낱말)', short: 'date' }, // 'data'와 한 글자 차이(2026-11-10 사용자: '데이트' → 'date')
       { id: 'en_ai', text: 'AI(보기에 없는 낱말)', short: 'AI' }
     ],
     legendNote: '카드 아래 낱말은 붙어 있는 이름표다. 이 문제의 보기 낱말은 데이터·알고리즘·인공지능·머신러닝.',
@@ -69,12 +69,20 @@
         ] }
     ],
     // 목적 밖 개인정보 카드(설계 2026-11-08 ①, DR.Privacy): 또박또박 쓴 평범한 답(S4 답 아님)에 학생 이름 → 가리기 뒤 사용
+    //   이름 = 손글씨 글꼴에 남긴 글자(낱말 넷의 글자)로 지은 가상의 이름 — 실제 학생 이름과 겹치면 art.name만 바꾼다(교사 검수)
     privacy: {
       on: true,
+      // 이 임무의 문구(공통 문구는 '사진' — 여기는 답안지, 개인정보 = 학생 이름). ⚠️ 교사 검수 대기
+      text: {
+        blockUnhandled: '잠깐, 학생 이름이 적힌 답안지가 학습 자료에 들어가려 해.',
+        blockMore: '잘 가린 답안지도 있어. 학생 이름이 적힌 답안지가 아직 {n}장 더 있어.',
+        inspectNote: '학생 이름이 적힌 답안지는 크게 보기에서 가리거나 뺀다.',
+        noPrivate: '이 답안지엔 가릴 개인정보가 없어.'
+      },
       cards: [
-        { id: 'p_name_algo', key: 'neat_algo', fix: 'mask', at: 0.5, what: '학생 이름', art: { word: '알고리즘', hand: 'neat', name: true },
+        { id: 'p_name_algo', key: 'neat_algo', fix: 'mask', at: 0.5, what: '학생 이름', art: { word: '알고리즘', hand: 'neat', name: '이신지' },
           mask: [{ x: 0.57, y: 0.02, w: 0.39, h: 0.13, look: 'bar' }] },
-        { id: 'p_name_ai', key: 'neat_ai', fix: 'mask', at: 0.5, what: '학생 이름', art: { word: '인공지능', hand: 'neat', name: true },
+        { id: 'p_name_ai', key: 'neat_ai', fix: 'mask', at: 0.5, what: '학생 이름', art: { word: '인공지능', hand: 'neat', name: '고지인' },
           mask: [{ x: 0.57, y: 0.02, w: 0.39, h: 0.13, look: 'bar' }] }
       ]
     },
@@ -96,8 +104,8 @@
         line: "우리가 넣은 데이터에 흘려 쓴 인공지능 답안이 '알고리즘' 이름표로 섞여 들어갔다. AI가 흘려 쓴 인공지능을 알고리즘으로 배웠다.",
         cut: "흘려 쓴 '인공지능'을 '알고리즘'으로 읽었다. 학생은 맞게 썼는데 ✕가 찍혔다." },
       { id: 'x_date', group: 2, name: "'data'라고 쓴 답", label: 'date', truth: 'alt_data', count: 2, harm: 'danger', scenes: ['S3'], art: { word: 'data', hand: 'neat', alt: true },
-        line: "우리가 넣은 데이터에 'data'라고 쓴 답안이 '데이트' 이름표로 섞여 들어갔다. AI가 data를 보기에 없는 낱말 '데이트'로 배웠다.",
-        cut: "'data'를 '데이트'로 읽었다. 보기에 없는 낱말이라며 맞게 쓴 답에 ✕가 찍혔다." },
+        line: "우리가 넣은 데이터에 'data'라고 쓴 답안이 'date' 이름표로 섞여 들어갔다. AI가 data를 보기에 없는 낱말 'date'로 배웠다.",
+        cut: "'data'를 'date'로 읽었다. 보기에 없는 낱말이라며 맞게 쓴 답에 ✕가 찍혔다." },
       { id: 'x_ai_raw', group: 2, name: "'AI'라고 쓴 답", label: 'en_ai', truth: 'alt_ai', count: 2, harm: 'danger', scenes: ['S3'], art: { word: 'AI', hand: 'neat', alt: true },
         line: "우리가 넣은 데이터에 'AI'라고 쓴 답안이 'AI' 이름표 그대로 섞여 들어갔다. AI가 'AI'를 보기에 없는 낱말로 배웠다.",
         cut: "'AI'를 보기에 없는 낱말 'AI'로 읽었다. 인공지능과 같은 답인데 ✕가 찍혔다." }
