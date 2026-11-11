@@ -20,8 +20,9 @@
   // 초상 시트(assets/characters): 256px 4칸. 이미지 파일은 게임 안에 포함해 file://에서도 표시한다.
   //   4표정(기본·기쁨·걱정·설명): onyu·daon·robot(공통 팩)·supervisor·senior·examiner
   //   2표정(1칸 기본·2칸 걱정, 3·4칸은 1칸 복사): sorter·client·collector(수거봇, cast 키 bot)·courier(택배 기사)·grader(채점 담당 선생님) — Codex 2026-11-02, README 참고
-  var SHEET_NAMES = { onyu: '온유', daon: '다온', robot: 'AI 봇', supervisor: '감독관', senior: '선배', examiner: '시험관', sorter: '선별장 직원', client: '도로 관리원', collector: '수거봇', courier: '택배 기사', grader: '채점 담당 선생님' };
-  var SHEETS = { supervisor: ['supervisor', 4], senior: ['senior', 4], examiner: ['examiner', 4], sorter: ['sorter', 2], client: ['client', 2], bot: ['collector', 2], courier: ['courier', 2], grader: ['grader', 2] };
+  //     + student(1 임무 학생, 2026-11-11 — tools/story-art.mjs가 courier 칸에 맞춰 만듦)
+  var SHEET_NAMES = { onyu: '온유', daon: '다온', robot: 'AI 봇', supervisor: '감독관', senior: '선배', examiner: '시험관', sorter: '선별장 직원', client: '도로 관리원', collector: '수거봇', courier: '택배 기사', grader: '채점 담당 선생님', student: '학생' };
+  var SHEETS = { supervisor: ['supervisor', 4], senior: ['senior', 4], examiner: ['examiner', 4], sorter: ['sorter', 2], client: ['client', 2], bot: ['collector', 2], courier: ['courier', 2], grader: ['grader', 2], student: ['student', 2] };
   var FACE4 = { basic: 0, happy: 1, worried: 2, explain: 3 };
   // 대사 줄 표정(face) → 칸 번호. 2표정 시트는 걱정이면 2칸, 그 밖엔 1칸. 지정이 없으면 기본
   function faceIndex(faces, face) {
@@ -86,6 +87,7 @@
 
   // 대화창: 클릭·Space·Enter로 넘기고, 건너뛰기로 끝까지
   // 대사 줄의 bg(그림 경로)가 있으면 그 줄 동안 장면 그림을 대화창 뒤에 깐다(같은 그림이 이어지면 그대로, 바뀌면 서서히).
+  //   bg가 없는 줄에서는 그림을 내린다 → 대화 내내 깔려면 줄마다 bg(app.js withBg — 임무 story.introBg·outroBg, revealLines, 4 임무 after)
   //   CSS .story-bg — 그림 오른쪽(인물)을 기준으로 잘라 좁은 화면에서도 인물이 보이게, 움직임 줄이기면 바로 나타남
   function dialogue(lines, done) {
     var screen = document.getElementById('screen-story');
@@ -106,6 +108,8 @@
       if (!bgImg) {
         bgImg = el('img', { class: 'story-bg', alt: '', 'aria-hidden': 'true', draggable: 'false' });
         bgImg.onload = function () { if (bgSrc) bgImg.classList.add('on'); };
+        // 그림을 못 읽으면 그림 없는 대화와 같은 배치로(그림은 opacity 0 그대로라 깨진 그림 표시는 안 보인다)
+        bgImg.onerror = function () { screen.classList.remove('has-bg'); };
         screen.insertBefore(bgImg, screen.firstChild);
       }
       // 다 읽히면 onload가 'on'(서서히 나타남). 같은 그림으로 돌아오면 onload가 다시 안 오니 다음 프레임에 직접

@@ -180,6 +180,9 @@
       frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
     },
     story: {
+      // introBg·outroBg = 도입·마무리 대화 내내 대화창 뒤에 까는 장면 그림(app.js withBg) — 선별장: 컨베이어 위 건전지, 오른쪽 수거봇
+      introBg: 'assets/story/m2-sorting.webp',
+      outroBg: 'assets/story/m2-sorting.webp',
       intro: [
         { who: 'supervisor', text: '이번엔 재활용 선별장이야. 분류 AI가 물건을 자꾸 엉뚱한 함에 넣고 있어.', face: 'worried' },
         { who: 'bot', text: '삐빅! 분리배출 사진 5,000장! 이름표도 제가 다 붙였어요! 이번엔 진짜 임무 완료!', face: 'basic' },

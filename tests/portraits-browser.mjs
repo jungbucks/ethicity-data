@@ -28,6 +28,15 @@ for (const width of [1280, 375]) {
     // 택배 기사(courier) = 2표정 시트(기본·걱정), 기쁨은 기본 칸
     const courier = await page.evaluate(() => [undefined, 'worried', 'happy'].map((face) => { const p = DR.UI.portrait('courier', 72, face); return [p.dataset.character, p.querySelector('img').style.transform, p.querySelector('img').alt]; }));
     assert.deepEqual(courier, [['courier', 'translateX(0%)', '택배 기사'], ['courier', 'translateX(-25%)', '택배 기사'], ['courier', 'translateX(0%)', '택배 기사']]);
+    // 학생(student, 2026-11-11) = 2표정 시트(기본·걱정). 1 임무 도입 첫 줄은 걱정 칸, 결과 화면 "이제 우산 칸에 떠요!"는 기본 칸
+    const student = await page.evaluate(() => [undefined, 'worried', 'happy'].map((face) => { const p = DR.UI.portrait('student', 72, face); return [p.dataset.character, p.querySelector('img').style.transform, p.querySelector('img').alt, p.querySelector('img').getAttribute('src')]; }));
+    assert.deepEqual(student, [undefined, 'translateX(0%)', 'translateX(-25%)', 'translateX(0%)'].slice(1).map((t) => ['student', t, '학생', 'assets/characters/student-portraits.webp']));
+    const m1Faces = await page.evaluate(() => { const s = DR.Missions.m1.story; return [s.intro[0], s.clientPass[0]].map((l) => DR.UI.line(l).querySelector('.character-portrait img').style.transform); });
+    assert.deepEqual(m1Faces, ['translateX(-25%)', 'translateX(0%)']);
+    await page.evaluate(() => DR.UI.dialogue([{ who: 'student', text: '학생', face: 'worried' }, { who: 'courier', text: '택배 기사', face: 'worried' }], function () {}));
+    await page.waitForFunction(() => [...document.querySelectorAll('#screen-story img')].every((i) => i.complete && i.naturalWidth === 1024));
+    assert.equal(await page.locator('#screen-story .character-portrait').getAttribute('data-character'), 'student');
+    await page.screenshot({ path: shotPath('portraits-student-' + width) });
     await page.evaluate(() => DR.UI.dialogue([{ who: 'supervisor', text: '감독관', face: 'worried' }, { who: 'sorter', text: '선별장', face: 'worried' }], function () {}));
     await page.waitForFunction(() => [...document.querySelectorAll('#screen-story img')].every((i) => i.complete && i.naturalWidth === 1024));
     assert.equal(await page.locator('#screen-story .character-portrait').getAttribute('data-character'), 'supervisor');

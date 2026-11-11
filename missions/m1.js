@@ -118,8 +118,13 @@
       frame: '이 AI를 위해 데이터를 모을 때 나는 ___을 꼭 확인하겠다. 왜냐하면 ___.'
     },
     story: {
+      // introBg·outroBg = 도입·마무리 대화 내내 대화창 뒤에 까는 장면 그림(app.js withBg가 줄마다 붙임 — 줄에 bg가 따로 있으면 그 줄 것이 우선)
+      //   분실물 센터: 가운데 검색 모니터(펼친 우산만)·선반의 접힌 분홍 우산, 오른쪽 학생
+      //   마무리 대화에는 깔지 않는다(2026-11-11 사용자 결정): 그림은 '우산이 목록에 없어 걱정하는' 장면이라 "이제 우산 칸에 떠요!"와 반대다.
+      //   해결된 장면 그림(m1-lostfound-solved)이 오면 outroBg에 그 경로를 넣으면 된다
+      introBg: 'assets/story/m1-lostfound.webp',
       intro: [
-        { who: 'student', text: '제 우산 여기 있잖아요. 왜 목록에 없어요?' },
+        { who: 'student', text: '제 우산 여기 있잖아요. 왜 목록에 없어요?', face: 'worried' },
         { who: 'guide', text: '우산 검색 결과입니다. 펼친 우산만 찾았습니다.', face: 'explain' },
         { who: 'bot', text: '삐빅! 분실물 사진 3,000장 확보! 이름표도 제가 다 붙였어요! 임무 완료!', face: 'basic' },
         { who: 'supervisor', text: '사진을 펼쳐 보니 펼친 우산, 닫힌 지갑, 화면이 위로 향한 스마트폰이 반복되네.', face: 'worried' },

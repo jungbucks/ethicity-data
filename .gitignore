@@ -3,3 +3,6 @@ tests/_*.json
 tools/_hero/
 tools/_cards/
 assets/cards-pilot/**/*-original.png
+
+# 가공 전 원본 그림(게임이 읽지 않음 — 배포에 올리지 않는다)
+assets/_incoming/

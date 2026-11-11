@@ -142,7 +142,12 @@
     var m = DR.Missions[id];
     App.state = { mission: id, bag: [], supplements: 0, firstTry: null, firstFails: [], named: [], seed: seedFor(m), record: null, needRevealed: false, newIds: [],
       peer: 'none', peerPending: false, showdownPassed: false, privCaught: [] };
-    DR.UI.dialogue(m.story.intro, function () { missionBriefing(m); });
+    DR.UI.dialogue(withBg(m.story.intro, m.story.introBg), function () { missionBriefing(m); });
+  }
+  // 대화 배열 단위 기본 배경(임무 story.introBg·outroBg — 1·2 임무): 줄마다 bg를 붙인다(대화창은 bg 없는 줄에서 그림을 내리므로).
+  //   줄에 bg가 따로 있으면 그 줄 것이 우선, 기본 배경이 없는 임무는 배열 그대로(3·4 임무 = 전과 같음)
+  function withBg(lines, bg) {
+    return bg ? lines.map(function (l) { return Object.assign({ bg: bg }, l); }) : lines;
   }
   // 이전 임무(next가 이 임무인 것)의 기록에 따른 브리핑 한 줄. 기록이 없으면(임무 고르기로 바로 들어옴) null
   function recordLineFor(m) {
@@ -370,7 +375,7 @@
     function toOutro() {
       outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));
       outroOpts.compare = DR.UI.gradeCompare(m, e.compare);
-      DR.UI.outro(m.story.outro, leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
+      DR.UI.outro(withBg(m.story.outro, m.story.outroBg), leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
     }
     // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)·이미 마친 경우는 건너뜀
     function chapterPart(then) {

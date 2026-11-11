@@ -114,6 +114,13 @@ body { overflow: hidden; word-break: keep-all; }
 #screen-story.has-bg .skip { background: rgba(16, 9, 58, .78); }
 @media (min-width: 900px) { #screen-story.has-bg { justify-content: flex-start; } #screen-story.has-bg .dialog { max-width: min(44rem, 42vw); margin-left: 2vw; } }
 @media (prefers-reduced-motion: reduce) { .story-bg { transition: none; } }
+/* 2 임무 선별장 그림: 수거봇이 그림 오른쪽 끝(73~98%)이라 좁은 화면에서 90% 기준이면 머리 오른쪽이 잘린다 → 좁은 화면만 더 오른쪽 기준 */
+@media (max-width: 899px) { .story-bg[src$="m2-sorting.webp"] { object-position: 98% 50%; } }
+/* 좁은 세로 화면(휴대폰, 2026-11-11 사용자 결정): 그림을 잘라 화면에 채우지 않고 건너뛰기 버튼 아래에 통째로(가로에 맞춤) —
+   전에는 그림의 오른쪽 4분의 1만 보여 1 임무의 우산·모니터, 2 임무의 건전지가 화면 밖이었다. 3·4 임무 그림도 같은 배치 */
+@media (max-width: 640px) and (orientation: portrait) {
+  .story-bg, .story-bg[src$="m2-sorting.webp"] { inset: 72px auto auto 8px; width: calc(100% - 16px); height: auto; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 50%; border-radius: 12px; }
+}
 
 /* 브리핑 장면 */
 .brief-scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: start; }
