@@ -120,9 +120,10 @@
     story: {
       // introBg·outroBg = 도입·마무리 대화 내내 대화창 뒤에 까는 장면 그림(app.js withBg가 줄마다 붙임 — 줄에 bg가 따로 있으면 그 줄 것이 우선)
       //   분실물 센터: 가운데 검색 모니터(펼친 우산만)·선반의 접힌 분홍 우산, 오른쪽 학생
-      //   마무리 대화에는 깔지 않는다(2026-11-11 사용자 결정): 그림은 '우산이 목록에 없어 걱정하는' 장면이라 "이제 우산 칸에 떠요!"와 반대다.
-      //   해결된 장면 그림(m1-lostfound-solved)이 오면 outroBg에 그 경로를 넣으면 된다
+      //   마무리 대화 = 해결된 장면(같은 방, 모니터에 접힌 분홍 우산 칸이 뜨고 학생이 웃으며 가리킴 — 2026-11-11). 도입 그림을 그대로 깔면 "이제 우산 칸에 떠요!"와 반대가 된다
       introBg: 'assets/story/m1-lostfound.webp',
+      outroBg: 'assets/story/m1-lostfound-solved.webp',
+      outroFailBg: 'assets/story/m1-lostfound.webp', // 끝내 통과하지 못한 판의 마무리 = 아직 목록에 안 뜨는 도입 장면 그대로(app.js runEnding)
       intro: [
         { who: 'student', text: '제 우산 여기 있잖아요. 왜 목록에 없어요?', face: 'worried' },
         { who: 'guide', text: '우산 검색 결과입니다. 펼친 우산만 찾았습니다.', face: 'explain' },

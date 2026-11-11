@@ -45,7 +45,8 @@ test('1·2 임무 도입·마무리 배경: story.introBg·outroBg = 1600×900 w
   for (const [m, path] of [[m1, 'assets/story/m1-lostfound.webp'], [m2, 'assets/story/m2-sorting.webp']]) {
     assert.equal(m.story.introBg, path, m.id + ' introBg');
     // 1 임무 마무리에는 배경 없음(걱정하는 장면이라 해결된 뒤 대사와 반대 — 2026-11-11), 2 임무는 같은 그림
-    assert.equal(m.story.outroBg, m.id === 'm1' ? undefined : path, m.id + ' outroBg');
+    assert.equal(m.story.outroBg, m.id === 'm1' ? 'assets/story/m1-lostfound-solved.webp' : path, m.id + ' outroBg'); // 1 임무 마무리 = 해결된 장면(같은 규격)
+    if (m.id === 'm1') { const o = fs.readFileSync(new URL('../' + m.story.outroBg, import.meta.url)); assert.ok(o.length <= 400 * 1024 && o.length > 20000, 'solved scene size ' + o.length); }
     assert.ok(fs.existsSync(file(path)), path);
     const w = webpInfo(path);
     assert.deepEqual([w.width, w.height], [1600, 900], path + ' = reveal-senior.webp와 같은 규격');
@@ -69,7 +70,10 @@ test('기본 배경은 1·2 임무만: 3·4 임무·연습·옛 침수는 introB
   const app = text('js/app.js');
   assert.match(app, /Object\.assign\(\{ bg: bg \}, l\)/);
   assert.match(app, /withBg\(m\.story\.intro, m\.story\.introBg\)/);
-  assert.match(app, /withBg\(m\.story\.outro, m\.story\.outroBg\)/);
+  // 마무리: 통과하지 못한 판은 outroFailBg(있을 때) — 1 임무의 '해결된 장면'이 실패한 판에 깔리지 않게
+  assert.match(app, /var obg = rec\.passed === false && m\.story\.outroFailBg \? m\.story\.outroFailBg : m\.story\.outroBg;/);
+  assert.match(app, /withBg\(m\.story\.outro, obg\)/);
+  assert.equal(require('../missions/m1.js').story.outroFailBg, 'assets/story/m1-lostfound.webp');
 });
 
 test('받은 원본(assets/_incoming/)은 게임이 읽지 않고 저장소에도 안 올라간다', () => {

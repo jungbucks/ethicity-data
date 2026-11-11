@@ -375,7 +375,9 @@
     function toOutro() {
       outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));
       outroOpts.compare = DR.UI.gradeCompare(m, e.compare);
-      DR.UI.outro(withBg(m.story.outro, m.story.outroBg), leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
+      // 마무리 배경: 끝내 통과하지 못하고 끝난 판(rec.passed === false)은 story.outroFailBg가 있으면 그 그림 — 1 임무의 '해결된 장면'이 실패한 판에 깔리지 않게
+      var obg = rec.passed === false && m.story.outroFailBg ? m.story.outroFailBg : m.story.outroBg;
+      DR.UI.outro(withBg(m.story.outro, obg), leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
     }
     // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)·이미 마친 경우는 건너뜀
     function chapterPart(then) {

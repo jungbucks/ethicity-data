@@ -15,6 +15,7 @@ const KEYS = {
   m2: { battery: box(56, 483, 372, 545, 428), robotHead: box(56, 1215, 300, 1470, 520), robot: box(56, 1118, 275, 1512, 722) }
 };
 const BG = { m1: /assets\/story\/m1-lostfound\.webp$/, m2: /assets\/story\/m2-sorting\.webp$/ };
+const BG_OUTRO = { m1: /assets\/story\/m1-lostfound-solved\.webp$/, m2: BG.m2 }; // 1 임무 마무리 = 해결된 장면(같은 구도라 핵심 자리도 같다)
 // 넓은 화면(대화창이 왼쪽): 핵심 요소 모두 화면 안 + 안 가림. 좁은 화면(390, 그림의 오른쪽 26%만 보임): 오른쪽 인물만 — 나머지는 화면 밖(재서 적어 둠)
 //   2026-11-11: 좁은 세로 화면은 그림을 위쪽에 통째로 보여 준다 → 좁은 화면에서도 핵심 요소가 모두 화면 안
 const MUST = { wide: { m1: ['face', 'umbrella', 'monitor'], m2: ['battery', 'robotHead'] }, narrow: { m1: ['face', 'umbrella', 'monitor'], m2: ['battery', 'robotHead'] } };
@@ -67,7 +68,7 @@ const watch = (page) => page.evaluate(() => {
 const watched = (page) => page.evaluate(() => { const w = window.__bgWatch; w.ob.takeRecords(); return { drops: w.drops, srcs: w.srcs, same: document.querySelector('#screen-story .story-bg') === w.img }; });
 
 // 대화 한 편을 끝 줄까지 넘기며 줄마다 잰다(끝 줄에서 멈춤)
-async function walk(page, id, n, shot) {
+async function walk(page, id, n, shot, bg = BG[id]) {
   await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 15000 });
   await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('#screen-story .story-bg')).opacity) === 1, null, { timeout: 5000 });
   await watch(page);
@@ -75,7 +76,7 @@ async function walk(page, id, n, shot) {
   for (let i = 0; i < n; i++) {
     const m = await measure(page, KEYS[id]);
     assert.ok(m.hasBg && m.img && m.on && m.opacity === 1, id + ' line ' + (i + 1) + ' keeps the backdrop: ' + JSON.stringify({ hasBg: m.hasBg, on: m.on, opacity: m.opacity }));
-    assert.match(m.src, BG[id]); assert.equal(m.natural, 1600);
+    assert.match(m.src, bg); assert.equal(m.natural, 1600);
     rows.push(m);
     if (shot && shot.at === i) await page.screenshot({ path: shotPath(shot.name) });
     if (i < n - 1) await page.locator('#screen-story .dialog').click();
@@ -145,7 +146,7 @@ for (const viewport of VIEWPORTS) {
       }, id);
       let outro, ow;
       if (story.outroBg) {
-        outro = await walk(page, id, story.outro.length, { at: 0, name: `story-bg-${id}-outro-${w}` });
+        outro = await walk(page, id, story.outro.length, { at: 0, name: `story-bg-${id}-outro-${w}` }, BG_OUTRO[id]);
         assert.deepEqual(outro.map((r) => r.text), story.outro.map((l) => l.text));
         ow = checkKeys(id, w, outro, `${id} outro ${w}`);
       } else {
@@ -182,6 +183,18 @@ if (!only || only === 'extra') {
     const src = () => page.locator('#screen-story .story-bg').getAttribute('src');
     await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 15000 });
     assert.match(await src(), BG.m1);
+    // ④-0 끝내 통과하지 못한 판의 1 임무 마무리 = 해결된 장면이 아니라 도입 장면 그대로(story.outroFailBg)
+    await page.evaluate(() => {
+      DR.App.records.m1 = { cleared: true, passed: false, firstTry: false, supplements: 2, firstFails: [], fixedLabels: 0 };
+      DR.App.resumeEnding({ mission: 'm1', step: 4, city: null, peer: 'none', compare: null });
+    });
+    await page.waitForFunction(() => /오늘 결과는/.test((document.querySelector('#screen-story .dialog-text') || {}).textContent || ''), null, { timeout: 15000 });
+    await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 15000 });
+    assert.match(await src(), BG.m1, 'failed run outro keeps the unsolved scene');
+    assert.doesNotMatch(await src(), /solved/);
+    await page.evaluate(() => DR.App.startMission('m1'));
+    await page.waitForFunction(() => /제 우산/.test((document.querySelector('#screen-story .dialog-text') || {}).textContent || ''), null, { timeout: 15000 });
+    await page.locator('#screen-story.has-bg .story-bg.on').waitFor({ state: 'attached', timeout: 15000 });
     await page.locator('#screen-story .dialog').click();
     assert.match(await src(), /reveal-senior\.webp$/, "the line's own bg wins");
     await page.locator('#screen-story .story-bg.on').waitFor({ state: 'attached', timeout: 15000 });
