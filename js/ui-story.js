@@ -191,8 +191,11 @@
     screen.innerHTML = '';
     var scenes = el('div', { class: 'brief-scenes' });
     sceneOrder(mission).forEach(function (s) {
-      var c = A.scene(mission, s.id, 'neutral', 360);
-      var img = el('img', { src: c.toDataURL(), alt: s.title });
+      // 장면 카드 그림: 임무 데이터에 그림 파일(art.img)이 있으면 그것(연습 '보호소 입양 안내'), 못 읽으면·없으면 Canvas 장면 그림.
+      //   파일은 <img>로 바로 보여 준다(캔버스에 그리지 않음 → 더블클릭 file://에서도 그대로)
+      var file = s.art && s.art.img, canvasUrl = function () { return A.scene(mission, s.id, 'neutral', 360).toDataURL(); };
+      var img = el('img', { src: file || canvasUrl(), alt: s.title });
+      if (file) img.onerror = function () { img.onerror = null; img.src = canvasUrl(); };
       scenes.appendChild(el('figure', { class: 'brief-scene', 'data-scene': s.id, 'data-emphasis': s.emphasis || 'normal' }, [img, el('figcaption', { text: s.title })]));
     });
     var run = el('button', { id: 'btn-run', class: 'btn btn-primary', type: 'button', text: '달리기 시작' });
@@ -250,7 +253,7 @@
   // 튜토리얼 결과 한 장: 통과면 [다음], 실패면 귀여운 실패 + [다시 달리기]
 
   // 마무리 안내(기획서 §4.7) — 대화 뒤 안내 카드
-  // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]), summary: ['이번 판 요약 줄', …] }
+  // opts: { kicker: '○○ 완료', next: 다음 임무로 가는 함수(있으면 [다음 임무로]), summary: ['이번 판 요약 줄' 또는 { text, hint }, …], bg: 화면 뒤에 어둡게 깔 장면 그림 }
   function outro(lines, done, opts) {
     opts = opts || {};
     dialogue(lines, function () {
@@ -258,10 +261,20 @@
       screen.innerHTML = '';
       var again = el('button', { id: 'btn-again', class: 'btn' + (opts.next ? '' : ' btn-primary'), type: 'button', text: '타이틀로', onclick: done });
       var next = opts.next ? el('button', { id: 'btn-next-mission', class: 'btn btn-primary', type: 'button', text: '다음 임무로', onclick: function () { root.DR.Sfx.play('ui'); opts.next(); } }) : null;
-      screen.appendChild(el('div', { class: 'page' }, [
+      // 임무 완료 화면 뒤에 그 임무의 장면 그림을 어둡게(opts.bg — app.js runEnding이 마무리 대화와 같은 그림을 준다). 글은 그 위에 그대로 읽힌다.
+      //   못 읽으면 그림만 뺀다(원래 바탕). 화면을 떠나면 go()가 화면을 비우며 같이 사라진다
+      if (opts.bg) {
+        var backdrop = el('img', { class: 'outro-bg', src: opts.bg, alt: '', 'aria-hidden': 'true', draggable: 'false' });
+        backdrop.onerror = function () { backdrop.remove(); };
+        screen.appendChild(backdrop);
+      }
+      screen.appendChild(el('div', { class: 'page outro-page' }, [
         el('p', { class: 'kicker', text: opts.kicker || '임무 완료' }),
         el('h2', { text: opts.headline || '도시 한 구간이 다시 이어졌다' }),
-        opts.summary && opts.summary.length ? el('ul', { id: 'outro-summary', class: 'outro-summary', 'aria-label': '이번 판 요약' }, opts.summary.map(function (t) { return el('li', { text: t }); })) : null,
+        opts.summary && opts.summary.length ? el('ul', { id: 'outro-summary', class: 'outro-summary', 'aria-label': '이번 판 요약' }, opts.summary.map(function (t) {
+          // 줄에 hint가 있으면(챕터 끝 '다른 용도 요청' — 생각해 볼 점) 같은 칸 아래에 작은 글로. 점수·정오 표시는 없다
+          return typeof t === 'string' ? el('li', { text: t }) : el('li', null, [el('span', { text: t.text }), t.hint ? el('span', { class: 'outro-hint', text: t.hint }) : null]);
+        })) : null,
         opts.compare || null, // 4 임무: 같은 답안지 전후 비교(DR.UI.gradeCompare)
         // 4 임무: 최종 토론 질문
         opts.questions && opts.questions.length ? el('section', { id: 'outro-questions', class: 'outro-questions', 'aria-label': '토론 질문' }, [

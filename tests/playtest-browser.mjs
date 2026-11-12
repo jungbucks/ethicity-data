@@ -181,7 +181,7 @@ if (want(4, 11)) {
     await page.evaluate(() => { localStorage.setItem('ethicity.data.save', JSON.stringify({ v: 1, mission: null, tutorialDone: true, records: { m1: { cleared: true, firstTry: true, supplements: 0 } } })); DR.App.records = DR.Save.records(); });
     await page.reload();
     assert.equal(await page.locator('#btn-resume-next').innerText(), '두 번째 임무부터 이어하기');
-    assert.equal(await page.locator('#title-city').getAttribute('data-count'), '2', '옛 세이브 도시 칸 그대로');
+    assert.equal(await page.evaluate(() => DR.App.cityCount()), 2, '옛 세이브 도시 칸 그대로'); // 타이틀 배지는 2026-11-12에 뺌 — 칸 수 계산으로 확인
     // 튜토리얼만 끝냄 → 1 임무부터 이어하기
     await page.evaluate(() => { localStorage.setItem('ethicity.data.save', JSON.stringify({ v: 1, mission: null, tutorialDone: true, cityV: 1, records: { tutorial: { cleared: true } } })); });
     await page.reload();

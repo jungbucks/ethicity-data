@@ -116,9 +116,9 @@
         opts.drill ? el('section', { id: 'exam-drill', class: 'exam-drill', 'aria-labelledby': 'exam-drill-h' }, [
           el('h3', { id: 'exam-drill-h', text: '시험관의 연습 카드' }),
           el('p', { text: '이 카드도 AI가 배우는 자료야. 이름표가 맞는지 보고, 틀렸으면 고쳐 봐.' }),
-          cell(m, opts.drill, open)
+          el('div', { class: 'exam-grid' }, [cell(m, opts.drill, open)]) // 위 카드 격자와 같은 칸 폭 — 설명 글은 격자 폭 그대로(전엔 구역 전체가 14rem이라 글이 세 줄로 접혔다)
         ]) : null,
-        el('div', { class: 'actions' }, [submit])
+        el('div', { class: 'actions actions-sticky' }, [submit]) // 주 버튼은 화면 아래에 붙어 첫 화면에 보인다(플레이테스트 2026-11-12)
       ]));
     }
     render();

@@ -220,6 +220,9 @@
         ]
       },
       senior: [],
+      // 마무리 대화·임무 완료 화면 뒤 그림 = 정체 공개 장면 그대로(새 그림 없이 — 플레이테스트 2026-11-12, 정체 공개 뒤라 미리 알려 주는 것 없음).
+      //   도입 대화에는 안 쓴다(선배가 불꽃이라는 걸 임무 전에 보여 주게 된다) → introBg 없음
+      outroBg: 'assets/story/reveal-senior.webp',
       outro: [
         { who: 'supervisor', text: '오늘 길 안내도 실제 AI가 아니라, 단순화한 규칙으로 만든 시뮬레이션이야.', face: 'explain' },
         { who: 'supervisor', text: '오래된 자료는 언제 빼고 언제 지켜야 할까? 다 같이 이야기해 보자.', face: 'explain' }

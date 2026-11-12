@@ -302,32 +302,19 @@ if (ONLY.includes('D')) {
   } finally { await browser.close(); }
 }
 
-// E) 타이틀: "도시 n/5" 배지(기록 계산), 4 임무 카드 썸네일
+// E) 타이틀: 도시 칸 수(기록 계산 — 왼쪽 위 "도시 n/5" 배지는 2026-11-12에 뺐다, 임무 뒤 도시 복구 화면이 보여 준다), 4 임무 카드 썸네일
 for (const viewport of ONLY.includes('E') ? [{ width: 1280, height: 800 }, { width: 375, height: 760 }] : []) {
   const { browser, page, errors } = await openGame({ viewport });
   try {
-    const badge = page.locator('#title-city');
-    assert.equal(await badge.getAttribute('role'), 'img');
-    assert.equal(await badge.getAttribute('aria-label'), '도시 복구 5칸 중 0칸');
-    assert.equal(await badge.evaluate((b) => getComputedStyle(b).pointerEvents), 'none');
+    assert.equal(await page.locator('#title-city').count(), 0, 'no city badge on the title');
+    assert.equal(await page.evaluate(() => DR.App.cityCount()), 0);
     await page.evaluate(() => {
       DR.App.records.tutorial = { cleared: true }; DR.App.records.m1 = { cleared: true }; DR.App.records.m3 = { cleared: true };
       DR.App.go('title');
     });
-    assert.equal(await badge.getAttribute('aria-label'), '도시 복구 5칸 중 3칸');
-    assert.equal(await page.locator('#title-city .city-dots i.on').count(), 3);
-    assert.equal((await page.locator('#title-city .title-city-text').innerText()).trim(), '도시 3/5');
-    const b = await badge.boundingBox();
-    assert.ok(Math.abs(b.x - 16) < 2 && Math.abs(b.y - 16) < 2, JSON.stringify(b));
-    // 다른 버튼·주인공 고르기·임무 카드와 겹치지 않는다
-    const hit = await page.evaluate(() => {
-      const r = document.getElementById('title-city').getBoundingClientRect();
-      return [...document.querySelectorAll('#screen-title button, #title-guide, #screen-title h1, .title-kicker')].filter((e) => {
-        const o = e.getBoundingClientRect();
-        return o.width && !(o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom);
-      }).map((e) => e.id || e.className);
-    });
-    assert.deepEqual(hit, [], 'badge overlaps nothing');
+    assert.equal(await page.evaluate(() => DR.App.cityCount()), 3);
+    assert.equal(await page.locator('#title-city').count(), 0);
+    assert.equal(await page.evaluate(() => typeof DR.UI.cityDots), 'function', 'city dots stay for the city screen');
     const thumb = page.locator('#btn-m4 .mc-thumb');
     assert.match(await thumb.getAttribute('src'), /^assets\/title\/mission-m4\.webp$/);
     await page.waitForFunction(() => { const i = document.querySelector('#btn-m4 .mc-thumb'); return i.complete && i.naturalWidth === 640; });

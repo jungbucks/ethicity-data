@@ -131,7 +131,7 @@ async function part3() {
     await ch.waitFor({ state: 'visible', timeout: 30000 });
     assert.equal(await ch.getAttribute('data-step'), '2', 'back at step 2');
     assert.equal(await page.evaluate(() => DR.Save.chapterOf(DR.Save.records(), 'm1').req.last), 'refuse');
-    assert.equal(await page.locator('#title-city').getAttribute('data-count'), '1', 'city counted once');
+    assert.equal(await page.evaluate(() => DR.App.cityCount()), 1, 'city counted once'); // 타이틀 배지는 2026-11-12에 뺌 — 칸 수 계산으로 확인
     // 2단계 → 3단계 → 나갔다 오면 3단계, 쓴 글 그대로
     await page.locator('.ch-concept[data-choice="a"]').click();
     await page.locator('#btn-ch-next').click();

@@ -116,3 +116,43 @@ test('4 임무: 무작위 가방 400개 — 실패 장면엔 늘 문장이 있�
     });
   }
 });
+
+// 플레이테스트 2026-11-12: 2 임무 '찌그러진 페트병과 비닐' — 칫솔·고양이 사진이 섞였는데 문구는 칫솔만 말했다
+const { sort } = require('../js/conveyor.js');
+const wrongOf = (m, r, sid) => sort(m, r).filter((it) => it.scene === sid && !it.correct);
+test('2 임무: 잘못 간 물건이 둘 이상이면 머리 문구가 전부 말한다 + 오염 원인 줄 뒤 "그래서 …" + 원인을 못 짚는 물건 "…도"', () => {
+  const bag = bagOf(M2_ALL).concat(fakes('f_toothbrush', 1), fakes('f_cat', 1));
+  const r = judge(m2, bag, cfg), s = r.scenes[1], w = wrongOf(m2, r, 'S2');
+  assert.deepEqual(s.contaminated, ['f_toothbrush', 'f_cat']);
+  assert.deepEqual(w.map((it) => it.art + '>' + it.bin), ['pet_clear>vinyl', 'vinyl_bag>trash', 'f_toothbrush>pet']);
+  assert.equal(RL.sceneLine(m2, m2.scenes[1], s), '칫솔이 투명 페트 함으로 갔다. 페트 더미를 선별장 직원이 손으로 다시 골라낸다.', 'sceneLine 자체는 그대로');
+  assert.equal(RL.leadLine(m2, m2.scenes[1], s, w), '투명 페트병은 비닐 함으로, 비닐봉지는 일반쓰레기 함으로, 칫솔은 투명 페트 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.');
+  assert.equal(RL.becauseLine(m2, w.filter((it) => it.cause === 'f_cat')), '그래서 비닐봉지가 일반쓰레기 함으로 갔다.');
+  assert.equal(RL.becauseLine(m2, w.filter((it) => it.cause === 'f_toothbrush')), '그래서 칫솔이 투명 페트 함으로 갔다.');
+  assert.equal(RL.alsoLine(m2, w.filter((it) => String(it.cause).indexOf('contaminated:') === 0)), '엉뚱한 사진이 섞이면서 투명 페트병도 비닐 함으로 갔다.');
+  assert.equal(RL.becauseLine(m2, []), '');
+  assert.equal(RL.alsoLine(m2, []), '');
+});
+test('2 임무: 잘못 간 물건이 하나면 예전 문구 그대로 · 같은 함으로 간 물건은 묶는다 · 위험은 비상 정지 문구 뒤에 나머지', () => {
+  // 하나: 찌그러진 페트병만 부족
+  let r = judge(m2, bagOf({ ...M2_ALL, pet_crushed: 1 }), cfg), w = wrongOf(m2, r, 'S2');
+  assert.equal(w.length, 1);
+  assert.equal(RL.leadLine(m2, m2.scenes[1], r.scenes[1], w), RL.sceneLine(m2, m2.scenes[1], r.scenes[1]));
+  // 같은 함: 찌그러진 페트병·비닐봉지 → 일반쓰레기 함 (컨베이어 순서 = 비닐봉지 먼저)
+  r = judge(m2, bagOf({ ...M2_ALL, pet_crushed: 0, vinyl_bag: 1 }), cfg); w = wrongOf(m2, r, 'S2');
+  assert.equal(RL.leadLine(m2, m2.scenes[1], r.scenes[1], w), '비닐봉지와 찌그러진 페트병은 일반쓰레기 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.');
+  // 위험: 건전지가 '캔'으로 섞임 → 비상 정지 문구 + 건전지 말고 잘못 간 나머지
+  r = judge(m2, bagOf(M2_ALL).concat(fakes('f_battery', 2)), cfg);
+  const s1 = r.scenes[0]; w = wrongOf(m2, r, 'S1');
+  assert.equal(s1.failKind, 'danger');
+  assert.ok(w.some((it) => it.emergency) && w.some((it) => !it.emergency), JSON.stringify(w));
+  const lead = RL.leadLine(m2, m2.scenes[0], s1, w);
+  assert.ok(lead.startsWith(RL.sceneLine(m2, m2.scenes[0], s1) + ' 그 밖에 '), lead);
+  assert.match(lead, /음료 캔은 비닐 함으로 갔다\.$/);
+  // 통과한 장면·틀이 없는 임무(1·3·4 임무)는 sceneLine 그대로
+  assert.equal(RL.leadLine(m2, m2.scenes[2], r.scenes[2], []), m2.scenes[2].passLine);
+  for (const m of [m1, m3, m4]) {
+    const rr = judge(m, [], cfg);
+    rr.scenes.forEach((sc, i) => assert.equal(RL.leadLine(m, m.scenes[i], sc, [{ art: 'x', bin: 'y' }, { art: 'z', bin: 'y' }]), RL.sceneLine(m, m.scenes[i], sc)));
+  }
+});

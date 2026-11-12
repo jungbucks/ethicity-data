@@ -1636,9 +1636,9 @@
   function drawLostFound(c, mission, s, outcome) {
     var S = c.width, g = c.getContext('2d');
     g.fillStyle = '#39405a'; g.fillRect(0, 0, S, S);
-    g.fillStyle = '#6d5a48'; g.fillRect(0, S * 0.78, S, S * 0.22);
+    // 사진 두 장을 카드 세로 가운데에(플레이테스트 2026-11-12 — 전엔 아래 22%가 빈 갈색 바닥 띠였고 사진이 위로 몰려 보였다). 오른쪽 위 배지(y 6~22%)와는 안 겹친다
     s.art.focus.forEach(function (key, i) {
-      var o = mission.cardTypes[key].art, x = S * (0.05 + i * 0.47), w = S * 0.43, y = S * 0.26, im = photoImgs[o.photo];
+      var o = mission.cardTypes[key].art, x = S * (0.05 + i * 0.47), w = S * 0.43, y = (S - w) / 2, im = photoImgs[o.photo];
       if (photoReady(im)) g.drawImage(im, x, y, w, w);
       else { var t = canvas(Math.round(w)); drawLostFallback(t, o); g.drawImage(t, x, y); }
       g.strokeStyle = '#f4efe2'; g.lineWidth = S * 0.012; g.strokeRect(x, y, w, w);

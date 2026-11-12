@@ -65,3 +65,16 @@ test('chapter answers live in records → "처음부터" (clear) removes them', 
   Save.clear(st);
   assert.equal(Save.chapterOf(Save.records(st), 'm1').note, '');
 });
+
+test('1 임무 챕터 끝 문장(플레이테스트 2026-11-12): 답이 안 되던 선택지 둘을 바꾸고 피드백을 또렷하게 — id·구조는 그대로', () => {
+  const ce = M.m1.chapterEnd, by = (list, id) => list.find((c) => c.id === id);
+  assert.deepEqual(ce.choices.map((c) => c.id), ['consent', 'refuse', 'erase'], 'ids unchanged (saved first/last values)');
+  assert.equal(by(ce.choices, 'erase').text, '이미 받은 연락처니까 그냥 나눠 준다');
+  assert.equal(by(ce.choices, 'erase').feedback, '연락처는 물건을 돌려주려고 받은 거야. 다른 일에 쓰면, 그 사람은 내 번호가 어디로 갔는지 모르게 돼.');
+  assert.equal(by(ce.choices, 'consent').feedback, '동의를 묻는 문자도 결국 그 번호를 원래 목적과 다르게 쓰는 일이야. 물건을 돌려주는 일과 상관없는 부탁이라면 거절이 가장 안전해.');
+  assert.equal(by(ce.choices, 'refuse').feedback, '맞아. 모은 목적 안에서만 쓰는 게 원칙이야.');
+  assert.deepEqual(ce.concept.choices.map((c) => c.id), ['a', 'b', 'c']);
+  assert.equal(by(ce.concept.choices, 'c').text, '사진을 많이 모으면 접힌 모습도 저절로 알게 된다');
+  assert.equal(by(ce.concept.choices, 'c').feedback, '수거봇의 3,000장처럼 많아도 같은 모습만 있으면 소용없어. 빠진 모습을 넣어야 알아봐.');
+  assert.ok(M.m1.story.intro.some((l) => /3,000장/.test(l.text)), '3,000장은 1 임무 도입 대사에 나온 숫자');
+});

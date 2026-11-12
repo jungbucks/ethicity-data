@@ -142,7 +142,10 @@ async function flowPart(viewport) {
       if (id !== 'm2') {
         // 한 장만 가리고 내면: 같은 말을 되풀이하지 않고 남은 장 수를 말한다(어느 카드인지는 말하지 않는다)
         s = await submitTry(page);
-        assert.ok(s.text.includes(T.more.replace('{n}', '1')), id + ' partial: ' + s.text.slice(0, 80));
+        // + 어느 종류인지(남은 카드에 붙은 이름표, 2026-11-12) — 4 임무는 답안지 낱말
+        const kind = await page.evaluate(([mid, cid]) => { const m = DR.Missions[mid], c = DR.App.state.bag.find((x) => x.id === cid); return DR.Cards.labelText(m, DR.Cards.currentLabel(m, c)); }, [id, ids[1]]);
+        assert.ok(kind && s.text.includes(T.more.replace('{n}', '1').replace('{kind}', kind)), id + ' partial (' + kind + '): ' + s.text.slice(0, 120));
+        assert.doesNotMatch(s.text, /\{kind\}|\{n\}/);
         assert.equal(s.confirm, 0);
         if (id === 'm4' && viewport.width === 1280) await page.screenshot({ path: shotPath('privacy-partial-m4-1280') });
         await page.locator('#btn-back').click();

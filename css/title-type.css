@@ -1,0 +1,12 @@
+/* First-screen title only. Text remains accessible and is the image-error fallback. */
+.series-title .title-ink{position:relative;display:inline-block;max-width:100%;vertical-align:middle}
+.series-title .title-ink>img{display:none;width:100%;height:auto;image-rendering:auto}
+.series-title .title-ink.is-ready>img{display:block}
+.series-title .title-ink.is-ready>.title-text{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+
+#screen-title .series-title .runner-word{display:block;width:470px;max-width:100%;margin:0;color:#F4F1FF;filter:drop-shadow(0 0 8px rgba(243,139,197,.45))}
+#screen-title .series-title .runner-word,#screen-title .series-title .runner-word>.title-text{font-size:inherit;line-height:inherit;margin:0;color:#F4F1FF}
+#screen-title .series-title .title-sub,#screen-title .series-title .title-glitch{color:#F38BC5}
+#screen-title .series-title .title-glitch::before,#screen-title .series-title .title-glitch::after{color:#F38BC5;text-shadow:2px 0 #F38BC5}
+#screen-title .series-title .title-link{background:#F38BC5}
+@media(max-width:600px){#screen-title .series-title .runner-word{width:100%;filter:drop-shadow(0 0 5px rgba(243,139,197,.45))}}

@@ -8,6 +8,13 @@
  *    게임 결과 완료(records[임무].cleared, mission:null)와 따로라서 도중에 나가도 그 활동으로 돌아온다. 옛 저장엔 없음 = 뒤 활동 없음)
  *   ethicity.data.hero   달릴 주인공(공통 팩 'onyu' 온유 / 'daon' 다온). 없거나 모르는 값이면 온유.
  * 저장소가 막혀 있으면(사생활 보호 창 등) 조용히 실패하고 게임은 그대로 진행한다.
+ *
+ * '처음부터'(clear)가 저장소에 닿지 못했을 때(리뷰 2026-11-12) — 옛 기록이 새 진행에 섞이지 않게:
+ *   - 그때부터 이 탭은 저장소 대신 **메모리의 저장본**(pend)을 읽고 고친다. 저장소에 남은 옛 기록은 다시 읽지 않는다.
+ *   - 쓰기가 다시 되는 첫 순간, 메모리의 저장본이 저장소의 옛 기록을 **통째로 바꾼다**(합치지 않음). 그 뒤엔 예전처럼 저장소를 읽는다.
+ *   - clear는 쓰기가 안 되면 옛 기록 지우기(removeItem)라도 해 본다. 지워졌으면 status 'unsaved'(옛 기록 없음, 새 진행은 탭에만),
+ *     그것도 안 되면 'stale'(이 기기에 옛 기록이 남음 — 쓰기가 되기 전에 새로고침하면 옛 기록이 다시 보인다. 화면이 그렇게 알린다).
+ *   - 초기화와 상관없는 쓰기 실패(체크포인트·기록)는 예전 그대로: 저장소에 있는 것이 기준이고 조용히 넘어간다.
  */
 (function (root) {
   'use strict';
@@ -24,9 +31,14 @@
     try { return root.localStorage || null; } catch (e) { return null; }
   }
 
+  // 초기화가 저장소에 닿지 못한 저장소 → { raw: 메모리의 저장본(JSON 글자 — 저장소와 같은 꼴), gone: 옛 기록을 지우는 데는 성공했나 }
+  var pend = new WeakMap();
+  function pending(st) { return st && typeof st === 'object' ? pend.get(st) || null : null; }
+
   function read(st) {
     try {
-      var raw = st && st.getItem(KEY);
+      var p = pending(st);
+      var raw = p ? p.raw : st && st.getItem(KEY);
       var o = raw ? JSON.parse(raw) : null;
       if (!(o && typeof o === 'object' && o.v === 1)) return null;
       // 도시 복구 칸 이전(cityV 없음) 저장: 튜토리얼을 끝냈고 깬 임무가 있으면 튜토리얼 기록을 채워 둔다(한 번, 다음 저장 때 남음)
@@ -40,7 +52,26 @@
   function write(o, st) {
     if (!st) return false;
     o.cityV = 1; // 이 저장은 튜토리얼도 기록(records.tutorial)으로 센다
-    try { st.setItem(KEY, JSON.stringify(o)); return true; } catch (e) { return false; }
+    var raw = JSON.stringify(o);
+    try { st.setItem(KEY, raw); pend.delete(st); return true; } catch (e) {
+      var p = pending(st);
+      if (p) p.raw = raw; // 초기화가 밀려 있는 동안엔 메모리의 저장본이 기준 — 계속 여기에 쌓는다
+      return false;
+    }
+  }
+  // 초기화가 저장소에 닿았나: 'ok'(닿음 — 평소) · 'unsaved'(옛 기록은 지웠지만 새 진행은 이 탭에만) · 'stale'(옛 기록이 이 기기에 남아 있음) · 'off'(저장소 없음)
+  function status(st) {
+    st = storage(st);
+    if (!st) return 'off';
+    var p = pending(st);
+    return p ? (p.gone ? 'unsaved' : 'stale') : 'ok';
+  }
+  // 밀린 초기화·진행을 다시 써 본다(탭을 떠날 때 등). 밀린 것이 없거나 써졌으면 true
+  function flush(st) {
+    st = storage(st);
+    var p = pending(st);
+    if (!p) return true;
+    try { st.setItem(KEY, p.raw); pend.delete(st); return true; } catch (e) { return false; }
   }
 
   // 저장 내용: 미션 id, 화면, 가방 카드 목록("?" 설명표·동기 카드 고정 포함), 보충 횟수, 튜토리얼 완료, 필요 장수 공개 플래그,
@@ -102,10 +133,19 @@
   }
 
   // 처음부터: 진행과 임무 기록을 지우고 튜토리얼 완료만 남긴다
+  //   쓰기가 안 되면: 옛 기록을 지워 보고(용량 초과면 자리가 나므로 한 번 더 쓴다), 끝내 안 써지면 메모리의 저장본으로 넘어간다(맨 위 설명).
+  //   돌려주는 값은 예전처럼 '저장소에 써졌나' — 자세한 상태는 status()
   function clear(st) {
     st = storage(st);
     var prev = read(st) || {};
-    return write({ v: 1, mission: null, tutorialDone: !!prev.tutorialDone }, st);
+    var o = { v: 1, mission: null, tutorialDone: !!prev.tutorialDone };
+    if (write(o, st)) return true;
+    if (!st) return false;
+    var gone = false;
+    try { st.removeItem(KEY); gone = st.getItem(KEY) == null; } catch (e) { gone = false; }
+    if (gone && write(o, st)) return true;
+    pend.set(st, { raw: JSON.stringify(o), gone: gone });
+    return false;
   }
 
   /* ---------- 임무 뒤 활동 이어하기(리뷰 2026-11-10 ③) ----------
@@ -239,7 +279,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, status: status, flush: flush, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

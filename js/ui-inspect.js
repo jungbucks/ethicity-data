@@ -13,6 +13,7 @@
   function variantOf(card) { return numOf(card) % 3 || 0; }
   // 카드 번호(사진 카드가 사진을 고를 때) = id의 마지막 숫자 묶음. 보충 카드 id 's1_c5'는 5 — 전엔 숫자를 다 이어 15가 돼, 달릴 때(c5)와 검수에서 그림 변형·사진이 달랐다(2026-11-10)
   function numOf(card) { var m = String(card.id).match(/(\d+)\D*$/); return m ? parseInt(m[1], 10) : 0; }
+  var LOOK_MS = 2600; // 개인정보 카드가 남은 종류의 테두리를 밝혀 두는 시간
   var maskLast = { id: null, at: 0 }; // 마지막으로 가림을 바꾼 카드와 때(ms) — 같은 카드를 바로 다시 누른 것만 무시한다
   function cardId(card) { return DR.Cards.artId(card); }
   function ambDef(mission, id) { return mission.ambiguous.filter(function (a) { return a.id === id; })[0]; }
@@ -124,7 +125,10 @@
   function inspect(mission, bag, done, opts) {
     opts = opts || {};
     var screen = document.getElementById('screen-inspect');
-    var zoom = zoomer(mission, screen, 'inspect-zoom', function () { saveBag(bag); render(); });
+    var zoom = zoomer(mission, screen, 'inspect-zoom', function () { saveBag(bag); render(); }, function (card) { removeWithUndo(mission, bag, card, render); });
+    // opts.look = 테두리를 잠깐 밝힐 이름표들(개인정보 카드가 남은 종류 — 감독관이 종류를 말했는데도 그대로 다시 냈을 때, app.js askSupervisor).
+    //   그 이름표가 붙은 카드 전부의 테두리만 밝힌다(어느 카드인지는 말하지 않는다). 이 화면에 들어온 첫 그리기에만, LOOK_MS 뒤 저절로 꺼진다(움직임 없음)
+    var look = opts.look && opts.look.length ? opts.look : null;
 
     function render() {
       var undecided = bag.filter(function (c) { return c.ambiguousId && c.assigned === undefined; }).length;
@@ -170,6 +174,15 @@
         scenes,
         el('div', { class: 'actions' }, [submit])
       ]));
+      if (look) {
+        var marked = [];
+        Array.prototype.forEach.call(screen.querySelectorAll('#inspect-grid .bag-card'), function (cell) {
+          var card = bag.filter(function (c) { return String(c.id) === cell.getAttribute('data-id'); })[0];
+          if (card && !card.ambiguousId && look.indexOf(DR.Cards.currentLabel(mission, card)) >= 0) { cell.classList.add('look-here'); marked.push(cell); }
+        });
+        look = null;
+        setTimeout(function () { marked.forEach(function (cell) { cell.classList.remove('look-here'); }); }, LOOK_MS);
+      }
       zoom.reopen();
     }
 
@@ -184,7 +197,7 @@
    * 포커스(리뷰 2026-11-10 ⑤): 창이 떠 있는 동안 Tab·Shift+Tab은 창 안에서만 돌고(전엔 Shift+Tab이 배경 '제출'로 빠졌다), 배경(화면의 다른 자식)은 inert —
    *   창은 화면을 다시 그릴 때마다 새로 만들어 화면 안에 붙이는 div라 <dialog>(공용 modal)로 바꾸지 않고, 대화 창(ui-story)처럼 키로 가둔다.
    *   닫기·Esc·바깥 누르기로 닫으면 열었던 카드 버튼으로 포커스를 돌려준다. 창 안 버튼을 눌러 다시 그릴 때는 같은 버튼으로(닫기로 튀지 않게) — rerender(sel). */
-  function zoomer(mission, host, zoomId, rerenderHost) {
+  function zoomer(mission, host, zoomId, rerenderHost, onRemove) {
     var zoomed = null, zoomCleanup = null, focusSel = null;
     // 창 안 조작으로 화면을 다시 그린다 — sel = 다시 그린 창에서 포커스를 줄 조작
     function rerender(sel) { focusSel = sel || null; rerenderHost(); focusSel = null; }
@@ -200,6 +213,22 @@
         el('div', { class: 'zoom-head' }, [el('p', { class: 'zoom-label' }, [DR.UI.iconStrip(mission, DR.Cards.iconsOf(mission, card)), el('span', { text: label })]), close]),
         el('img', { class: 'zoom-art', src: big.toDataURL(), alt: '카드 원본: ' + label })
       ];
+      // 빼기(플레이테스트 2026-11-12 — 안내는 "크게 보기에서 가리거나 뺀다"인데 창 안엔 가리기만 있었다): 창을 닫고 격자의 '빼기'와 같은 길(되돌리기 5초 포함).
+      //   포커스는 같은 자리의 다음 카드로(없으면 마지막 카드)
+      function removeBtn() {
+        if (!onRemove) return null;
+        var rb = el('button', { id: 'btn-zoom-remove', class: 'btn btn-small btn-zoom-remove', type: 'button', text: '빼기', 'aria-label': '빼기: ' + label });
+        rb.addEventListener('click', function () {
+          DR.Sfx.play('ui');
+          var cells = host.querySelectorAll('.bag-card'), at = 0;
+          for (var i = 0; i < cells.length; i++) if (cells[i].getAttribute('data-id') === String(card.id)) at = i;
+          zoomed = null; if (zoomCleanup) zoomCleanup();
+          onRemove(card);
+          var left = host.querySelectorAll('.bag-card .bag-open'), to = left[Math.min(at, left.length - 1)];
+          if (to && to.offsetParent !== null) to.focus();
+        });
+        return rb;
+      }
       if (DR.Privacy.on(mission) && !card.fixed) {
         var maskBtn = el('button', { id: 'btn-mask', class: 'btn btn-small btn-mask', type: 'button', 'aria-pressed': card.masked ? 'true' : 'false',
           text: card.masked ? DR.Privacy.TEXT.unmaskButton : DR.Privacy.TEXT.maskButton });
@@ -221,8 +250,8 @@
           }
           else maskNote.textContent = DR.Privacy.text(mission, 'noPrivate');
         });
-        inner.push(el('div', { class: 'zoom-mask' }, [maskBtn, maskNote]));
-      }
+        inner.push(el('div', { class: 'zoom-mask' }, [maskBtn, removeBtn(), maskNote]));
+      } else if (!card.fixed && onRemove) inner.push(el('div', { class: 'zoom-mask' }, [removeBtn()]));
       if (amb) {
         var q = ambDef(mission, card.ambiguousId);
         var clues = el('div', { class: 'clues' });
@@ -344,7 +373,7 @@
     var needByKey = {};
     mission.scenes.forEach(function (s) { s.combos.forEach(function (c) { c.keys.forEach(function (k) { needByKey[k] = Math.max(needByKey[k] || 0, c.need); }); }); });
 
-    var zoom = zoomer(mission, screen, 'prep-zoom', function () { saveBag(bag); render(); });
+    var zoom = zoomer(mission, screen, 'prep-zoom', function () { saveBag(bag); render(); }, function (card) { removeWithUndo(mission, bag, card, render); });
 
     // 종류별 "1장 빼기"는 바로 빼지 않는다 — 그 라벨의 카드 썸네일을 펼쳐 학생이 사진을 보고 직접 고른다
     // (가장 최근 카드를 몰래 빼면 가짜가 남고 진짜가 빠질 수 있다)

@@ -42,7 +42,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     assert.equal(await page.locator('#btn-ch-next').isDisabled(), true, 'choose first');
     // 처음 고른 것: 동의 받기 → 피드백, 다시 골라 거절
     await page.locator('.ch-choice[data-choice="consent"]').click();
-    assert.match(await page.locator('#ch-feedback').innerText(), /물어볼 수는 있어/);
+    assert.match(await page.locator('#ch-feedback').innerText(), /동의를 묻는 문자도 결국 그 번호를 원래 목적과 다르게 쓰는 일이야/); // 2026-11-12 문장 바꿈(전: "물어볼 수는 있어 …")
     assert.equal(await page.locator('#btn-ch-next').isDisabled(), false);
     await page.locator('.ch-choice[data-choice="refuse"]').click();
     assert.match(await page.locator('#ch-feedback').innerText(), /^맞아/);

@@ -126,7 +126,9 @@
     DR.Save.setRecord('tutorial', App.records.tutorial);
     var step = DR.Save.cityStep('tutorial', before, cityCount());
     var r = App.lastJudge, lines = m.story.outro.map(function (l) { return Object.assign({}, l, { text: l.text.replace('{dog}', r.have.dog).replace('{cat}', r.have.cat) }); });
-    DR.UI.dialogue(lines, function () {
+    // 합격 대화 뒤 그림(story.outroBg — {hero} = 고른 주인공의 시험장 장면)
+    var tbg = m.story.outroBg ? m.story.outroBg.replace('{hero}', DR.Save.hero()) : null;
+    DR.UI.dialogue(withBg(lines, tbg), function () {
       cityScreen(m, step, function () {
         if (!App.state.practice) { startMission('m1'); return; }
         // 연습 끝: 예전 튜토리얼 체크포인트만 남아 있으면 비우고(이어하기가 끝낸 튜토리얼로 돌아가지 않게) 타이틀로
@@ -192,22 +194,33 @@
   // 달리기 뒤: 검수 → 감독관 → 결과
   function afterRun(m) { review(m); }
 
-  function review(m) {
+  // look = 테두리를 잠깐 밝힐 이름표들(개인정보 카드가 남은 종류 — askSupervisor), 없으면 보통 검수
+  function review(m, look) {
     checkpoint('inspect');
-    DR.UI.inspect(m, App.state.bag, function () { askSupervisor(m); }, { newIds: App.state.newIds, lost: App.state.lost });
+    DR.UI.inspect(m, App.state.bag, function () { askSupervisor(m); }, { newIds: App.state.newIds, lost: App.state.lost, look: look || null });
   }
 
   function askSupervisor(m) {
     // 목적 밖 개인정보 카드를 처리하지 않았으면 감독관이 막는다(설계 2026-11-08 ①) — 장면 판정과는 따로
     var pc = DR.Privacy.check(m, App.state.bag), T = {};
-    ['blockMustRemove', 'blockMustRemove2', 'blockUnhandled', 'blockUnhandled2', 'blockMore'].forEach(function (k) { T[k] = DR.Privacy.text(m, k); }); // 임무별 문구(4 임무 = 답안지·학생 이름)
+    ['blockMustRemove', 'blockMustRemove2', 'blockUnhandled', 'blockUnhandled2', 'blockMore', 'blockLook'].forEach(function (k) { T[k] = DR.Privacy.text(m, k); }); // 임무별 문구(4 임무 = 답안지·학생 이름)
     if (!pc.ok) {
-      // 일부만 가리고 다시 냈으면 같은 말을 되풀이하지 않고 남은 장 수를 말한다(어느 카드인지는 여전히 말하지 않는다)
-      var first = pc.handled > 0 ? T.blockMore.replace('{n}', pc.open) : T.blockUnhandled;
-      var lines = pc.reason === 'mustRemove' ? [T.blockMustRemove, T.blockMustRemove2] : [first, T.blockUnhandled2];
-      DR.UI.supervisorBlock(lines.map(function (t, i) { return { who: 'supervisor', text: t, face: i ? 'explain' : 'worried' }; }), function () { review(m); });
+      // 일부만 가리고 다시 냈으면 같은 말을 되풀이하지 않고 남은 장 수와 **어느 종류인지**(남은 카드에 붙은 이름표 — '스마트폰')를 말한다. 어느 카드인지는 여전히 말하지 않는다.
+      //   종류를 듣고도 그대로 다시 냈으면(App.state.privTold — 저장하지 않는 값) 검수로 돌아갈 때 그 종류 카드의 테두리를 잠깐 밝힌다(플레이테스트 2026-11-12)
+      var typed = pc.reason !== 'mustRemove' && pc.handled > 0, kinds = [], look = null;
+      if (typed) {
+        DR.Privacy.openCards(m, App.state.bag).forEach(function (c) { var l = DR.Cards.currentLabel(m, c); if (l && kinds.indexOf(l) < 0) kinds.push(l); });
+        var kindText = kinds.map(function (l) { return DR.Cards.labelText(m, l); }).join('·');
+        if (App.state.privTold) look = kinds;
+        App.state.privTold = true;
+      }
+      var first = typed ? T.blockMore.replace('{n}', pc.open).replace('{kind}', kindText) : T.blockUnhandled;
+      var second = look ? T.blockLook.replace('{kind}', kindText) : T.blockUnhandled2;
+      var lines = pc.reason === 'mustRemove' ? [T.blockMustRemove, T.blockMustRemove2] : [first, second];
+      DR.UI.supervisorBlock(lines.map(function (t, i) { return { who: 'supervisor', text: t, face: i ? 'explain' : 'worried' }; }), function () { review(m, look); });
       return;
     }
+    App.state.privTold = false;
     DR.UI.supervisor(m.story.supervisorQuestion, function () { review(m); }, function () { judgeAndShow(m); });
   }
 
@@ -371,12 +384,13 @@
       '보충 달리기: ' + (rec.supplements || 0) + '번'
     ];
     if (m.labels && m.relabel !== false) summary.push('고친 이름표: ' + (rec.fixedLabels || 0) + '장');
-    var outroOpts = { kicker: m.title + ' 완료', next: m.next && DR.Missions[m.next] ? leave(function () { startMission(m.next); }) : null };
+    // 마무리 배경: 끝내 통과하지 못하고 끝난 판(rec.passed === false)은 story.outroFailBg가 있으면 그 그림 — 1 임무의 '해결된 장면'이 실패한 판에 깔리지 않게.
+    //   마지막 대화(선배)·마무리 대화·임무 완료 화면(어둡게)이 같은 그림을 쓴다(플레이테스트 2026-11-12 — 선배 대사가 어두운 바탕에 대화창만 떴다)
+    var obg = rec.passed === false && m.story.outroFailBg ? m.story.outroFailBg : m.story.outroBg;
+    var outroOpts = { kicker: m.title + ' 완료', bg: obg || null, next: m.next && DR.Missions[m.next] ? leave(function () { startMission(m.next); }) : null };
     function toOutro() {
       outroOpts.summary = summary.concat(DR.UI.chapterSummary(m, DR.Save.chapterOf(App.records, m.id)));
       outroOpts.compare = DR.UI.gradeCompare(m, e.compare);
-      // 마무리 배경: 끝내 통과하지 못하고 끝난 판(rec.passed === false)은 story.outroFailBg가 있으면 그 그림 — 1 임무의 '해결된 장면'이 실패한 판에 깔리지 않게
-      var obg = rec.passed === false && m.story.outroFailBg ? m.story.outroFailBg : m.story.outroBg;
       DR.UI.outro(withBg(m.story.outro, obg), leave(function () { DR.Sfx.play('ui'); go('title'); }), outroOpts);
     }
     // 챕터 끝: 다른 용도 요청 → 개념 질문 → 짧은 생각(js/ui-chapter.js). 데이터가 없는 임무(옛 침수)·이미 마친 경우는 건너뜀
@@ -392,10 +406,11 @@
     }
     if (m.story.after) {
       // 4 임무: 도시 재연결(늘 5/5) → 챕터 끝 → 의뢰인 한 줄 → (동기가 합류한 적 없으면) 동기의 상자 → 해커의 이후(bg) → 마무리(최종 토론 질문)
+      var af = m.story.after;
       var lines = (rec.passed ? m.story.reconnect.pass : m.story.reconnect.partial).slice();
       if (e.peer === 'none') lines.push(m.story.showdown.peerBox);
-      var af = m.story.after;
-      lines = lines.concat(af.lines.map(function (l) { return Object.assign({ bg: af.bg }, l); }));
+      // 의뢰인·동기 줄에도 같은 장면 그림(af.bg)을 깐다 — 전엔 이 줄들만 어두운 바탕이다가 '해커의 이후'에서 그림이 떴다
+      lines = withBg(lines.concat(af.lines), af.bg);
       outroOpts.headline = '도시가 다시 이어졌다';
       outroOpts.questions = m.story.questions;
       // 챕터 끝 = 재연결 5/5 뒤·의뢰인 대사 전
@@ -403,7 +418,7 @@
       return;
     }
     // 1~3 임무: 마지막 대화(선배·정체 공개) → 챕터 끝 → 도시 복구(칸이 늘었을 때만) → 임무 완료
-    function lastTalk(then) { if (e.step === 0) DR.UI.dialogue(revealLines(m).concat(m.story.senior), then); else then(); }
+    function lastTalk(then) { if (e.step === 0) DR.UI.dialogue(revealLines(m).concat(withBg(m.story.senior, obg)), then); else then(); }
     lastTalk(function () { chapterPart(function () { cityPart(toOutro); }); });
   }
 

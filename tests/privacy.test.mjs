@@ -86,8 +86,18 @@ test('check: untouched → unhandled, masked a must-remove card → mustRemove, 
     assert.deepEqual(Privacy.check(m4, two), { ok: false, reason: 'unhandled', open: 1, handled: 1 });
     two[1].masked = true;
     assert.deepEqual(Privacy.check(m4, two), { ok: true, reason: null, open: 0, handled: 2 });
-    assert.ok(Privacy.text(m4, 'blockMore').includes('학생 이름이 적힌 답안지가 아직 {n}장 더'));
-    assert.ok(Privacy.text(m1, 'blockMore').includes('개인정보가 담긴 사진이 아직 {n}장 더'));
+    // 남은 장 수 + 어느 종류인지({kind} = 남은 카드에 붙은 이름표, 플레이테스트 2026-11-12) — 어느 카드인지는 말하지 않는다
+    assert.equal(Privacy.text(m4, 'blockMore'), '잘 가린 답안지도 있어. 학생 이름이 적힌 답안지가 {kind} 답안지 중에 아직 {n}장 더 있어.');
+    assert.equal(Privacy.text(m1, 'blockMore'), '잘 가린 사진도 있어. 개인정보가 담긴 사진이 {kind} 사진 중에 아직 {n}장 더 있어.');
+    assert.match(Privacy.text(m1, 'blockLook'), /{kind} 사진 테두리를 잠깐 밝혀 둘게/);
+    assert.match(Privacy.text(m4, 'blockLook'), /{kind} 답안지 테두리/);
+    // openCards = check의 open과 같은 카드(가방 항목 그대로)
+    two[1].masked = false;
+    assert.deepEqual(Privacy.openCards(m4, two).map((c) => c.id), ['c2']);
+    assert.equal(Privacy.openCards(m4, two).length, Privacy.check(m4, two).open);
+    two[1].masked = true;
+    assert.deepEqual(Privacy.openCards(m4, two), []);
+    assert.deepEqual(Privacy.openCards(m1, [{ id: 'c1', key: 'umbrella_open' }]), []);
     assert.ok(Privacy.text(m4, 'blockUnhandled2').includes('검수에서 다시 살펴봐')); // 임무에 없는 키는 공통 문구
     assert.equal(typeof m4.privacy.cards[0].art.name, 'string');
   }

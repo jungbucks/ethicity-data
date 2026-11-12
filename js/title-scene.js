@@ -14,8 +14,17 @@
   var DR = root.DR;
   var FPS = 30, STEP = 1000 / FPS, MAX_PR = 1.25, LOW_RES = 0.6, LEAVE_MS = 400;
   var SPEED = { far: 14, mid: 36, road: 150 }; // px/초(그림 높이 기준 배율 적용 전)
+  // 첫 줄 = 지금 하고 있거나 다음에 할 임무의 AI가 겪는 문제(플레이테스트 2026-11-12 — 전엔 4 임무를 하는 중에도 3 임무 대사 '비만 오면…'이 나왔다).
+  //   tutorial = 처음(저장 없음)·튜토리얼 도중. ⚠️ 새 문장은 교사 검수 대기
+  var FIRST_LINE = {
+    tutorial: '개를 보고 내가 고양이라고 했어… 도와줄래?',
+    m1: '접힌 우산을 내가 못 알아봐… 도와줄래?',
+    m2: '캔 사이에 숨은 건전지를 내가 못 골라내… 도와줄래?',
+    m3: '비만 오면 내가 길을 헷갈려… 도와줄래?',
+    m4: '흘려 쓴 글씨를 내가 잘못 읽어… 도와줄래?'
+  };
   var LINES = [
-    '비만 오면 내가 길을 헷갈려… 도와줄래?',
+    '', // 첫 줄은 FIRST_LINE[S.lineFor]
     '사진은 많이 모으기보다, 목적에 맞게 모아야 해!',
     '카드에 붙은 이름표가 늘 맞는 건 아니야.',
     '준비되면 아래 버튼을 눌러 줘!'
@@ -28,12 +37,20 @@
     '다시 달리고 싶으면 아래 버튼을 눌러 줘!'
   ];
   function lineSetNow() { return DR.Save && DR.App && DR.Save.allCleared(DR.App.records || {}) ? 'done' : 'normal'; }
-  function lines() { return S.lineSet === 'done' ? LINES_DONE : LINES; }
+  // 대사를 맞출 임무: 저장된 진행 중 임무(튜토리얼 포함) → 없으면 기록에서 안 깬 첫 임무 → 저장이 아예 없으면 튜토리얼. 저장 구조는 읽기만 한다
+  function lineForNow() {
+    if (!DR.Save || !DR.App) return 'tutorial';
+    var s = DR.Save.load();
+    if (s && s.mission && FIRST_LINE[s.mission]) return s.mission;
+    if (!DR.Save.hasSave()) return 'tutorial';
+    return DR.Save.nextMission(DR.App.records || {}) || 'm4';
+  }
+  function lines() { return S.lineSet === 'done' ? LINES_DONE : [FIRST_LINE[S.lineFor] || FIRST_LINE.tutorial].concat(LINES.slice(1)); }
   var ART = ['assets/title/bg-sky.webp', 'assets/title/bg-far.webp', 'assets/title/bg-mid.webp', 'assets/title/bg-road.webp'];
   var LAYERS = [['far', 720], ['mid', 720], ['road', 360]]; // 원본 높이(가로 2560)
 
   var S = { running: false, still: false, disposed: true, hero: null, raf: 0, last: 0, t: 0, offsets: { far: 0, mid: 0, road: 0 },
-    cardsCaught: 0, draws: 0, three: null, artOk: null, mode: '3d', line: 0, lineSet: 'normal' };
+    cardsCaught: 0, draws: 0, three: null, artOk: null, mode: '3d', line: 0, lineSet: 'normal', lineFor: 'tutorial' };
 
   function reduced() { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function $(id) { return document.getElementById(id); }
@@ -196,8 +213,8 @@
     if (!sc) return;
     var heroId = DR.Save ? DR.Save.hero() : 'onyu';
     // 기록이 바뀌어 대사 묶음이 달라지면(다 깸 ↔ 처음부터) 첫 줄부터 — renderGuide가 말풍선을 비웠어도 다시 채운다
-    var set = lineSetNow();
-    if (set !== S.lineSet) S.lineSet = set;
+    var set = lineSetNow(), lf = lineForNow();
+    if (set !== S.lineSet || lf !== S.lineFor) { S.lineSet = set; S.lineFor = lf; S.line = 0; } // 대사 묶음·임무가 바뀌면 첫 줄부터
     if (S.running && S.hero === heroId && !reduced()) { setLine(S.line); return; }
     stop();
     S.hero = heroId; S.disposed = false; S.t = 0;
@@ -242,7 +259,7 @@
     state: function () {
       return { running: S.running, still: S.still, disposed: S.disposed, hero: S.hero, fpsCap: FPS, mode: S.mode,
         pixelRatio: S.three ? S.three.renderer.getPixelRatio() / LOW_RES : null, offsets: { far: S.offsets.far, mid: S.offsets.mid, road: S.offsets.road },
-        cardsCaught: S.cardsCaught, line: S.line, lineSet: S.lineSet, draws: S.draws };
+        cardsCaught: S.cardsCaught, line: S.line, lineSet: S.lineSet, lineFor: S.lineFor, draws: S.draws };
     },
     testFallback: function () { S.artOk = false; setArt(false); }
   };

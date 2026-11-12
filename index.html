@@ -22,6 +22,7 @@
 <link rel="preload" as="image" href="assets/title/bg-road.webp">
 <link rel="stylesheet" href="css/hw-fonts.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/title-type.css">
 </head>
 <body>
 <main id="app">
@@ -38,7 +39,7 @@
     <div class="title-layout">
       <div class="title-wrap">
         <p class="title-kicker">윤리시티 · 데이터 관리 편</p>
-        <h1>데이터 러너<span class="title-sub"><span class="title-glitch" data-text="끊어진 도시">끊어진 도시</span><i class="title-link" aria-hidden="true"></i></span></h1>
+        <h1 class="series-title"><span class="title-ink runner-word"><span class="title-text">데이터 러너</span><img src="assets/title-type/title.png" alt="" aria-hidden="true" onload="this.parentElement.classList.add('is-ready')" onerror="this.parentElement.classList.remove('is-ready')"></span><span class="title-sub"><span class="title-glitch" data-text="끊어진 도시">끊어진 도시</span><i class="title-link" aria-hidden="true"></i></span></h1>
         <p class="title-lead">AI는 사람이 모아 준 자료만큼만 세상을 안다. 무엇을 가져와 다시 이을지는 러너가 정한다.</p>
         <div id="title-actions" class="actions"><button id="btn-start" class="btn btn-primary" type="button">시작하기</button></div>
         <p id="title-progress" class="title-progress" hidden></p>

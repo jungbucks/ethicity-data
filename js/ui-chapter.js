@@ -31,6 +31,7 @@
     next: '다음',
     done: '마치기',
     sumReq: '다른 용도 요청: ',
+    sumHint: '생각해 볼 점: 모은 목적 밖으로 쓰는 일인지', // 임무 완료 요약에서 마지막 선택 아래 한 줄(플레이테스트 2026-11-12) — 점수·정오 표시 아님, 임무마다 chapterEnd.hint로 바꿀 수 있다
     sumFirst: '처음엔 ',
     sumConcept: '개념 질문: ',
     sumRight: '맞힘',
@@ -50,7 +51,8 @@
     var req = last ? last.short + (first && first !== last ? ' (' + TEXT.sumFirst + first.short + ')' : '') : TEXT.sumNone;
     var c = find(ce.concept.choices, data.concept.last);
     return [
-      TEXT.sumReq + req,
+      // 고른 답이 있을 때만 '생각해 볼 점' 한 줄을 같은 칸 아래에(ui-story outro가 { text, hint }를 그린다)
+      last ? { text: TEXT.sumReq + req, hint: ce.hint || TEXT.sumHint } : TEXT.sumReq + req,
       TEXT.sumConcept + (c ? (c.correct ? TEXT.sumRight : TEXT.sumAgain) : TEXT.sumNone),
       TEXT.sumNote + (data.note && data.note.trim() ? data.note.trim() : TEXT.sumEmpty)
     ];

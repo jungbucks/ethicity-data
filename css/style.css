@@ -91,6 +91,12 @@ body { overflow: hidden; word-break: keep-all; }
 .note { color: var(--ink-2); font-size: 16px; }
 .missing { border-left: 3px solid var(--pink); padding: 4px 0 4px 12px; margin: 12px 0; color: var(--ink); }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
+/* 주 버튼 막대(첫 시험 검수 '이 자료로 시험하기' · 결과 '다음 장면' — 플레이테스트 2026-11-12): 내용이 길어도 화면 아래에 붙어 첫 화면에 보인다.
+   바탕 = 화면 바탕과 같은 그라디언트를 화면 기준(fixed)으로 칠해 이음매가 안 보이고, 위쪽은 마스크로 서서히(내용이 막대 밑으로 스며든다).
+   아래 여백(.page padding-bottom 48px)까지 덮도록 음수 여백 — 붙어 있을 때와 끝까지 내렸을 때 버튼 자리가 같다 */
+.actions.actions-sticky { position: sticky; bottom: 0; z-index: 4; margin: 8px -16px -48px; padding: 28px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, #1c1446 0%, var(--bg) 70%) fixed;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 20px); mask-image: linear-gradient(180deg, transparent 0, #000 20px); }
 .btn-ghost { border-color: var(--line); color: var(--ink-2); padding: 10px 18px; font-size: 15px; }
 .portrait { flex: none; }
 .line { display: flex; gap: 12px; align-items: flex-start; margin: 16px 0; }
@@ -125,7 +131,7 @@ body { overflow: hidden; word-break: keep-all; }
 /* 브리핑 장면 */
 .brief-scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: start; }
 .brief-scene { margin: 0; background: var(--panel); border-radius: var(--r); padding: 8px; }
-.brief-scene img { display: block; width: 100%; border-radius: 6px; }
+.brief-scene img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; } /* 장면 카드 = 정사각형(Canvas 그림도, 그림 파일 art.img도) */
 /* 4 임무 브리핑 답안 샘플(낱말판) — 375px에서 2×2, 넓으면 4칸 */
 .brief-samples { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .brief-sample { margin: 0; }
@@ -136,7 +142,8 @@ body { overflow: hidden; word-break: keep-all; }
 .brief-scene[data-emphasis="low"] { opacity: .72; transform: scale(.88); transform-origin: top left; }
 .brief-scene[data-emphasis="low"] figcaption { font-size: 14px; color: var(--ink-2); }
 
-.result-art { display: block; width: 100%; max-width: 30rem; border-radius: var(--r); }
+/* 결과 장면 그림: 화면 높이의 46%까지만(1280×800에서 480 → 368px) — 그림 아래 결과 문구가 첫 화면에서 주 버튼 막대에 가리지 않게(플레이테스트 2026-11-12). 좁은 화면은 폭 그대로 */
+.result-art { display: block; width: 100%; max-width: min(30rem, 46vh); border-radius: var(--r); }
 
 /* 검수 · 보충 준비 */
 .notice { background: rgba(255,95,176,.14); border: 1px solid var(--pink); border-radius: 12px; padding: 10px 14px; }
@@ -314,7 +321,8 @@ body { overflow: hidden; word-break: keep-all; }
 @keyframes cv-in { from { transform: translateX(-30vw); opacity: .2; } }
 .cv-item.ok { border-color: var(--ok, #5be3a1); }
 .cv-item.bad { border-color: var(--danger, #ff5f6d); box-shadow: 0 0 0 3px rgba(255,95,109,.35); }
-.cv-bins { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 22px; }
+/* 분류함 수(--cv-n, ui-conveyor가 임무의 이름표 수로 건다)만큼 칸을 나눠 벨트 폭에 고르게 — 전엔 늘 7칸이라 1 임무(4칸)는 왼쪽에 몰렸다 */
+.cv-bins { display: grid; grid-template-columns: repeat(var(--cv-n, 7), minmax(0, 1fr)); gap: 8px; margin-top: 22px; }
 .cv-bin { background: var(--bin); border-radius: 8px 8px 14px 14px; padding: 6px 4px 8px; min-height: 132px; display: flex; flex-direction: column; align-items: center; }
 .cv-bin-head { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; font-weight: 800; color: #10093a;
   background: rgba(255,255,255,.88); border-radius: 10px; padding: 3px 6px; text-align: center; word-break: keep-all; line-height: 1.25; width: 100%; }
@@ -335,7 +343,7 @@ body { overflow: hidden; word-break: keep-all; }
 .result-wrong figure { margin: 0; width: 96px; font-size: 12px; color: var(--ink-2); text-align: center; word-break: keep-all; }
 .result-wrong img { width: 96px; height: 96px; border-radius: 8px; border: 3px solid var(--danger, #ff5f6d); display: block; }
 @media (max-width: 640px) {
-  .cv-bins { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .cv-bins { grid-template-columns: repeat(var(--cv-n-narrow, 4), minmax(0, 1fr)); gap: 6px; }
   .cv-bin { min-height: 100px; }
   .cv-bin-head { font-size: 11px; }
   .cv-belt { height: 80px; }
@@ -386,6 +394,14 @@ body { overflow: hidden; word-break: keep-all; }
 .mono-line.done { animation: none; }
 #screen-story, #screen-profile { cursor: pointer; }
 .outro-summary { margin: 12px 0 0; padding-left: 18px; color: var(--ink-2); }
+/* 임무 완료 화면 뒤 장면 그림(어둡게, ui-story outro opts.bg) — 화면에 고정이라 글을 내려도 그대로. 글은 그 위(z 1)에서 원래 색 그대로 읽힌다 */
+.outro-bg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; filter: brightness(.35); pointer-events: none; z-index: 0; }
+.outro-page { position: relative; z-index: 1; }
+.outro-bg ~ .outro-page .outro-summary { color: var(--ink); }
+.outro-hint { display: block; font-size: 15px; color: var(--ink-2); }
+.outro-bg ~ .outro-page .outro-hint { color: #d6d0f2; }
+/* 4 임무 전후 비교표: 작은 회색 글(열 이름)이 그림의 밝은 자리 위에서도 읽히게 판을 깐다(토론 질문 칸은 원래 판이 있다) */
+.outro-bg ~ .outro-page .outro-compare { padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(18, 12, 46, .82); }
 .combo-shared { font-size: 12px; color: var(--ink-2); margin-left: 4px; }
 
 /* ---------- 시작 화면 다시 꾸미기(DR.TitleScene) ---------- */
@@ -444,7 +460,11 @@ body { overflow: hidden; word-break: keep-all; }
 .hero-pick { margin-top: 16px; }
 .hero-chip { transition: transform .15s ease-out, border-color .15s; }
 .hero-chip:hover { transform: translateY(-5px); }
-.title-guide { position: absolute; right: calc(9% + clamp(170px, 19vw, 270px) * .42); bottom: calc(7% + clamp(170px, 19vw, 270px) * 1.18); z-index: 1; display: flex; align-items: flex-end; gap: 4px; flex-direction: column-reverse;
+/* AI 봇 안내: 주인공(.tl-stage — 오른쪽 9%·아래 7%, 폭 W = clamp(170px, 19vw, 270px), 높이 1.25W) **오른쪽 옆**에 봇, 말풍선은 그 위(주인공 머리보다 위).
+   전엔 주인공 캔버스 위쪽에 겹쳐 놓아 봇이 주인공 머리를 가렸고, 자리를 title-layout 아래 끝에서 재서 임무 카드가 화면보다 길면(1280×800) 더 내려가 몸을 가렸다(플레이테스트 2026-11-12).
+   그래서 위에서부터 '첫 화면 높이'(100vh) 기준 상자를 두고 그 아래 끝에 붙인다 — 화면이 길어져도 주인공과 같은 기준 */
+.title-guide { position: absolute; top: 0; right: max(12px, calc(9% - 100px)); height: calc(100vh - 7vh - clamp(170px, 19vw, 270px) * 1.05 + 76px); height: calc(100dvh - 7dvh - clamp(170px, 19vw, 270px) * 1.05 + 76px);
+  z-index: 1; display: flex; align-items: flex-end; justify-content: flex-start; gap: 4px; flex-direction: column-reverse;
   transform: translateY(var(--float, 0)); pointer-events: none; }
 .tl-bot .character-portrait { filter: drop-shadow(0 4px 10px rgba(127,249,255,.35)); }
 .tl-bubble { max-width: 15rem; margin: 0; padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: #f4f1ff; color: #10093a; font-size: 14px; font-weight: 700; line-height: 1.45; word-break: keep-all; }
@@ -456,7 +476,7 @@ body { overflow: hidden; word-break: keep-all; }
   .tl-leaving .tl-stage { transform: translateX(150%); }
   .title-layout { display: block; flex: none; padding: 12px 16px 32px; min-height: 0; }
   .title-layout .title-wrap { padding: 0; background: none; }
-  .title-guide { top: -290px; left: 10px; right: auto; bottom: auto; flex-direction: row; align-items: flex-start; }
+  .title-guide { top: -290px; left: 10px; right: auto; bottom: auto; height: auto; flex-direction: row; align-items: flex-start; }
   .title-guide .character-portrait { width: 64px !important; height: 64px !important; }
   .tl-bubble { margin: 6px 0 0; max-width: 13rem; font-size: 12.5px; border-radius: 14px 14px 14px 4px; }
   .title-missions { grid-template-columns: 1fr; }
@@ -513,7 +533,7 @@ body { overflow: hidden; word-break: keep-all; }
 .outro-questions ol { margin: 0; padding-left: 20px; line-height: 1.7; }
 .bag-peer-fixed { display: block; text-align: center; font-size: 12px; font-weight: 800; color: var(--ok); padding: 6px 4px; }
 
-/* ---------- 도시 복구(설계 §7): 화면 + 타이틀 구석 배지 ---------- */
+/* ---------- 도시 복구(설계 §7): 화면(타이틀 구석 배지는 2026-11-12에 뺌) ---------- */
 .city-dots { display: inline-flex; gap: 6px; align-items: center; }
 .city-dots i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #FFD24A; box-sizing: border-box; transition: background-color .8s ease; }
 .city-dots i.on { background: #FFD24A; }
@@ -552,12 +572,7 @@ body { overflow: hidden; word-break: keep-all; }
 /* 건너뛰기·움직임 줄이기·그림 없음 = 바로 끝 상태 */
 .city-page.city-instant * { transition: none !important; animation: none !important; }
 .city-line { font-size: 19px; font-weight: 800; margin: 6px 0 0; word-break: keep-all; }
-.title-city { position: absolute; top: 16px; left: 16px; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px;
-  background: rgba(16, 9, 58, .72); pointer-events: none; }
-.title-city-text { font-size: 13px; font-weight: 800; color: #f4f1ff; }
 @media (prefers-reduced-motion: reduce) { .city-dots i { transition: none; } }
-/* 좁은 화면: 왼쪽 위 "도시 n/5" 배지 아래로 AI 봇 안내를 조금 내린다 */
-@media (max-width: 700px) { .title-guide { top: -256px; } }
 .story-sheet[data-read="hold"] .story-sheet-read { color: var(--yellow); }
 
 /* 노이즈 벽 페널티: 가방 칸 빨갛게 흔들림 + "-1", 잃은 카드, 검수 한 줄 */
@@ -622,7 +637,7 @@ body { overflow: hidden; word-break: keep-all; }
 .exam-card { position: relative; display: grid; gap: 4px; padding: 6px; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; color: inherit; font: inherit; cursor: pointer; }
 .exam-card img { display: block; width: 100%; border-radius: 6px; }
 .exam-tag { font-weight: 700; }
-.exam-drill { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); max-width: 14rem; }
+.exam-drill { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
 .exam-big { display: block; width: min(100%, 18rem); border-radius: 10px; margin: 0 auto 10px; }
 .exam-say { margin: 12px 0; word-break: keep-all; }
 .exam-say b { color: var(--cyan); }
@@ -639,6 +654,8 @@ body { overflow: hidden; word-break: keep-all; }
 
 /* ---------- 목적 밖 개인정보 카드(설계 2026-11-08 ①): 크게 보기 '가리기' · 가린 카드 표시 · 감독관이 막을 때 ---------- */
 .bag-card.masked { border-color: var(--ink-2); }
+/* 개인정보 카드가 남은 종류의 테두리를 잠깐 밝힘(ui-inspect opts.look) — 그 이름표 카드 전부, 움직임 없이 켰다 끈다 */
+.bag-card.look-here { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(255, 210, 74, .45); }
 .bag-masked { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: #101018; color: var(--ink); border: 1px solid var(--ink-2); }
 .zoom-mask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 0; }
 .zoom-mask .note { margin: 0; }

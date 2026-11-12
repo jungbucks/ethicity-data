@@ -66,6 +66,10 @@
   // 자동 일시정지(탭 숨김·창 포커스 잃음). 자동 테스트는 여러 페이지를 오가며 달리기를 직접 조종하므로 끌 수 있게(__DR_NO_AUTOPAUSE)
   function autoPause() { if (!root.__DR_NO_AUTOPAUSE) openPause(); }
   document.addEventListener('visibilitychange', function () { if (document.hidden) autoPause(); });
+  // 저장되지 못한 '처음부터'가 있으면 탭을 떠나기 전에 한 번 더 써 본다(js/save.js flush — 밀린 것이 없으면 아무 일도 안 함)
+  function flushSave() { if (DR.Save && DR.Save.flush) DR.Save.flush(); }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flushSave(); });
+  root.addEventListener('pagehide', flushSave);
   root.addEventListener('blur', autoPause);
   var pauseBtn = document.getElementById('btn-pause');
   if (pauseBtn) pauseBtn.addEventListener('click', function () { DR.Sfx.play('ui'); openPause(); });
@@ -73,9 +77,34 @@
   /* ---------- 타이틀 ---------- */
   // 시작 화면을 떠날 때의 짧은 전환(끊긴 선이 이어지며 주인공이 달려 나감) — 기능은 그대로, 0.55초 뒤 실행
   function leave(fn) { if (DR.TitleScene) DR.TitleScene.leave(fn); else fn(); }
+  // '처음부터'가 저장되지 않았을 때의 안내 — stale = 옛 기록이 이 기기에 남음, unsaved = 옛 기록은 지웠지만 저장이 안 됨
+  var RESET_FAIL = {
+    stale: { title: '예전 기록을 지우지 못했어요', text: '이 탭에서는 처음부터 새로 해요. 하지만 이 기기에는 예전 기록이 남아 있어서, 저장이 다시 되기 전에 새로고침하면 예전 기록이 다시 보여요.' },
+    unsaved: { title: '지금은 저장이 안 돼요', text: '예전 기록은 지웠어요. 하지만 새 진행이 저장되지 않아서, 이 탭을 닫으면 처음으로 돌아가요.' }
+  };
+  function resetFailNotice(why, go) {
+    var went = false;
+    function once() { if (!went) { went = true; go(); } }
+    DR.UI.modal({
+      title: RESET_FAIL[why].title,
+      body: [el('p', { id: 'reset-fail', 'data-why': why, text: RESET_FAIL[why].text })],
+      actions: [{ id: 'btn-reset-fail-go', text: '새로 시작', primary: true, onClick: once }],
+      onClose: once // Esc·바깥 누르기로 닫아도 이미 고른 '처음부터'는 그대로 간다
+    });
+  }
   function startChoice(clearFirst) {
     // 처음부터: 저장과 함께 메모리의 임무 기록도 비운다(3 임무 정체 공개가 지운 기록을 인용하지 않게)
-    function begin(fn) { return function () { DR.Sfx.unlock(); if (clearFirst) { DR.Save.clear(); DR.App.records = {}; } leave(fn); }; }
+    //   초기화가 저장소에 닿지 못했으면(DR.Save.status — 리뷰 2026-11-12) 사실대로 알린 뒤 시작한다. 그동안 이 탭은 메모리의 저장본으로 진행(js/save.js 맨 위)
+    function begin(fn) {
+      return function () {
+        DR.Sfx.unlock();
+        if (!clearFirst) { leave(fn); return; }
+        DR.Save.clear(); DR.App.records = {};
+        var why = DR.Save.status();
+        if (!RESET_FAIL[why]) { leave(fn); return; }
+        setTimeout(function () { resetFailNotice(why, function () { leave(fn); }); }, 0); // 확인 창이 닫힌 다음에 연다
+      };
+    }
     var s = DR.Save.load();
     var acts = s && s.tutorialDone
       ? [{ text: '튜토리얼부터', primary: true, onClick: begin(DR.App.startTutorial) },
@@ -219,22 +248,8 @@
     return m + ' · ' + (SCREEN_TEXT[s.screen] || '이어서');
   }
 
-  // 타이틀 구석 "도시 n/5"(설계 §7): 점 5개 + 작은 글. 누를 수 없고 포커스도 안 받는다. 0칸이어도 보인다(5칸을 채우는 게임이라는 예고)
-  function renderCityBadge() {
-    var screen = document.getElementById('screen-title');
-    if (!screen || !DR.UI.cityDots) return;
-    var n = DR.App.cityCount();
-    var badge = document.getElementById('title-city');
-    if (!badge) { badge = el('div', { id: 'title-city', class: 'title-city', role: 'img' }); screen.appendChild(badge); }
-    badge.innerHTML = '';
-    badge.setAttribute('aria-label', '도시 복구 5칸 중 ' + n + '칸');
-    badge.dataset.count = String(n);
-    badge.appendChild(DR.UI.cityDots(n));
-    badge.appendChild(el('span', { class: 'title-city-text', 'aria-hidden': 'true', text: '도시 ' + n + '/5' }));
-  }
-
+  // (타이틀 왼쪽 위 "도시 n/5" 배지는 뺐다 — 플레이테스트 2026-11-12. 임무 뒤 도시 복구 화면과 DR.UI.cityDots는 그대로)
   function renderTitle() {
-    renderCityBadge();
     renderHeroPick();
     renderMissionPick();
     renderGuide();

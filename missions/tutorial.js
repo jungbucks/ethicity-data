@@ -24,7 +24,8 @@
     ],
     counts: { dog: 7, cat: 7 },
     scenes: [
-      { id: 'T1', title: '보호소 입양 안내', art: { place: 'shelter', time: 'day' },
+      // art.img = 브리핑 장면 카드에 쓰는 그림 파일(2026-11-12, 512² — tools/story-art.mjs --cards-only). 못 읽으면 예전 Canvas 그림(개 + 고양이)
+      { id: 'T1', title: '보호소 입양 안내', art: { place: 'shelter', time: 'day', img: 'assets/story/practice-shelter.webp' },
         combos: [
           { id: 'T1_dog', keys: ['dog'], need: 5, danger: false, what: '개 사진' },
           { id: 'T1_cat', keys: ['cat'], need: 5, danger: false, what: '고양이 사진' }
@@ -40,6 +41,8 @@
       fixedLine: '이름표를 고치니 AI가 배우는 말도 바뀌었어.',
       emptyLine: '가방이 비었어. AI는 네가 준 것 이상은 몰라. 다시 수집해 봐.',
       simNote: '단순화된 시뮬레이션입니다. 실제 AI가 늘 이렇게 틀리지는 않습니다.', // 짧게(플레이테스트 12)
+      // 합격 대화 뒤 그림 = 오프닝의 시험장 장면(출발선의 주인공과 시험관 — {hero} = 고른 주인공, app.js tutorialPass). 새 그림 없이(플레이테스트 2026-11-12)
+      outroBg: 'assets/story/opening/04-exam-{hero}.webp',
       outro: [
         { who: 'examiner', text: '개 {dog}장, 고양이 {cat}장. 사진과 이름표도 확인했네.', face: 'happy' },
         { who: 'examiner', text: '합격. 현장에선 무엇이 얼마나 필요한지도 네가 판단해야 해.', face: 'explain' },

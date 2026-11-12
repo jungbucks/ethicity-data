@@ -30,13 +30,16 @@
     function show() {
       var r = judged.scenes[order[i]], s = mission.scenes[order[i]];
       var outcome = r.pass ? 'pass' : r.failKind;
+      // 이 장면에서 틀린 함으로 간 컨베이어 물건(문구가 아래 '잘못 간 물건' 목록과 같은 물건을 말하게) — 분류 보류(1 임무)는 문구가 따로라 뺀다
+      var wrongHere = mission.conveyor && !mission.holdBin ? sorted.filter(function (it) { return it.scene === s.id && !it.correct; }) : [];
       var last = i === judged.scenes.length - 1;
       var parts = [
         el('p', { class: 'kicker', text: '결과 · ' + (i + 1) + '/' + judged.scenes.length + ' 장면' }),
         el('h2', { text: s.title }),
         el('img', { class: 'result-art', src: DR.CardArt.scene(mission, s.id, outcome, 480).toDataURL(), alt: s.title }),
         el('p', { class: 'chip chip-' + OUTCOME[outcome].cls, text: (mission.outcomeText && mission.outcomeText[outcome]) || OUTCOME[outcome].text }),
-        el('p', { class: 'lead', text: DR.ResultLine.sceneLine(mission, s, r) }) // 실제로 실패한 조합·원인 기준 문구(플레이테스트 2)
+        // 실제로 실패한 조합·원인 기준 문구(플레이테스트 2) — 컨베이어에서 잘못 간 물건이 둘 이상이면 전부 말한다(leadLine, 2 임무)
+        el('p', { class: 'lead', text: DR.ResultLine.leadLine(mission, s, r, wrongHere) })
       ];
       // 빠진 조합: 문구 + 이번 가방의 숫자(붙은 설명표 기준)
       var counts = DR.Cards.labelCounts(mission, (DR.App.state && DR.App.state.bag) || []);
@@ -48,8 +51,13 @@
       });
       (notes[s.id] || []).forEach(function (t) { parts.push(el('p', { class: 'missing fixed-note', text: t })); });
       (r.contaminated || []).forEach(function (src) {
-        parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src, (r.lingering || []).indexOf(src) >= 0) }));
+        // 원인 줄 뒤에 그 원인 때문에 잘못 간 물건('그래서 비닐봉지가 일반쓰레기 함으로 갔다.')
+        var because = DR.ResultLine.becauseLine(mission, wrongHere.filter(function (it) { return it.cause === src; }));
+        parts.push(el('p', { class: 'missing contam', text: DR.Judge.contaminationLine(mission, src, (r.lingering || []).indexOf(src) >= 0) + (because ? ' ' + because : '') }));
       });
+      // 어느 한 사진 탓이라고 못 짚는 물건(장면이 오염되면 같이 틀리는 것)
+      var also = DR.ResultLine.alsoLine(mission, wrongHere.filter(function (it) { return String(it.cause).indexOf('contaminated:') === 0; }));
+      if (also) parts.push(el('p', { class: 'missing contam-also', text: also }));
       var wrong = sorted.filter(function (it) { return it.scene === s.id && !it.correct; });
       if (wrong.length && mission.guide) {
         // 3 임무: 이 장면에서 옛 거리를 기준으로 안내한 질문
@@ -99,7 +107,7 @@
         DR.Sfx.play('ui');
         if (last) { screen.innerHTML = ''; done(); } else { i++; show(); }
       });
-      parts.push(el('div', { class: 'actions' }, [next]));
+      parts.push(el('div', { class: 'actions actions-sticky' }, [next])); // 주 버튼은 화면 아래에 붙어 첫 화면에 보인다(플레이테스트 2026-11-12)
       screen.innerHTML = '';
       screen.appendChild(el('div', { class: 'page' }, [el('div', { class: 'result-scene', 'data-scene': s.id, 'data-outcome': outcome }, parts)]));
       screen.scrollTop = 0;

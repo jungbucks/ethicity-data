@@ -78,7 +78,13 @@
       contam: {
         inconvenience: '{what:이} {label} 함으로 갔다. 선별장 직원이 손으로 다시 골라낸다.',
         danger: '{what:이} {label} 함에 섞여 압착기로 들어갔다. 불꽃이 튀자 감독관이 비상 정지 버튼을 눌렀다.'
-      }
+      },
+      // 한 장면에서 잘못 간 물건이 둘 이상일 때(플레이테스트 2026-11-12, DR.ResultLine.leadLine·becauseLine·alsoLine) — {list} = '투명 페트병은 비닐 함으로, …'
+      //   wrongAll = 장면 머리 문구(불편) · wrongRest = 위험 문구 뒤에 건전지 말고 나머지 · because = 오염 원인 줄 뒤 · also = 원인을 하나로 못 짚는 물건. ⚠️ 교사 검수 대기
+      wrongAll: '{list} 갔다. 선별장 직원이 손으로 다시 골라낸다.',
+      wrongRest: '그 밖에 {list} 갔다.',
+      because: '그래서 {list} 갔다.',
+      also: '엉뚱한 사진이 섞이면서 {list} 갔다.'
     },
     outcomeText: { pass: '제대로 분류했다', inconvenience: '엉뚱한 함으로 갔다 · 불편', danger: '압착기에 건전지가 들어갔다 · 위험' },
     counts: {
@@ -202,6 +208,9 @@
       supervisorQuestion: '카드마다 붙은 이름표, 그림이랑 맞는지 다 봤어?',
       conveyorIntro: { who: 'supervisor', text: '그럼, 실제로 돌려 보자.', face: 'explain' },
       emergency: { who: 'supervisor', text: '비상 정지! {bin} 함에 건전지가 들어갔어.', face: 'worried' }, // {bin} = 건전지가 들어간 함
+      // 비상 정지 창 그림(2026-11-12, 512² — tools/story-art.mjs --cards-only): 압착기 불꽃 + 감독관이 비상 정지 버튼을 누름. 못 읽으면 예전 Canvas 컷
+      emergencyArt: 'assets/story/m2-emergency-stop.webp',
+      emergencyAlt: '압착기에서 불꽃이 튀고, 감독관이 비상 정지 버튼을 누른다',
       responsibility: '승인한 건 나니까, 나도 같이 책임질게.',
       clientPass: [{ who: 'sorter', text: '오늘은 손으로 다시 고를 게 거의 없겠어요. 고마워요.', face: 'basic' }],
       clientFail: [{ who: 'sorter', text: '아직 몇 개는 제가 다시 골라야겠네요. 한 번 더 부탁해요.', face: 'worried' }],
