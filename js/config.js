@@ -23,7 +23,8 @@
     // "지지직"(연출만, js/glitch.js): 잡기 구간 clearSec초 전부터 완전히 선명 · period초마다 on초만 켜짐(1초에 3번 이하 — 깜빡임 안전). 비율은 임무 glitchRate
     glitch: { clearSec: 1.0, period: 0.5, on: 0.16 },
     bagFullRush: { speed: 1.5 },  // 가방이 차면 결승선까지 이 배수로 달린다(카드를 잃으면 원래 속도)
-    finish: { gate: 3, slow: 1.2, fade: 0.8, fadeIn: 0.4, flash: 0.5, reducedFade: 0.3, skipAfter: 0.3 },  // s — 결승 게이트 보이는 구간·감속·어두워짐·다음 화면 밝아짐·HP 0 빨간 플래시·움직임 줄이기 페이드·건너뛰기 허용 시작
+    finish: { gate: 3, slow: 1.2, fade: 0.8, fadeIn: 0.4, flash: 0.5, reducedFade: 0.3, skipAfter: 0.3,  // s — 결승 게이트 보이는 구간·감속·어두워짐·다음 화면 밝아짐·HP 0 빨간 플래시·움직임 줄이기 페이드·건너뛰기 허용 시작
+      bannerRise: 0.5, bannerAhead: 6, gateFade: 0.3 },  // "도착" 표지판(js/finish-banner.js, 2026-11-12): 길 아래에서 솟아 서는 시간 s(감속 slow 안 — 다 선 뒤 slow − bannerRise초 가만히 보이고 어두워진다) · 러너가 멈출 자리 앞 거리 m · 그동안 지나온 게이트가 흐려져 사라지는 시간 s
     swipeMin: 30,           // px
     maxDt: 0.05,            // s — 프레임 간격 상한(탭 전환 뒤 건너뛰기 방지)
     ambiguousWeight: 2,     // 올바르게 분류한 "?" 카드는 2장 몫

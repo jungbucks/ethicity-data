@@ -653,10 +653,10 @@ body { overflow: hidden; word-break: keep-all; }
 .opening-overlay { top: auto; bottom: 12px; right: 12px; }
 
 /* ---------- 목적 밖 개인정보 카드(설계 2026-11-08 ①): 크게 보기 '가리기' · 가린 카드 표시 · 감독관이 막을 때 ---------- */
-.bag-card.masked { border-color: var(--ink-2); }
+.bag-card.masked { border-color: var(--ok); border-style: dashed; } /* 가린 카드(2026-11-12 교사 지시: 가린 뒤에만 다른 테두리) — 초록 점선 + 왼쪽 위 '가림' 표시(색만으로 알리지 않게). 가리기 전 개인정보 카드는 다른 카드와 같다(찾기가 활동이라) */
 /* 개인정보 카드가 남은 종류의 테두리를 잠깐 밝힘(ui-inspect opts.look) — 그 이름표 카드 전부, 움직임 없이 켰다 끈다 */
 .bag-card.look-here { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(255, 210, 74, .45); }
-.bag-masked { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: #101018; color: var(--ink); border: 1px solid var(--ink-2); }
+.bag-masked { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: #0b2a1c; color: var(--ok); border: 1px solid var(--ok); }
 .zoom-mask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 0; }
 .zoom-mask .note { margin: 0; }
 .zoom-mask-note:empty { display: none; }

@@ -26,7 +26,7 @@
     blockMustRemove2: '이 사진은 가리는 걸로 안 돼. 빼야 해.',
     noPrivate: '이 사진엔 가릴 개인정보가 없어.',
     wasted: '가렸으면 살려 쓸 수 있었어.',
-    inspectNote: '개인정보가 보이는 사진은 크게 보기에서 가리거나 뺀다.',
+    inspectNote: '개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요.',
     maskButton: '가리기',
     unmaskButton: '가린 것 되돌리기',
     maskedTag: '가림'

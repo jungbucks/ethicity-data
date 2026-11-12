@@ -3,6 +3,7 @@
  * 판정(잡기·벽)은 코스 z 좌표로 계산하고, 화면은 그 상태를 그린다. three.js 세계에서 앞쪽은 -z.
  * 테스트·조정용: step(dt)·peek()·setPaused()·finishNow()·course()·isTaken().
  * 끝맺음: 결승선을 지나면(또는 HP 0) 입력을 잠그고 감속 → 어두워짐 → onEnd → 다음 화면 밝아짐(config.finish). finishNow는 연출 없이 바로 끝난다.
+ *   결승선 통과('arrive')만 감속하는 동안 앞 길 아래에서 "도착" 표지판이 솟는다(js/finish-banner.js, 2026-11-12).
  */
 (function (root) {
   'use strict';
@@ -236,7 +237,7 @@
   // 결승 게이트(코스 끝 z, 마지막 config.finish.gate초 구간부터 보인다)
   function makeGate() {
     var W = roadW(), H = 5.2, g = new THREE.Group();
-    var post = new THREE.MeshBasicMaterial({ color: 0x7ff9ff });
+    var post = new THREE.MeshBasicMaterial({ color: 0x7ff9ff, transparent: true }); // 투명 = 결승선을 지난 뒤 흐려지게(표지판 쪽으로 눈이 가게)
     [-1, 1].forEach(function (side) {
       var p = new THREE.Mesh(new THREE.BoxGeometry(0.3, H, 0.3), post);
       p.position.set(side * W / 2, H / 2, 0); g.add(p);
@@ -249,10 +250,65 @@
     });
     var banner = new THREE.Mesh(new THREE.PlaneGeometry(W, W * 96 / 512), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
     banner.position.set(0, H, 0); g.add(banner);
+    g.userData.mats = [post, banner.material];
     g.position.set(0, 0, -S.course.length);
     g.visible = false;
     S.view.scene.add(g);
     return g;
+  }
+
+  // 결승 "도착" 표지판(2026-11-12, 계산은 js/finish-banner.js): 판 하나 + 캔버스 텍스처, 게이트와 같은 체크무늬·남색·노랑 글자·시안 기둥.
+  // 출발할 때 만들어 숨겨 두고 텍스처도 미리 올린다(결승 순간에 그리기·올리기로 끊기지 않게). 'arrive'일 때만 보인다.
+  // 길 높이 아래는 잘라 낸다 → 길 아래에서 솟는 모습. 메시·재질·텍스처는 장면·disposables에 있어 stop()이 함께 치운다.
+  function makeFinishBanner() {
+    var B = root.DR.FinishBanner, P = B.PANEL_PX;
+    var tex = canvasTex(B.TEX_W, B.TEX_H, function (c, w, h) {
+      // 기둥(시안 — 게이트 기둥 색) 둘
+      c.fillStyle = '#7ff9ff';
+      [0.2, 0.8].forEach(function (f) { c.fillRect(Math.round(w * f) - 17, P - 20, 34, h - P + 20); });
+      // 표지판: 체크무늬 바탕(게이트 현수막과 같은 흰색·남색) → 남색 칸 → 노랑 "도착"
+      var pad = 10, cell = 40;
+      c.save();
+      roundRect(c, pad, pad, w - pad * 2, P - pad * 2, 30); c.clip();
+      for (var x = 0; x < w; x += cell) for (var y = 0; y < P; y += cell) { c.fillStyle = ((x + y) / cell) % 2 ? '#ffffff' : '#1f1652'; c.fillRect(x, y, cell, cell); }
+      c.fillStyle = '#1f1652'; roundRect(c, 64, 58, w - 128, P - 116, 20); c.fill();
+      c.restore();
+      c.lineWidth = 12; c.strokeStyle = '#7ff9ff'; roundRect(c, pad, pad, w - pad * 2, P - pad * 2, 30); c.stroke();
+      c.fillStyle = '#ffd24a'; c.font = 'bold 210px "Malgun Gothic", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('도착', w / 2, P / 2 + 8, w - 200);
+    });
+    var mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, clippingPlanes: [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)] });
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(B.W, B.H), mat);
+    mesh.name = 'finish-banner';
+    mesh.visible = false;
+    S.view.scene.add(mesh);
+    if (S.renderer.initTexture) S.renderer.initTexture(tex);
+    return mesh;
+  }
+
+  // 솟는 정도를 시간에 맞춰 자리로(끝맺음 동안 매 step)
+  function updateBanner() {
+    var b = S.banner, m = S.view.banner, B = root.DR.FinishBanner;
+    if (!b || !m) return;
+    b.r = B.rise(S.finishing ? S.finishing.t : b.sec, b.sec, b.reduced);
+    m.position.set(b.x, B.bottomAt(b.r) + B.H / 2, -b.z);
+    m.visible = true;
+  }
+
+  // 테스트용: 표지판 판(위쪽 표지판 부분)의 화면 사각형(px)·잘리지 않고 다 보이는지
+  function bannerScreen() {
+    var m = S.view.banner, B = root.DR.FinishBanner;
+    if (!m || !m.visible) return null;
+    S.camera.updateMatrixWorld();
+    var w = S.container.clientWidth, h = S.container.clientHeight, top = m.position.y + B.H / 2, out = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity, inFront: true };
+    [[-1, top], [1, top], [-1, top - B.PANEL_H], [1, top - B.PANEL_H]].forEach(function (k) {
+      var p = new THREE.Vector3(m.position.x + k[0] * B.W / 2, k[1], m.position.z).project(S.camera);
+      if (p.z < -1 || p.z > 1) out.inFront = false;
+      var x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
+      out.left = Math.min(out.left, x); out.right = Math.max(out.right, x); out.top = Math.min(out.top, y); out.bottom = Math.max(out.bottom, y);
+    });
+    out.width = w; out.height = h;
+    return out;
   }
 
   function removeMesh(uid) {
@@ -469,6 +525,13 @@
     var c = cfg().finish, rm = reducedMotion(), speed0 = currentSpeed();
     S.finishing = { kind: kind, t: 0, speed0: speed0, slow: rm ? 0 : (kind === 'knockout' ? c.flash : c.slow), fade: rm ? c.reducedFade : c.fade, dark: false };
     hideHint();
+    // "도착" 표지판: 러너가 멈출 자리 앞, 화면 가로 가운데. HP 0엔 없음. 움직임 줄이기 = 처음부터 제자리(솟기·튕김 없음)
+    var B = root.DR.FinishBanner;
+    if (B && S.view.banner && B.shows(kind)) {
+      var cam = camRig(S.aspect < 1), camX = laneX(S.lane) * cam.follow;
+      S.banner = { z: B.placeZ(S.z, speed0, S.finishing.slow, c.bannerAhead), x: B.centerX(camX, cam.back, c.bannerAhead), sec: c.bannerRise, reduced: rm, r: 0 };
+      updateBanner();
+    }
   }
 
   function finishStep(dt) {
@@ -477,6 +540,7 @@
     var speed = currentSpeed();
     S.z += speed * dt;
     animate(dt, speed);
+    updateBanner();
     updateHud();
     var el = fadeEl();
     if (!f.dark && f.t >= f.slow) {
@@ -594,7 +658,11 @@
       m.position.y = 1.45 + Math.sin(S.t * 3 + i) * 0.06;
     }
     S.camera.updateMatrixWorld();
-    v.gate.visible = S.course.length - S.z <= c.baseSpeed * (1 + c.speedRamp) * c.finish.gate;
+    // 결승선을 지나 "도착" 표지판이 솟으면 게이트는 gateFade초에 흐려져 사라진다(움직임 줄이기 = 바로) —
+    // 4레인 세로 화면은 카메라(높이 5.6·뒤 9.6m)가 멈출 즈음 게이트 현수막 속에 들어가 화면이 남색으로 덮였다(2026-11-12)
+    var gateOn = S.banner ? (S.banner.reduced ? 0 : Math.max(0, 1 - S.finishing.t / c.finish.gateFade)) : 1;
+    if (v.gate.userData.mats[0].opacity !== gateOn) v.gate.userData.mats.forEach(function (mt) { mt.opacity = gateOn; });
+    v.gate.visible = gateOn > 0 && S.course.length - S.z <= c.baseSpeed * (1 + c.speedRamp) * c.finish.gate;
     S.feedback.update({ course: S.course, taken: S.taken, grabbed: S.grabbed, behindWall: behindWall, glitchOf: glitchOf, z: S.z, speed: speed, lane: S.lane, full: full, camera: S.camera, t: S.t });
     // 잡은 카드가 가방 쪽(화면 왼쪽 위)으로 날아간다
     S.flying = S.flying.filter(function (f) {
@@ -706,7 +774,7 @@
       lost: [], dropSafeUntil: 0, rush: false, rushAmt: 0, finishing: null, stride: 0, rareHints: {}, wallHintShown: false,
       hp: cfg().hp, invulnUntil: 0, warning: null, fireHintShown: false, fakeHintShown: false, knockedOut: false, hintUntil: 3,
       meshes: {}, flying: [], bursts: [], cardTex: {}, disposables: [], glitchTex: {}, glitchNow: {}, glitchClear: new Set(), glitchHintShown: false,
-      running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false
+      running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false, banner: null
     };
     S.grabber = root.DR.Catch.grabber(cfg());
     var low = /[?&]low=1/.test(root.location.search);
@@ -715,8 +783,10 @@
     container.appendChild(S.renderer.domElement);
     S.camera = new THREE.PerspectiveCamera(56, 1, 0.1, 400);
     S.heroId = DR.Save ? DR.Save.hero() : 'onyu';
+    S.renderer.localClippingEnabled = true; // "도착" 표지판만 길 높이 아래를 잘라 낸다(재질에 clippingPlanes가 있는 것만 — 다른 물체는 그대로)
     S.view = buildScene();
     S.view.gate = makeGate();
+    S.view.banner = makeFinishBanner();
     // 빛의 다리(연습·1·3 임무, world 'bridge'): 바닥·격자·상자 빌딩 대신 다리 + 캔버스 뒤 하늘·도시 층(js/run-world.js)
     // 실내 무대(2 임무 'sorting'·4 임무 'grading', 2차): 같은 층 + 실내 벽 그림(창밖 낮 도시) + 벨트 바닥
     if (S.mission.world && root.DR.RunWorld) {
@@ -809,6 +879,14 @@
         return { uid: uid, swapped: gl ? m.userData.face.material.map !== gl.base : false, frame: now ? now.frame : -1, soft: !!(now && now.soft) || m.userData.frame.material.opacity < 0.9 };
       });
     },
+    // 테스트용: "도착" 표지판 상태(shown = 이번 끝맺음에 띄움, rise = 솟은 정도 0~1(튕김 때 1 넘음), bottom = 판 밑변 높이 m, screen = 표지판 부분 화면 사각형 px, count = 장면 안 표지판 수)
+    banner: function () {
+      if (!S || !S.view || !S.view.banner) return null;
+      var m = S.view.banner, n = 0;
+      S.view.scene.traverse(function (o) { if (o.name === 'finish-banner') n++; });
+      return { shown: !!S.banner, visible: m.visible, rise: S.banner ? S.banner.r : 0, bottom: m.position.y - root.DR.FinishBanner.H / 2, z: S.banner ? S.banner.z : null, runnerZ: S.z, screen: bannerScreen(), count: n };
+    },
+    debugBanner: function () { return S && S.view ? S.view.banner : null; },
     // 테스트용: 코스의 카드를 잡은 것으로 처리
     debugSetHp: function (n) { if (S) { S.hp = n; updateHud(); } },
     debugTake: function (uid) {

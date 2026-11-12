@@ -113,7 +113,7 @@ async function flowPart(viewport) {
       // 문구는 임무마다 다를 수 있다(4 임무 = 답안지·학생 이름, 2026-11-10) — DR.Privacy.text
       const T = await page.evaluate((mid) => { const m = DR.Missions[mid]; return { note: DR.Privacy.text(m, 'inspectNote'), block: DR.Privacy.text(m, 'blockUnhandled'), more: DR.Privacy.text(m, 'blockMore') }; }, id);
       if (id === 'm4') { assert.match(T.note, /학생 이름이 적힌 답안지/); assert.match(T.block, /학생 이름이 적힌 답안지/); }
-      else { assert.match(T.note, /개인정보가 보이는 사진은 크게 보기에서 가리거나 뺀다/); assert.match(T.block, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/); }
+      else { assert.match(T.note, /개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요/); assert.match(T.block, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/); }
       assert.ok((await page.locator('#screen-inspect').innerText()).includes(T.note), id + ' inspect note');
       // 그대로 제출 → 감독관이 막는다(어느 카드인지 말하지 않음), 승인 버튼 없음
       let s = await submitTry(page);
