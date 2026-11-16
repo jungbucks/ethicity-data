@@ -20,6 +20,10 @@
 <link rel="preload" as="image" href="assets/title/bg-far.webp">
 <link rel="preload" as="image" href="assets/title/bg-mid.webp">
 <link rel="preload" as="image" href="assets/title/bg-road.webp">
+<!-- 본문 글꼴 Pretendard는 게임 폴더에 싣는다(css/pretendard.css, assets/fonts — 2026-11-14). 본문 굵기(400)만 미리 받는다.
+     http(s)일 때만: file://(더블클릭)에서는 미리 받기가 CORS 오류를 내고 쓰이지도 않는다(@font-face는 file://에서도 읽힌다) -->
+<script>if (location.protocol !== 'file:') { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'font'; l.type = 'font/woff2'; l.crossOrigin = ''; l.href = 'assets/fonts/Pretendard-Regular.subset.woff2'; document.head.appendChild(l); }</script>
+<link rel="stylesheet" href="css/pretendard.css">
 <link rel="stylesheet" href="css/hw-fonts.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/title-type.css">
@@ -38,7 +42,7 @@
     </div>
     <div class="title-layout">
       <div class="title-wrap">
-        <p class="title-kicker">윤리시티 · 데이터 관리 편</p>
+        <p class="title-kicker">윤리시티 · 신뢰성 편 · 데이터 관리</p>
         <h1 class="series-title"><span class="title-ink runner-word"><span class="title-text">데이터 러너</span><img src="assets/title-type/title.png" alt="" aria-hidden="true" onload="this.parentElement.classList.add('is-ready')" onerror="this.parentElement.classList.remove('is-ready')"></span><span class="title-sub"><span class="title-glitch" data-text="끊어진 도시">끊어진 도시</span><i class="title-link" aria-hidden="true"></i></span></h1>
         <p class="title-lead">AI는 사람이 모아 준 자료만큼만 세상을 안다. 무엇을 가져와 다시 이을지는 러너가 정한다.</p>
         <div id="title-actions" class="actions"><button id="btn-start" class="btn btn-primary" type="button">시작하기</button></div>

@@ -29,6 +29,27 @@ export async function openGame(opts = {}) {
   await page.goto(pathToFileURL(path.join(DATA_DIR, 'index.html')).href + (opts.query || ''));
   return { browser, page, errors };
 }
+// 2026-11-14: 화면 글자가 게임이 실은 웹 글꼴 Pretendard(css/pretendard.css)로 그려졌나 — PC에 깔린 Pretendard·맑은 고딕이 아니라.
+// 그려진 글자의 실제 글꼴을 브라우저(CDP getPlatformFontsForNode)에 묻는다: 가장 많은 글자를 그린 글꼴이 'Pretendard'이고 웹 글꼴(isCustomFont)이어야.
+// document.fonts.check('16px Pretendard')는 쓰지 않는다 — 웹 글꼴이 없어도 true(정의된 face가 없으면 '쓸 수 있음'으로 셈).
+export async function webFont(page, sels) {
+  await page.evaluate(() => document.fonts.ready);
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable'); await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const out = [];
+    for (const sel of sels) {
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const { fonts } = nodeId ? await cdp.send('CSS.getPlatformFontsForNode', { nodeId }) : { fonts: [] };
+      const main = fonts.slice().sort((a, b) => b.glyphCount - a.glyphCount)[0];
+      const weight = await page.evaluate((s) => { const e = document.querySelector(s); return e ? getComputedStyle(e).fontWeight : null; }, sel);
+      out.push({ sel, weight, font: main ? (main.postScriptName || main.familyName) + (main.isCustomFont ? ' (웹 글꼴)' : ' (PC 글꼴)') : null, web: !!main && /^Pretendard( |$)/.test(main.familyName) && main.isCustomFont });
+    }
+    const faces = await page.evaluate(() => [...document.fonts].filter((f) => f.family.replace(/["']/g, '') === 'Pretendard' && f.status === 'loaded').map((f) => f.weight));
+    return { ok: out.every((x) => x.web) && faces.includes('400'), faces, out };
+  } finally { await cdp.detach(); }
+}
 // 첫 시험 검수 → 시연 → 합격 버튼까지. 이름표 틀린 카드를 안 가져왔으면 연습 카드가 나오고, 고쳐야 넘어간다
 export async function passExam(page) {
   await page.locator('#btn-submit').click();

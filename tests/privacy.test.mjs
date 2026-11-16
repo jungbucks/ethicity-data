@@ -89,6 +89,10 @@ test('check: untouched → unhandled, masked a must-remove card → mustRemove, 
     // 남은 장 수 + 어느 종류인지({kind} = 남은 카드에 붙은 이름표, 플레이테스트 2026-11-12) — 어느 카드인지는 말하지 않는다
     assert.equal(Privacy.text(m4, 'blockMore'), '잘 가린 답안지도 있어. 학생 이름이 적힌 답안지가 {kind} 답안지 중에 아직 {n}장 더 있어.');
     assert.equal(Privacy.text(m1, 'blockMore'), '잘 가린 사진도 있어. 개인정보가 담긴 사진이 {kind} 사진 중에 아직 {n}장 더 있어.');
+    // 빼서 줄였을 때(2026-11-14): 칭찬 말머리('잘 가린') 없이 남은 장 수와 종류만
+    assert.equal(Privacy.text(m1, 'blockMoreRemoved'), '개인정보가 담긴 사진이 {kind} 사진 중에 아직 {n}장 더 있어.');
+    assert.equal(Privacy.text(m4, 'blockMoreRemoved'), '학생 이름이 적힌 답안지가 {kind} 답안지 중에 아직 {n}장 더 있어.');
+    assert.equal(Privacy.left(m4, two), 2);
     assert.match(Privacy.text(m1, 'blockLook'), /{kind} 사진 테두리를 잠깐 밝혀 둘게/);
     assert.match(Privacy.text(m4, 'blockLook'), /{kind} 답안지 테두리/);
     // openCards = check의 open과 같은 카드(가방 항목 그대로)
@@ -145,8 +149,47 @@ test('wasted: maskable private cards caught then removed (the "could have masked
   assert.deepEqual(Privacy.caught(m2, [{ id: 'c1', key: f.key, privateId: f.id }]), []);
 });
 
+// 검수 안내 한 줄 = 그 임무 카드의 실제 처리 방법(리뷰 2026-11-13 — 공통 안내 "가려야 해요"가 2 임무에도 떠서,
+//   안내대로 얼굴을 가린 학생이 "가리는 걸로 안 돼. 빼야 해."로 막혔다). 가리기 카드만 = "가려야", 빼기 카드만 = "빼야"(+ 가리지 말라),
+//   섞인 임무 = 둘 다. 카드가 바뀌면 이 검사가 안내를 고치라고 알려 준다.
+const fixesOf = (m) => [...new Set(m.privacy.cards.map((d) => d.fix))].sort();
+const says = (note) => ({ mask: /가려야/.test(note), remove: /빼야/.test(note), noMask: /가리지 말고|가려도 안/.test(note) });
+test('inspect note matches each mission\'s private-card fix types (mask / remove / both)', () => {
+  const all = { ...M, flood, tutorial: tut };
+  let checked = 0;
+  for (const [id, m] of Object.entries(all)) {
+    if (!Privacy.on(m)) continue;
+    const fixes = fixesOf(m), note = Privacy.text(m, 'inspectNote'), s = says(note);
+    for (const f of fixes) assert.ok(f === 'mask' || f === 'remove', id + ' fix ' + f);
+    if (fixes.includes('mask')) assert.ok(s.mask, id + ' has mask cards → note says 가려야: ' + note);
+    else assert.ok(!s.mask, id + ' has no mask card → note must not say 가려야: ' + note);
+    if (fixes.includes('remove')) assert.ok(s.remove, id + ' has remove cards → note says 빼야: ' + note);
+    else assert.ok(!s.remove, id + ' has no remove card → note must not say 빼야: ' + note);
+    if (fixes.length === 1 && fixes[0] === 'remove') assert.ok(s.noMask, id + ' remove-only → note says masking is not enough: ' + note);
+    checked++;
+  }
+  assert.equal(checked, 4, 'm1~m4 all have private cards on');
+  // 지금 카드 구성(확인용): 1·3·4 임무 가리기, 2 임무 빼기
+  assert.deepEqual(['m1', 'm2', 'm3', 'm4'].map((id) => fixesOf(M[id]).join('+')), ['mask', 'remove', 'mask', 'mask']);
+  // 가리기 임무 안내는 교사 지시 문장 그대로(2026-11-12) — 1·3 임무 공통, 4 임무 답안지
+  assert.equal(Privacy.text(M.m1, 'inspectNote'), '개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요.');
+  assert.equal(Privacy.text(M.m3, 'inspectNote'), Privacy.TEXT.inspectNote);
+  assert.equal(Privacy.text(M.m4, 'inspectNote'), '학생 이름이 적힌 답안지는 눌러서 이름을 가려야 해요.');
+  // 2 임무 안내는 감독관이 막는 말(가리는 걸로 안 돼, 빼야 해)과 같은 방향
+  assert.match(Privacy.text(M.m2, 'blockMustRemove2'), /빼야/);
+  assert.notEqual(Privacy.text(M.m2, 'inspectNote'), Privacy.TEXT.inspectNote);
+});
+// 섞인 임무를 만들면 안내가 두 처리를 모두 말해야 한다(지금은 없음 — 검사 함수 자체 확인)
+test('inspect note rule: a mixed mission needs both instructions', () => {
+  const mixed = { privacy: { on: true, cards: [{ id: 'a', key: 'k', fix: 'mask' }, { id: 'b', key: 'k', fix: 'remove' }] } };
+  assert.deepEqual(fixesOf(mixed), ['mask', 'remove']);
+  const s = says(Privacy.text(mixed, 'inspectNote'));
+  assert.equal(s.mask && s.remove, false, 'the shared note alone does not cover a mixed mission');
+});
+
 test('privacy copy: short, no emoji, no em dash, no %', () => {
   const texts = [...Object.values(Privacy.TEXT)];
+  for (const m of Object.values(M)) if (m.privacy.text) texts.push(...Object.values(m.privacy.text)); // 임무별 문구도
   for (const t of texts) {
     assert.ok(!/[—%]|\p{Extended_Pictographic}/u.test(t), t);
     assert.ok(t.length <= 60, t);

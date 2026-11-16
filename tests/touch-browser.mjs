@@ -38,6 +38,14 @@ try {
   const style = await page.evaluate(() => ({ ta: getComputedStyle(document.getElementById('run-stage')).touchAction, ob: getComputedStyle(document.body).overscrollBehaviorY }));
   assert.equal(style.ta, 'none', 'touch-action none on stage');
   assert.equal(style.ob, 'none', 'no pull-to-refresh');
+  // 탭할 때 화면 전체가 번쩍이지 않게(2026-11-16): 휴대폰 브라우저는 손가락 커서가 이어지는 가장 큰 조상에 탭 표시 색을 덮는다
+  //   → 어디를 눌러도 넘어가는 대화창 화면은 탭 표시 색을 끄고, 버튼으로만 넘기는 오프닝 화면에는 손가락 커서를 두지 않는다
+  const tapLook = await page.evaluate(() => ({
+    story: getComputedStyle(document.getElementById('screen-story')).webkitTapHighlightColor,
+    profile: getComputedStyle(document.getElementById('screen-profile')).cursor
+  }));
+  assert.equal(tapLook.story, 'rgba(0, 0, 0, 0)', 'dialogue screen: no full-screen tap highlight');
+  assert.notEqual(tapLook.profile, 'pointer', 'opening screen: no hand cursor on the whole screen');
   assert.deepEqual(warnings.filter((w) => /cancel|scroll/i.test(w)), [], 'no ignored-cancel warnings');
   assert.deepEqual(errors, []);
   console.log('PASS touch');

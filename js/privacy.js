@@ -20,6 +20,9 @@
     // 일부만 가렸을 때({n} = 남은 장 수, {kind} = 남은 카드에 붙은 이름표 — '스마트폰') — 같은 말로 또 막으면 "가렸는데 또 있다고 한다"로 보였다(2026-11-10).
     //   어느 종류인지까지만 말한다(어느 카드인지는 말하지 않음, 플레이테스트 2026-11-12)
     blockMore: '잘 가린 사진도 있어. 개인정보가 담긴 사진이 {kind} 사진 중에 아직 {n}장 더 있어.',
+    // 빼서 줄였을 때(가린 카드는 없는데 지난번보다 남은 장 수가 줄었다 — 2 임무처럼 빼야 하는 카드, 2026-11-14): 칭찬 말머리 없이 남은 장 수와 종류만.
+    //   전에는 한 장만 빼고 다시 내면 처음과 똑같은 두 줄이라 '뺐는데 또 같은 말'로 보였다
+    blockMoreRemoved: '개인정보가 담긴 사진이 {kind} 사진 중에 아직 {n}장 더 있어.',
     // 종류를 듣고도 그대로 다시 냈을 때 둘째 줄 — 검수로 돌아가면 그 종류 카드의 테두리를 잠깐 밝힌다(ui-inspect opts.look)
     blockLook: '검수로 돌아가면 {kind} 사진 테두리를 잠깐 밝혀 둘게. 그 안에서 찾아봐.',
     blockMustRemove: '얼굴을 가려도 이 사진에는 누가 버렸는지 기록이 남아.',
@@ -86,6 +89,11 @@
     return (bag || []).filter(function (c) { return !!(c.privateId && def(mission, c.privateId)) && !c.masked; });
   }
 
+  // 가방에 든 개인정보 카드 수(가렸든 아니든) — 빼서 줄였는지 볼 때 쓴다(app.js askSupervisor, 2026-11-14)
+  function left(mission, bag) {
+    return (bag || []).filter(function (c) { return !!(c.privateId && def(mission, c.privateId)); }).length;
+  }
+
   // 첫 달리기 뒤 가방에 든 '가리기' 카드 id — 나중에 빠졌으면 "가렸으면 살려 쓸 수 있었어"
   function caught(mission, bag) {
     return (bag || []).filter(function (c) { var d = c.privateId && def(mission, c.privateId); return d && d.fix === 'mask'; })
@@ -97,7 +105,7 @@
     return (caughtIds || []).filter(function (id) { return !ids[id]; }).length;
   }
 
-  var api = { TEXT: TEXT, text: text, on: on, defs: defs, def: def, mark: mark, canMask: canMask, toggleMask: toggleMask, check: check, openCards: openCards, caught: caught, wasted: wasted };
+  var api = { TEXT: TEXT, text: text, on: on, defs: defs, def: def, mark: mark, canMask: canMask, toggleMask: toggleMask, check: check, openCards: openCards, left: left, caught: caught, wasted: wasted };
   root.DR = root.DR || {};
   root.DR.Privacy = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

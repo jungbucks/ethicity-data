@@ -5,9 +5,10 @@
 //        챕터 끝 문장 · 주 버튼이 첫 화면에 · 연습 카드 설명 폭 · 분류함이 벨트 폭에 고르게 · 비상 정지 그림 · 2 임무 결과 문구가 잘못 간 물건 전부
 //   E  3·4 임무 뒤 활동: 마무리 대화·(4 임무) 재연결 뒤 줄에 이미 있는 장면 그림, 임무 완료 화면 뒤 어두운 그림, 3 임무 도입은 그림 없음 그대로
 //   N  좁은 화면(390×844): 주 버튼이 첫 화면에, 가로 넘침 없음(연습 검수 · 1 임무 결과 · 2 임무 결과)
+//   F  글꼴(2026-11-14): 타이틀 본문·버튼 글자가 게임이 실은 웹 글꼴 Pretendard로 그려짐(PC에 Pretendard가 없어도 — 'Pretendard 없음' 래퍼로 한 번 더 돌림)
 // 하나만: ONLY=T node data/tests/playtest2-browser.mjs
 import assert from 'node:assert/strict';
-import { openGame, passExam, shotPath } from './browser.mjs';
+import { openGame, passExam, shotPath, webFont } from './browser.mjs';
 
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const want = (id) => !ONLY.length || ONLY.includes(id);
@@ -100,6 +101,20 @@ const heroBox = (page) => page.evaluate(() => new Promise((res) => {
 }));
 const rectOf = (page, sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; }, sel);
 const gapOf = (a, b) => Math.max(a.left - b.right, b.left - a.right, a.top - b.bottom, b.top - a.bottom); // > 0이면 떨어져 있음(가장 큰 축 간격)
+
+/* ---------- F. 글꼴: 웹 글꼴 Pretendard(file://, 플래그 있음·없음) ---------- */
+if (want('F')) {
+  for (const bare of [false, true]) {
+    const { browser, page, errors } = await openGame({ viewport: { width: 1280, height: 800 }, bare });
+    try {
+      await page.locator('#title-guide .tl-bubble').waitFor({ state: 'visible' });
+      const f = await webFont(page, ['.title-lead', '#btn-start']);
+      assert.ok(f.ok, 'title text drawn with the bundled Pretendard web font ' + JSON.stringify(f));
+      assert.deepEqual(errors, []);
+      console.log('ok F font', bare ? 'file:// (no flags)' : 'file://', '— ' + f.out.map((x) => `${x.sel} ${x.weight} ${x.font}`).join(' · ') + ' · loaded ' + f.faces.join(','));
+    } finally { await browser.close(); }
+  }
+}
 
 if (want('T')) {
   for (const viewport of [{ width: 1148, height: 977 }, { width: 1280, height: 800 }, { width: 390, height: 844 }]) {
@@ -470,7 +485,7 @@ if (want('E')) {
     for (const l of a4) assert.ok(l.hasBg && /assets\/story\/senior-after\.webp$/.test(l.bg), 'm4 closing line has the after scene ' + JSON.stringify(l));
     await outroBg(/senior-after\.webp$/, 'm4 outro screen');
     assert.equal(await page.locator('#screen-outro h2').innerText(), '도시가 다시 이어졌다');
-    assert.equal(await page.locator('#outro-questions li').count(), 2);
+    assert.equal(await page.locator('#outro-questions li').count(), 3); // 2026-11-14 토론 질문 3개(9407ab9에서 m4-browser만 고치고 이 줄을 빠뜨렸다)
     await page.screenshot({ path: shotPath('playtest2-m4-outro-1280') });
     assert.deepEqual(errors, []);
     console.log('ok E m3·m4 closing dialogues keep a scene picture, outro screens get the darkened backdrop, m3 intro stays picture-less');

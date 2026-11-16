@@ -113,7 +113,11 @@ async function flowPart(viewport) {
       // 문구는 임무마다 다를 수 있다(4 임무 = 답안지·학생 이름, 2026-11-10) — DR.Privacy.text
       const T = await page.evaluate((mid) => { const m = DR.Missions[mid]; return { note: DR.Privacy.text(m, 'inspectNote'), block: DR.Privacy.text(m, 'blockUnhandled'), more: DR.Privacy.text(m, 'blockMore') }; }, id);
       if (id === 'm4') { assert.match(T.note, /학생 이름이 적힌 답안지/); assert.match(T.block, /학생 이름이 적힌 답안지/); }
-      else { assert.match(T.note, /개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요/); assert.match(T.block, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/); }
+      else {
+        // 2 임무는 빼기 카드뿐이라 자기 안내(2026-11-13 리뷰 — 공통 "가려야 해요"를 따르면 막혔다), 1·3 임무는 공통 안내
+        assert.match(T.note, id === 'm2' ? /개인정보가 있는 사진 가운데 가려도 안 되는 것은 빼야 해요/ : /개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요/);
+        assert.match(T.block, /개인정보가 담긴 사진이 학습 자료에 들어가려 해/);
+      }
       assert.ok((await page.locator('#screen-inspect').innerText()).includes(T.note), id + ' inspect note');
       // 그대로 제출 → 감독관이 막는다(어느 카드인지 말하지 않음), 승인 버튼 없음
       let s = await submitTry(page);
@@ -161,9 +165,18 @@ async function flowPart(viewport) {
         await zoomMask(page, ids[1]); await closeZoom(page);
         s = await submitTry(page);
         assert.match(s.text, /얼굴을 가려도 이 사진에는 누가 버렸는지 기록이 남아/);
+        assert.match(s.text, /이 사진은 가리는 걸로 안 돼\. 빼야 해\./);
         assert.equal(s.confirm, 0);
         await page.locator('#btn-back').click();
-        for (const p of ids) await page.locator(`#inspect-grid .bag-card[data-id="${p}"] .btn-remove`).click();
+        // 한 장만 빼고 내면(2026-11-14) 처음과 같은 말이 아니라 '아직 1장 더' — 어느 카드인지는 말하지 않는다
+        await page.locator(`#inspect-grid .bag-card[data-id="${ids[1]}"] .btn-remove`).click();
+        await zoomMask(page, ids[0]); await closeZoom(page); // 앞에서 가려 둔 첫 장은 되돌린다(가린 채면 '가리는 걸로 안 돼'가 먼저)
+        s = await submitTry(page);
+        assert.match(s.text, /아직 1장 더 있어/, 'm2 one removed: ' + s.text.slice(0, 120));
+        assert.doesNotMatch(s.text, /잘 가린|{kind}|{n}/);
+        assert.equal(s.confirm, 0);
+        await page.locator('#btn-back').click();
+        await page.locator(`#inspect-grid .bag-card[data-id="${ids[0]}"] .btn-remove`).click();
         assert.equal(await page.evaluate(() => DR.App.state.bag.length), before - 2, 'removed both');
       } else {
         // 가리기 하나 + 빼기 하나 → 통과. 가린 카드는 가방에 남아 그 종류로 센다
@@ -212,6 +225,75 @@ async function reloadPart() {
   } finally { await browser.close(); }
 }
 
+// 안내대로 하면 통과하는가(2026-11-13 리뷰 회귀 검사): 화면에 뜬 안내 한 줄 그대로 —
+//   1·3·4 임무 = 두 장 다 가리기 → 점선 테두리·'가림'(가린 카드만, 2026-11-14부터 초록이 아니라 중립색) → 다시 들어와도 가린 채 → 승인
+//   2 임무 = 안내를 어기고 가리면 막힘(빼야 해) → 안내대로 빼면 승인
+const INDEX_URL = async (page) => (await page.evaluate(() => location.href)).split('?')[0];
+async function notePart(viewport) {
+  const { browser } = await openGame({ viewport, query: '?start=m1' }).then(async (g) => { await g.page.close(); return g; });
+  try {
+    for (const id of ['m1', 'm2', 'm3', 'm4']) {
+      const { page, errors } = await openGame({ browser, viewport, query: '?start=' + id });
+      await toInspect(page, id);
+      const ids = await privIds(page);
+      assert.equal(ids.length, 2, id + ' two private cards caught');
+      const note = await page.locator('#inspect-privacy-note').innerText();
+      const fixes = await page.evaluate((mid) => [...new Set(DR.Missions[mid].privacy.cards.map((d) => d.fix))], id);
+      assert.equal(note, await page.evaluate((mid) => DR.Privacy.text(DR.Missions[mid], 'inspectNote'), id));
+      if (id === 'm2') {
+        assert.deepEqual(fixes, ['remove']);
+        assert.equal(note, '개인정보가 있는 사진 가운데 가려도 안 되는 것은 빼야 해요.');
+        await page.locator('#inspect-privacy-note').scrollIntoViewIfNeeded();
+        await page.screenshot({ path: shotPath('privacy-note-m2-' + viewport.width) });
+      } else {
+        assert.deepEqual(fixes, ['mask']);
+        assert.match(note, /가려야 해요\.$/);
+        assert.doesNotMatch(note, /빼야/);
+      }
+      // 가리기 전: 개인정보 카드도 다른 카드와 같은 테두리(찾기가 활동 — 975a23b)
+      const border = (cid) => page.evaluate((c) => { const e = document.querySelector(`#inspect-grid .bag-card[data-id="${c}"]`); return e ? getComputedStyle(e).borderTopStyle : null; }, cid);
+      const plain = await page.evaluate(() => DR.App.state.bag.find((c) => !c.privateId).id);
+      assert.equal(await border(ids[0]), await border(plain), id + ' private card looks like the others before masking');
+      assert.notEqual(await border(ids[0]), 'dashed');
+      for (const p of ids) { await zoomMask(page, p); await closeZoom(page); }
+      for (const p of ids) {
+        assert.equal(await border(p), 'dashed', id + ' masked card dashed border');
+        assert.equal(await page.locator(`#inspect-grid .bag-card[data-id="${p}"] .bag-masked`).innerText(), '가림');
+      }
+      assert.notEqual(await border(plain), 'dashed', id + ' unmasked card not dashed');
+      if (id === 'm2') {
+        // 안내를 어기고 가렸다 → 규칙 그대로 막힘(두 줄)
+        let s = await submitTry(page);
+        assert.ok(s.text.includes('얼굴을 가려도 이 사진에는 누가 버렸는지 기록이 남아.') && s.text.includes('이 사진은 가리는 걸로 안 돼. 빼야 해.'), s.text);
+        assert.equal(s.confirm, 0);
+        await page.locator('#btn-back').click();
+        // 안내대로 빼기 → 승인
+        for (const p of ids) await page.locator(`#inspect-grid .bag-card[data-id="${p}"] .btn-remove`).click();
+        s = await submitTry(page);
+        assert.equal(s.confirm, 1, 'm2 removed → confirm: ' + s.text.slice(0, 120));
+      } else {
+        // 다시 들어오기(?start= 없이 타이틀 → 이어하기) → 가린 채 그대로
+        await page.goto(await INDEX_URL(page));
+        await page.locator('#btn-continue').click();
+        await page.locator('#screen-inspect').waitFor({ state: 'visible', timeout: 30000 });
+        for (const p of ids) {
+          assert.equal(await page.locator(`#inspect-grid .bag-card[data-id="${p}"].masked .bag-masked`).count(), 1, id + ' masked after reopening');
+          assert.equal(await border(p), 'dashed');
+        }
+        assert.equal(await page.locator('#inspect-privacy-note').innerText(), note);
+        if (viewport.width === 1280 && id === 'm3') await page.screenshot({ path: shotPath('privacy-note-m3-reopen-1280') });
+        const s = await submitTry(page);
+        assert.equal(s.confirm, 1, id + ' masked both → confirm: ' + s.text.slice(0, 120));
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no sideways scroll');
+      assert.deepEqual(errors, []);
+      console.log('privacy note OK', id, viewport.width);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+}
+
+if (part === 'all' || part === 'note') { await notePart({ width: 1280, height: 800 }); await notePart({ width: 390, height: 844 }); }
 if (part === 'all' || part === 'art') await artPart();
 if (part === 'all' || part === 'flow') { await flowPart({ width: 1280, height: 800 }); await flowPart({ width: 390, height: 844 }); }
 if (part === 'all' || part === 'reload') await reloadPart();

@@ -78,3 +78,20 @@ test('1 임무 챕터 끝 문장(플레이테스트 2026-11-12): 답이 안 되�
   assert.equal(by(ce.concept.choices, 'c').feedback, '수거봇의 3,000장처럼 많아도 같은 모습만 있으면 소용없어. 빠진 모습을 넣어야 알아봐.');
   assert.ok(M.m1.story.intro.some((l) => /3,000장/.test(l.text)), '3,000장은 1 임무 도입 대사에 나온 숫자');
 });
+
+// 2026-11-14 최종 검토: 2 임무 개념 문항은 게임 결과를 예측하는 물음이 아니다 — 틀린 사진 한 장은 게임 규칙(fakeLimit 2)으로 결과가 같아서, 옛 오답 "한 장쯤은 아무 일도 없다"가 사실이었다
+test('m2 chapter end: the concept question asks what to do, not what the game result will be', () => {
+  const ce = M.m2.chapterEnd, by = (list, id) => list.find((c) => c.id === id);
+  assert.deepEqual(ce.concept.choices.map((c) => c.id), ['a', 'b', 'c'], 'ids unchanged (saved first/last values)');
+  assert.deepEqual(ce.concept.choices.filter((c) => c.correct).map((c) => c.id), ['b']);
+  assert.match(ce.concept.question, /발견했어/); assert.match(ce.concept.question, /어떻게 해야 할까\?$/);
+  assert.doesNotMatch(ce.concept.question, /어떻게 될까/, 'not a prediction of the game result');
+  assert.equal(by(ce.concept.choices, 'b').text, '이름표를 고치거나 그 사진을 뺀다');
+  assert.doesNotMatch(ce.concept.choices.map((c) => c.text + c.feedback).join(' '), /아무 일도 없다/);
+  assert.match(by(ce.concept.choices, 'c').feedback, /이 게임에서는 한 장으로 결과가 달라지지 않아/, 'says the one-photo rule is a simplified game rule');
+  assert.equal(require('../js/config.js').fakeLimit, 2, 'the question was reworded — the rule itself is unchanged');
+  // 다른 용도 요청: 가리기를 '사람을 못 찾으니까' 안 된다고 하지 않고, 분류 자료를 사람 찾는 데 돌려 쓰는 문제를 말한다
+  assert.deepEqual(ce.choices.map((c) => c.id), ['mask', 'refuse', 'consent']);
+  assert.match(by(ce.choices, 'mask').feedback, /분류하려고 모은 자료로 사람을 찾겠다는/); assert.match(by(ce.choices, 'mask').feedback, /목적에서 벗어나/);
+  assert.doesNotMatch(by(ce.choices, 'mask').feedback, /찾을 수 없어|가린 채로는/);
+});

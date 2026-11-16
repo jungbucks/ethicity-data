@@ -96,7 +96,7 @@ async function ending(page, w, shots) {
   await page.locator('#screen-outro').waitFor({ state: 'visible' });
   const out = await page.locator('#screen-outro').innerText();
   assert.ok(out.includes('채점 AI 완료') && out.includes('도시가 다시 이어졌다'));
-  assert.equal(await page.locator('#outro-questions li').count(), 2);
+  assert.equal(await page.locator('#outro-questions li').count(), 3); // 2026-11-14 점검·중단 질문 추가
   assert.equal(await page.locator('#btn-next-mission').count(), 0, 'last mission');
   if (shots) await page.screenshot({ path: shotPath('m4-outro-' + w), fullPage: true });
   assert.equal(await page.evaluate(() => DR.App.records.m4.cleared), true);

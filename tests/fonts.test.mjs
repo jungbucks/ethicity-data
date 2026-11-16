@@ -22,6 +22,20 @@ test('hw-fonts.css: four woff2 faces embedded as base64, small', () => {
   for (const orig of Object.values(FAMILIES)) assert.ok(!new RegExp("font-family:\\s*'" + orig + "'").test(css), orig);
 });
 
+// 본문 글꼴 Pretendard(2026-11-14): 게임 폴더에 실은 woff2(npm pretendard@1.3.9 공식 서브셋 그대로) — 배포 사본에 파일이 빠지면 여기서 걸린다
+test('pretendard.css: four Pretendard faces → woff2 files in assets/fonts, linked before style.css, body weight preloaded on http(s), OFL', () => {
+  const css = read('css/pretendard.css');
+  const faces = [...css.matchAll(/@font-face\s*\{[^}]*font-family:\s*'Pretendard';\s*src:\s*url\('\.\.\/(assets\/fonts\/[^']+\.woff2)'\)\s*format\('woff2'\);\s*font-weight:\s*(\d+);[^}]*font-display:\s*swap/g)];
+  assert.deepEqual(faces.map((f) => f[2]), ['400', '600', '700', '800']);
+  for (const [, file] of faces) assert.equal(fs.readFileSync(new URL('../' + file, import.meta.url)).subarray(0, 4).toString('latin1'), 'wOF2', file);
+  const html = read('index.html'), at = html.indexOf('<link rel="stylesheet" href="css/pretendard.css">');
+  assert.ok(at > 0 && at < html.indexOf('href="css/style.css"'), 'pretendard.css before style.css');
+  assert.match(html, /location\.protocol !== 'file:'[^<]*l\.as = 'font'[^<]*l\.href = 'assets\/fonts\/Pretendard-Regular\.subset\.woff2'/);
+  const ofl = read('assets/fonts/OFL-Pretendard.txt');
+  assert.match(ofl, /Reserved Font Name Pretendard/); assert.match(ofl, /SIL OPEN FONT LICENSE Version 1\.1/i);
+  assert.match(read('README.md'), /Pretendard[^\n]*OFL/);
+});
+
 test('index.html links hw-fonts.css; license file credits all four fonts', () => {
   const html = read('index.html');
   assert.match(html, /<link rel="stylesheet" href="css\/hw-fonts\.css">/);
