@@ -133,6 +133,23 @@
     DR.App.go('knockout');
   }
 
+  // 3D 달리기 화면을 못 열었을 때(WebGL이 꺼진·막힌 컴퓨터, 리뷰 2026-11-18 #6) — 차분한 안내 + 돌아가기(브리핑·보충 준비)
+  function no3d(onBack, backText) {
+    var screen = document.getElementById('screen-no3d');
+    screen.innerHTML = '';
+    var btn = el('button', { id: 'btn-no3d-back', class: 'btn btn-primary', type: 'button', text: backText || '브리핑으로 돌아가기' });
+    btn.addEventListener('click', function () { DR.Sfx.play('ui'); onBack(); });
+    screen.appendChild(el('div', { class: 'page page-center' }, [
+      el('p', { class: 'kicker', text: '데이터 세계' }),
+      el('h2', { text: '이 컴퓨터에서는 달리기 화면을 열 수 없어요' }),
+      el('p', { class: 'lead', text: '3D 화면을 켜지 못했어요. 지금까지 한 것은 그대로 저장돼 있어요.' }),
+      el('p', { text: '선생님께 알려 주거나, 다른 브라우저(크롬·엣지)로 다시 열어 보세요.' }),
+      el('div', { class: 'actions' }, [btn])
+    ]));
+    DR.App.go('no3d');
+  }
+
   root.DR.UI.result = result;
   root.DR.UI.knockout = knockout;
+  root.DR.UI.no3d = no3d;
 })(window);

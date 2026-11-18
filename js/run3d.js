@@ -764,8 +764,17 @@
   }
 
   /* ---------- 공개 API ---------- */
+  // 돌려주는 값: 달리기를 시작했으면 true. 3D 렌더러를 못 만들면(WebGL이 꺼진·막힌 컴퓨터) false — 아무것도 붙이지 않고 달리기 상태도 없다.
+  //   그때 안내·되돌아가기는 부른 쪽(app.js runCourse → DR.UI.no3d)이 한다(리뷰 2026-11-18 #6 — 전엔 오류가 던져져 캔버스 없는 달리기 화면에서 멈췄다)
   function start(container, opts) {
     if (S) stop();
+    var low = /[?&]low=1/.test(root.location.search), renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: !low, alpha: true });
+    } catch (e) {
+      if (root.console) root.console.error('[DR.Run] 3D 렌더러를 만들 수 없음(WebGL):', e && e.message ? e.message : e);
+      return false;
+    }
     S = {
       container: container, mission: opts.mission, course: opts.course, onEnd: opts.onEnd,
       startBag: (opts.bag || []).length, bagMax: opts.bagMax,
@@ -777,8 +786,7 @@
       running: true, paused: false, hidden: false, last: null, aspect: 1, hintAt: false, banner: null
     };
     S.grabber = root.DR.Catch.grabber(cfg());
-    var low = /[?&]low=1/.test(root.location.search);
-    S.renderer = new THREE.WebGLRenderer({ antialias: !low, alpha: true });
+    S.renderer = renderer;
     S.renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, low ? 1 : (cfg().maxPixelRatio || 1.25)));
     container.appendChild(S.renderer.domElement);
     S.camera = new THREE.PerspectiveCamera(56, 1, 0.1, 400);
@@ -825,6 +833,7 @@
     updateHud();
     animate(0.001, cfg().baseSpeed);
     S.raf = root.requestAnimationFrame(frame);
+    return true;
   }
 
   function stop() {

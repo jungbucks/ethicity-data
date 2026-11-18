@@ -125,6 +125,20 @@
     return write(o, st);
   }
 
+  // 튜토리얼 합격 확정(리뷰 2026-11-18 #5): 완료 표시·기록과 **다음 재개 지점**을 한 번에 쓴다.
+  //   튜토리얼 체크포인트가 남아 있으면 진행을 비운다(mission null → 타이틀 '첫 번째 임무부터 이어하기' = nextMission).
+  //   전엔 완료만 쓰고 진행은 1 임무 브리핑 체크포인트까지 '튜토리얼 · 브리핑'으로 남아, 합격 대화·도시 복구·1 임무 도입 중에
+  //   새로고침하면 끝낸 튜토리얼을 다시 시켰다. 다른 임무의 진행(연습으로 튜토리얼을 다시 한 경우)·기록·뒤 활동은 그대로.
+  function passTutorial(st) {
+    st = storage(st);
+    var o = read(st) || { v: 1, mission: null };
+    if (o.mission === 'tutorial') o = { v: 1, mission: null, records: o.records, ending: o.ending };
+    o.tutorialDone = true;
+    o.records = o.records && typeof o.records === 'object' ? o.records : {};
+    o.records.tutorial = { cleared: true };
+    return write(o, st);
+  }
+
   // 임무를 끝내면 진행은 지우고 튜토리얼 완료만 남긴다
   function finish(st) {
     st = storage(st);
@@ -279,7 +293,7 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, status: status, flush: flush, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, passTutorial: passTutorial, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, status: status, flush: flush, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
