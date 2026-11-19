@@ -48,21 +48,43 @@
     return !!(f && f.truth && mission.cardTypes[f.truth] && mission.cardTypes[f.truth].hazard);
   }
 
+  // 원인의 갈래(플레이테스트 2026-11-18 P0-1): 'contam' = 가짜·옛 사진이 그 장면을 오염(가짜 id·'contaminated:'·'any:'·'mis:') /
+  //   'short' = 조합이 모자람만(그 밖의 원인 — 'danger:S#'는 그 장면의 위험 실패라 어느 쪽인지는 다른 원인이 정한다). 맞으면 null.
+  //   판정·맞고 틀림·cause(첫 원인)는 그대로 — 화면 문구만 이것으로 고른다
+  function causeKind(mission, hits) {
+    if (!hits.length) return null;
+    var fakes = (mission.fakes || []).map(function (f) { return f.id; });
+    var contam = hits.some(function (c) { return /^(contaminated|any|mis):/.test(c) || fakes.indexOf(c) >= 0; });
+    return contam ? 'contam' : 'short';
+  }
+
   // items를 주면 그 목록(3 임무 길 안내 질문), 아니면 mission.conveyor
   function sort(mission, judged, items) {
     return (items || mission.conveyor || []).map(function (it) {
-      var cause = null;
-      for (var i = 0; i < it.causes.length && !cause; i++) if (happened(judged, it.causes[i], it.scene)) cause = it.causes[i];
+      var hits = it.causes.filter(function (c) { return happened(judged, c, it.scene); });
+      var cause = hits.length ? hits[0] : null;
       var correct = !cause;
       return {
         id: it.id, art: it.art, variant: it.variant, scene: it.scene,
-        bin: correct ? it.bin : it.wrongBin, correctBin: it.bin, correct: correct, cause: cause,
+        bin: correct ? it.bin : it.wrongBin, correctBin: it.bin, correct: correct, cause: cause, causeKind: causeKind(mission, hits),
         emergency: !correct && (!!it.hazard || hazardous(mission, it.art))
       };
     });
   }
 
-  var api = { sort: sort, happened: happened };
+  // 3 임무 길 안내 시연의 틀린 답·까닭 한 줄: 원인이 부족뿐이면 wrongShort·noteShort(있을 때), 아니면 원래 문구(P0-1)
+  function guideText(g, it) {
+    var short = it && !it.correct && it.causeKind === 'short';
+    return { wrong: short && g.wrongShort ? g.wrongShort : g.wrong, note: short && g.noteShort ? g.noteShort : g.note };
+  }
+  // 장면 결과 칩 문구 열쇠: 실패했는데 오염이 없으면(모자람만) outcomeText의 '…Short'(있을 때) — 옛 사진 탓으로 읽히지 않게(P0-1)
+  function outcomeKey(mission, sceneResult) {
+    var r = sceneResult, k = r.pass ? 'pass' : r.failKind;
+    if (!r.pass && !(r.contaminated && r.contaminated.length) && mission.outcomeText && mission.outcomeText[k + 'Short']) return k + 'Short';
+    return k;
+  }
+
+  var api = { sort: sort, happened: happened, guideText: guideText, outcomeKey: outcomeKey };
   root.DR = root.DR || {};
   root.DR.Conveyor = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

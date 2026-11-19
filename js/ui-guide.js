@@ -61,8 +61,9 @@
       if (!s.el.parentNode) list.appendChild(s.el);
       var g = byId[it.id], box = shown[it.id].answer;
       if (box.childNodes.length) return;
-      box.appendChild(el('p', { class: 'gd-a', text: 'AI: ' + (it.correct ? g.right : g.wrong) }));
-      if (!it.correct && g.note) box.appendChild(el('p', { class: 'gd-note', text: g.note }));
+      var t = DR.Conveyor.guideText(g, it); // 옛 사진 탓 / 지금 사진이 모자람 — 원인별 문구(플레이테스트 2026-11-18 P0-1)
+      box.appendChild(el('p', { class: 'gd-a', text: 'AI: ' + (it.correct ? g.right : t.wrong) }));
+      if (!it.correct && t.note) box.appendChild(el('p', { class: 'gd-note', text: t.note }));
       s.el.classList.add(it.correct ? 'ok' : 'bad');
       status.textContent = it.correct ? '맞게 안내했다.' : '잘못 안내했다.';
     }

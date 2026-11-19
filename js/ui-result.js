@@ -30,6 +30,7 @@
     function show() {
       var r = judged.scenes[order[i]], s = mission.scenes[order[i]];
       var outcome = r.pass ? 'pass' : r.failKind;
+      var chipKey = DR.Conveyor.outcomeKey(mission, r); // 모자람만으로 실패한 장면은 '…Short' 문구(3 임무 — 플레이테스트 2026-11-18 P0-1)
       // 이 장면에서 틀린 함으로 간 컨베이어 물건(문구가 아래 '잘못 간 물건' 목록과 같은 물건을 말하게) — 분류 보류(1 임무)는 문구가 따로라 뺀다
       var wrongHere = mission.conveyor && !mission.holdBin ? sorted.filter(function (it) { return it.scene === s.id && !it.correct; }) : [];
       var last = i === judged.scenes.length - 1;
@@ -37,7 +38,7 @@
         el('p', { class: 'kicker', text: '결과 · ' + (i + 1) + '/' + judged.scenes.length + ' 장면' }),
         el('h2', { text: s.title }),
         el('img', { class: 'result-art', src: DR.CardArt.scene(mission, s.id, outcome, 480).toDataURL(), alt: s.title }),
-        el('p', { class: 'chip chip-' + OUTCOME[outcome].cls, text: (mission.outcomeText && mission.outcomeText[outcome]) || OUTCOME[outcome].text }),
+        el('p', { class: 'chip chip-' + OUTCOME[outcome].cls, text: (mission.outcomeText && mission.outcomeText[chipKey]) || OUTCOME[outcome].text }),
         // 실제로 실패한 조합·원인 기준 문구(플레이테스트 2) — 컨베이어에서 잘못 간 물건이 둘 이상이면 전부 말한다(leadLine, 2 임무)
         el('p', { class: 'lead', text: DR.ResultLine.leadLine(mission, s, r, wrongHere) })
       ];
@@ -63,8 +64,8 @@
         // 3 임무: 이 장면에서 옛 거리를 기준으로 안내한 질문
         var ql = el('ul', { class: 'result-wrong-list' });
         wrong.forEach(function (it) {
-          var g = mission.guide.filter(function (x) { return x.id === it.id; })[0];
-          ql.appendChild(el('li', { text: '“' + g.q + '” → “' + g.wrong + '”' + (g.note ? ' — ' + g.note : '') }));
+          var g = mission.guide.filter(function (x) { return x.id === it.id; })[0], t = DR.Conveyor.guideText(g, it);
+          ql.appendChild(el('li', { text: '“' + g.q + '” → “' + t.wrong + '”' + (t.note ? ' — ' + t.note : '') }));
         });
         parts.push(el('div', { class: 'result-wrong' }, [el('h3', { text: '길 안내 시연에서 잘못 안내한 질문' }), ql]));
       } else if (wrong.length && mission.grading) {

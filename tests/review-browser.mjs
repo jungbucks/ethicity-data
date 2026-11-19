@@ -159,7 +159,9 @@ async function part3() {
       if (await page.locator('#screen-story .dialog').isVisible()) await page.locator('#screen-story .dialog').click(); else await page.waitForTimeout(200);
     }
     assert.equal(sawCity, false, 'city restore is not replayed');
-    assert.equal(await page.locator('#outro-summary').innerText(), sum, 'same summary again');
+    // 개인정보 가리기 줄(플레이테스트 2026-11-18 P1-10)은 저장하지 않는 값이라 새로고침 뒤 다시 보면 빠진다 — 그 줄을 빼고 견준다
+    const noPriv = (t) => t.split('\n').filter((l) => !/^개인정보 /.test(l.trim())).join('\n');
+    assert.equal(noPriv(await page.locator('#outro-summary').innerText()), noPriv(sum), 'same summary again');
     assert.equal(await page.evaluate(() => JSON.stringify({ ...DR.Save.records().m1, chapter: null })), rec0, 'completion record written once, unchanged');
     assert.deepEqual(await page.evaluate(() => Object.keys(DR.Save.records())), ['m1']);
     assert.equal(await page.evaluate(() => DR.App.cityCount()), 1);
@@ -193,7 +195,8 @@ async function part3() {
     await page4.locator('#btn-submit').click(); await page4.locator('#btn-confirm').click();
     await until(page4, '#screen-city');
     assert.equal((await ending(page4)).step, 0);
-    assert.deepEqual((await ending(page4)).city, { from: 0, to: 5 });
+    // 4 임무만 깬 기록 → 도시 1/5(플레이테스트 2026-11-18 P0-2 — 전엔 4 임무면 늘 5/5)
+    assert.deepEqual((await ending(page4)).city, { from: 0, to: 1 });
     await page4.locator('#btn-city-next').click();
     await page4.locator('#screen-chapter').waitFor({ state: 'visible', timeout: 10000 });
     await page4.locator('.ch-choice').first().click();

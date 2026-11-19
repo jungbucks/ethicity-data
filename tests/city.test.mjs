@@ -53,10 +53,11 @@ test('every stage has a city line naming its AI (no numbers, no %)', () => {
   for (const m of [tut, m1, m2, m3, m4]) assert.ok(!/\d|%/.test(m.cityLine));
 });
 
-test('city step: show only when the count grew; mission 4 always shows 5/5', () => {
+// 플레이테스트 2026-11-18 P0-2: 4 임무도 숫자는 깬 수(전엔 늘 5/5 — 1·2 임무를 안 했는데 도시 5/5가 됐다). 화면은 늘 뜬다(이야기의 끝)
+test('city step: show only when the count grew; mission 4 always shows (count = cleared)', () => {
   assert.deepEqual(Save.cityStep('m1', 0, 1), { from: 0, to: 1 });
   assert.equal(Save.cityStep('m1', 2, 2), null, 'replaying a cleared mission skips the screen');
-  assert.deepEqual(Save.cityStep('m4', 2, 3), { from: 2, to: 5 }, 'reconnect is the story end');
-  assert.deepEqual(Save.cityStep('m4', 4, 4), { from: 4, to: 5 });
+  assert.deepEqual(Save.cityStep('m4', 2, 3), { from: 2, to: 3 }, 'reconnect is the story end, number = cleared');
+  assert.deepEqual(Save.cityStep('m4', 4, 5), { from: 4, to: 5 });
   assert.deepEqual(Save.cityStep('m4', 5, 5), { from: 4, to: 5 }, 'replaying m4 still shows the last cell lighting up');
 });

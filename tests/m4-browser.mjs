@@ -67,11 +67,13 @@ async function toPrepAndRun(page, fill) {
   return peer;
 }
 async function ending(page, w, shots) {
-  // 도시 재연결 5/5(그림이 없으면 점 5칸 + 문구)
+  // 도시 재연결(그림이 없으면 점 5칸 + 문구). 숫자 = 깬 수, 켜진 구간 = 깬 임무(플레이테스트 2026-11-18 P0-2 — 전엔 늘 5/5)
   await page.locator('#screen-city').waitFor({ state: 'visible' });
-  assert.match(await page.locator('#city-line').innerText(), /^도시 5\/5 — 채점 AI까지, 도시가 다시 이어졌다$/);
+  const n = await page.evaluate(() => DR.App.cityCount());
+  assert.match(await page.locator('#city-line').innerText(), new RegExp('^도시 ' + n + '\/5 — 채점 AI까지, 도시가 다시 이어졌다$'));
   await page.waitForTimeout(900);
-  assert.equal(await page.locator('#screen-city .city-dots i.on').count(), 5);
+  assert.equal(await page.locator('#screen-city .city-dots i.on').count(), n);
+  assert.equal(await page.locator('#screen-city .city-dots i').nth(4).getAttribute('class'), 'on', 'the school (m4) cell is lit');
   // 그림이 아직 없으면 그림 자리를 숨기고 점 5칸 + 문구(그림이 들어오면 그림이 보인다)
   const hasArt = await page.evaluate(() => { const i = document.querySelector('#screen-city .city-after'); return !!(i && i.complete && i.naturalWidth); });
   assert.equal(await page.locator('#city-art').isHidden(), !hasArt);
@@ -180,7 +182,8 @@ for (const viewport of ONLY.includes('A') ? [{ width: 1280, height: 800 }, { wid
     assert.match(await page.locator('#screen-story .story-bg').getAttribute('src'), /assets\/story\/showdown-senior\.webp$/);
     assert.match(await page.locator('#screen-story .dialog-text').innerText(), /새빛 진학 평가 때 내 답안이야/);
     assert.equal(await page.locator('#screen-story .story-sheet').getAttribute('data-read'), 'null');
-    await dialogueUntil(page, /^봐, 또 지웠잖아\.$/);
+    // 담지 않았을 뿐 검수에서 뺀 적은 없음 → "또 못 읽잖아"(플레이테스트 2026-11-18 P0-4). 뺀 경우는 C(동기 카드를 빼고 다시 냄)
+    await dialogueUntil(page, /^봐, 또 못 읽잖아\.$/);
     assert.equal(await page.locator('#screen-story .story-sheet').getAttribute('data-read'), 'false');
     assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /인공지능 — 다른 낱말로 읽음 · ✕/);
     await page.waitForTimeout(700);
@@ -341,7 +344,7 @@ if (ONLY.includes('F')) {
     assert.match(await page.locator('#screen-story .story-sheet-read').innerText(), /보기에 없는 낱말/);
     await page.screenshot({ path: shotPath('m4-showdown-hold-1280') });
     const rest = await readDialogue(page);
-    assert.ok(rest.includes('봐, 또 지웠잖아.'));
+    assert.ok(rest.includes('봐, 또 못 읽잖아.'), 'nothing removed in inspect (P0-4)');
     // 보충 준비: 띄어 쓴 '머신 러닝'은 동기 카드로 채워진다고 보인다(리뷰 M4)
     await page.locator('#screen-prep').waitFor({ state: 'visible' });
     assert.ok((await page.locator('#prep-failed').innerText()).includes('동기 카드로 채워짐'));

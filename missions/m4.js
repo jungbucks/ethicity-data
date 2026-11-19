@@ -214,9 +214,10 @@
       choices: [
         { id: 'erase', text: '이름만 지우고 판다', short: '이름 지우고 팔기',
           feedback: '이름만 지워도 필체·답으로 누군지 알 수 있어. 그리고 파는 것 자체가 채점 목적에서 벗어나.' },
+        // 세 선택지는 같은 꼴(행동만), 이유는 고른 뒤 피드백에서만(플레이테스트 2026-11-18 P1-5). id·정답 그대로
         { id: 'consent', text: '학생들에게 동의를 받고 판다', short: '동의 받고 팔기',
-          feedback: '물어볼 수는 있어. 그래도 답안지는 채점하려고 받은 거야. 팔면 학생을 지킬 수 없어.' },
-        { id: 'refuse', best: true, text: '거절한다. 채점하려고 받은 답안지야', short: '거절',
+          feedback: '동의를 받는 방법도 있어. 다만 채점하려고 받은 답안지를 학원에 파는 건 목적이 달라서, 팔지 않는 쪽이 가장 안전해.' },
+        { id: 'refuse', best: true, text: '팔지 않는다', short: '거절',
           feedback: '맞아. 답안지는 채점하려고 받은 거야. 학원에 파는 건 목적에서 벗어나.' }
       ],
       concept: {
@@ -278,13 +279,20 @@
           { who: 'supervisor', text: '그건 아무도 몰라. 하지만 이제 다음 사람은 지워지지 않아.', face: 'explain' }
         ],
         passOthers: { who: 'supervisor', text: '선배 답안은 읽었어. 나머지도 마저 고치자.', face: 'explain' },
+        // fail = 검수·보충 준비에서 선배 글씨 같은 카드(결판 장면 조합의 카드)를 뺀 적이 있을 때 / failKept = 빼지 않고 모자라기만 했을 때
+        //   (플레이테스트 2026-11-18 P0-4 — 하나도 안 뺐는데 "또 지웠잖아"라고 했다. DR.Showdown.erasedMine). ⚠️ failKept 교사 검수 대기
         fail: [
           { who: 'senior', text: '봐, 또 지웠잖아.', face: 'worried' }
+        ],
+        failKept: [
+          { who: 'senior', text: '봐, 또 못 읽잖아.', face: 'worried' }
         ],
         peerJoin: [
           { who: 'peer', text: "…잠깐. 나, 첫 번째 임무 때부터 '이상한 건 빼자'였잖아. 근데 버리진 못하고 따로 모아 뒀어.", face: 'worried' },
           { who: 'peer', text: "아주 흘려 쓴 머신러닝 두 장이랑 띄어 쓴 '머신 러닝' 두 장. 보충 달리기가 끝나면 가방에 넣을게.", face: 'basic' }
         ],
+        // 보충 달리기 없이 다시 제출로 가는 경우(동기 카드로 다 채워짐·남은 보충 없음)의 peerJoin 마지막 줄(P0-3, DR.Showdown.peerNoRun). ⚠️ 교사 검수 대기
+        peerJoinNoRun: { who: 'peer', text: "아주 흘려 쓴 머신러닝 두 장이랑 띄어 쓴 '머신 러닝' 두 장. 다시 제출하기 전에 가방에 넣을게.", face: 'basic' },
         peerFixed: { who: 'peer', text: '이번엔 내가 같이 책임질게. 이건 꼭 넣자.', face: 'basic' },
         peerBox: { who: 'peer', text: '나도 이거 챙겨 왔어. 다음엔 처음부터 넣을게.', face: 'happy' }
       },

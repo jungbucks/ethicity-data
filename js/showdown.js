@@ -38,7 +38,21 @@
     return out;
   }
 
-  var api = { left: left, peerMode: peerMode, peerCards: peerCards, peerId: peerId };
+  // 동기가 합류할 때 보충 달리기 없이 다시 제출로 가나(플레이테스트 2026-11-18 P0-3) — 보충 준비(ui-inspect supplementPrep)와 같은 규칙:
+  //   남은 보충 0번(resubmit) 또는 지금 가방 + 동기 카드로 모자란 조합이 없음. shortfall = DR.Judge.shortfall. 가방은 바꾸지 않는다(fixed 없이 셈)
+  function peerNoRun(mission, state, cfg, shortfall) {
+    if (peerMode(state, cfg) === 'resubmit') return true;
+    var bag = (state && state.bag) || [];
+    return Object.keys(shortfall(mission, bag.concat(peerCards(mission, bag, false)), cfg)).length === 0;
+  }
+  // 선배가 "또 지웠잖아"라고 할 만한가(P0-4): 이번 임무 검수·보충 준비에서 뺀 카드 종류(erased) 중 결판 장면 조합의 카드가 있나
+  function erasedMine(mission, erased) {
+    var sc = (mission.scenes || []).filter(function (s) { return s.id === mission.showdownScene; })[0], keys = [];
+    if (sc) sc.combos.forEach(function (c) { keys = keys.concat(c.keys); });
+    return (erased || []).some(function (k) { return keys.indexOf(k) >= 0; });
+  }
+
+  var api = { left: left, peerMode: peerMode, peerCards: peerCards, peerId: peerId, peerNoRun: peerNoRun, erasedMine: erasedMine };
   root.DR = root.DR || {};
   root.DR.Showdown = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

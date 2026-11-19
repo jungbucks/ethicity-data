@@ -120,7 +120,10 @@ async function reset(page) {
     await reset(page);
     await page.waitForFunction(() => DR.App.state && DR.App.state.mission === 'm1', null, { timeout: 5000 });
     assert.equal(await page.locator('#reset-fail').count(), 0, 'no notice when the reset was saved');
-    assert.deepEqual(await stored(page), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+    // 초기화 표시 epoch(다른 탭의 늦은 쓰기를 가려냄 — 보안 검토 2026-11-18 #1)는 아무 글자
+    const { epoch, ...rest } = await stored(page);
+    assert.equal(typeof epoch, 'string', 'reset leaves an epoch');
+    assert.deepEqual(rest, { v: 1, mission: null, tutorialDone: true, cityV: 1 });
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 }

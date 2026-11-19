@@ -552,7 +552,13 @@ body { overflow: hidden; word-break: keep-all; }
   .city-art { aspect-ratio: 4 / 3; --city-pos: var(--city-pos-n, 50%); --city-cable-left: var(--city-cable-left-n, 0%); --city-cable-len: var(--city-cable-len-n, 0%);
     --city-clip-l: var(--city-clip-l-n, 0%); --city-clip-r: var(--city-clip-r-n, 0%); }
 }
+/* 가운데 + 화면보다 넓어지지 않게(플레이테스트 2026-11-18 P1-7 — 1148×977에서 오른쪽 학교 구간이 잘렸다는 보고. 헤드리스 Edge로는 재현 안 됨, 요청대로 막아 둠):
+   flex 세로 줄에서도 가운데(align-self), 부모가 화면보다 넓어져도 화면 폭 − 32px까지만 */
+.city-art { align-self: center; max-width: calc(100vw - 32px); }
 .city-art[hidden] { display: none; }
+/* 구간별(플레이테스트 2026-11-18 P0-2, .city-sections): 켜져 있던 구간 겹(.city-sec = city-5를 그 구간 폭만)과 새 구간 겹(.city-after)은 끝까지 그 폭만 */
+.city-sec { --sec-l: var(--sec-l-w, 0%); --sec-r: var(--sec-r-w, 0%); clip-path: inset(0% var(--sec-r) 0% var(--sec-l)); }
+@media (max-width: 640px) { .city-sec { --sec-l: var(--sec-l-n, 0%); --sec-r: var(--sec-r-n, 0%); } }
 .city-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--city-pos) 50%; }
 /* 단계(.city-page[data-phase]): wait → line(케이블 빛) → reveal(새 구역 아래→위) → flash(반짝) → text(문구) → ready([계속]) */
 .city-after { clip-path: inset(100% var(--city-clip-r) 0% var(--city-clip-l)); }
@@ -560,6 +566,8 @@ body { overflow: hidden; word-break: keep-all; }
 .city-page[data-phase="flash"] .city-after { clip-path: inset(0% var(--city-clip-r) 0% var(--city-clip-l)); transition: clip-path calc(var(--city-t-reveal) * 1s) ease-out; }
 .city-page[data-phase="text"] .city-after,
 .city-page[data-phase="ready"] .city-after { clip-path: none; }
+.city-page[data-phase="text"] .city-art.city-sections .city-after,
+.city-page[data-phase="ready"] .city-art.city-sections .city-after { clip-path: inset(0% var(--city-clip-r) 0% var(--city-clip-l)); }
 /* 반짝: 보통은 새 구역 겹만, 마지막 칸(.city-final)은 도시 전체(케이블 포함) */
 .city-page[data-phase="flash"] .city-art:not(.city-final) .city-after,
 .city-page[data-phase="flash"] .city-art.city-final { animation: city-flash calc(var(--city-t-flash) * 1s) ease-in-out; }

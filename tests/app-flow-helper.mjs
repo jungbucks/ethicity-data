@@ -18,9 +18,9 @@ export function store() {
 
 // st = 저장소(새로고침 흉내 = 같은 저장소로 다시 boot), run = DR.Run.start 대신 부를 함수(기본: 아무것도 안 잡고 바로 끝)
 export function boot(st, opts = {}) {
-  const ui = {}, log = [];
+  const ui = {}, log = [], on = {};
   const doc = { readyState: 'loading', activeElement: null, getElementById: () => null, querySelector: () => null };
-  const ctx = { console, Math, JSON, Date, URLSearchParams, setTimeout: (f) => f(), clearTimeout() {}, location: { search: '' }, addEventListener() {}, document: doc };
+  const ctx = { console, Math, JSON, Date, URLSearchParams, setTimeout: (f) => f(), clearTimeout() {}, location: { search: '', reload() { log.push('reload'); } }, addEventListener: (t, f) => (on[t] = on[t] || []).push(f), document: doc };
   ctx.window = ctx; ctx.localStorage = st || store();
   vm.createContext(ctx);
   for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
@@ -37,7 +37,9 @@ export function boot(st, opts = {}) {
     stop() {}
   };
   vm.runInContext(fs.readFileSync(path.join(root, 'js/app.js'), 'utf8'), ctx, { filename: 'js/app.js' });
-  return { DR, App: DR.App, Save: DR.Save, ui, log, st: ctx.localStorage };
+  // fire = 이 탭(창)에 이벤트 보내기(다른 탭이 저장소를 바꿨을 때의 storage 이벤트 흉내 등)
+  const fire = (type, ev = {}) => (on[type] || []).forEach((f) => f(ev));
+  return { DR, App: DR.App, Save: DR.Save, ui, log, st: ctx.localStorage, ctx, fire };
 }
 
 // 타이틀이 새로고침 뒤에 내놓을 길(ui-shell renderTitle과 같은 순서): 'resume:<임무>:<화면>' · 'next:<임무>' · 'start'

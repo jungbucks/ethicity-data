@@ -8,7 +8,7 @@
  *   같은 임무를 다시 깨면 이전 답을 채운 채 다시 보여 준다(처음 선택은 처음 값 그대로).
  * 이어하기(리뷰 2026-11-10 ③): opts.step = 시작할 단계(1~3, 앞 단계 답이 없으면 그 단계로 물러남), opts.onStep(n) = 단계가 바뀔 때마다 —
  *   app.js runEnding이 저장(DR.Save.setEnding)해 두었다가 도중에 나간 뒤 그 단계로 돌아온다.
- * 점수는 매기지 않는다. ⚠️ 문장(여기 TEXT·임무 파일 chapterEnd)은 교사 검수 전 초안.
+ * 점수는 매기지 않는다. ⚠️ 문장(여기 TEXT·임무 파일 chapterEnd)은 교사 검수 전 초안 — noteStore(저장 안내, 2026-11-18)도.
  */
 (function (root) {
   'use strict';
@@ -26,6 +26,8 @@
     conceptTitle: '이번 임무 다시 보기',
     noteTitle: '짧게 남기기',
     noteHelp: '문장 틀을 채워 써 보자. 비워도 괜찮아.',
+    // 쓰기 전에 저장 방식과 지우는 곳을 알린다(보안 검토 2026-11-18 #2 — 공용 PC에서 실명 같은 걸 적기 전에). 지우는 버튼 = 타이틀 '처음부터'·'처음부터 다시'(ui-shell startChoice)
+    noteStore: "이 답은 이 컴퓨터의 브라우저에 저장돼. 처음 화면의 '처음부터'로 지울 수 있어.",
     saved: '저장했어',
     saveFail: '저장하지 못했어. 지금 이 탭에만 남아 있어.', // 저장소가 막혔거나 꽉 참(리뷰 2026-11-10 ⑥) — 입력은 막지 않는다
     next: '다음',
@@ -138,7 +140,7 @@
           el('div', { class: 'actions' }, [nextBtn('btn-ch-next', TEXT.next, !!got, function () { show(3); })])
         ]);
       } else {
-        var area = el('textarea', { id: 'ch-note', class: 'ch-note', rows: '4', maxlength: '300', 'aria-describedby': 'ch-frame ch-note-help' });
+        var area = el('textarea', { id: 'ch-note', class: 'ch-note', rows: '4', maxlength: '300', 'aria-describedby': 'ch-frame ch-note-help ch-note-store' });
         area.value = data.note || '';
         var status = el('p', { id: 'ch-saved', class: 'note ch-saved', role: 'status', text: '' });
         // 저장됐을 때만 '저장했어'. 안 됐으면 탭에만 남아 있다고 알린다 — 글은 그대로 두고 계속 쓸 수 있다(다음 입력에서 다시 저장해 본다)
@@ -151,6 +153,7 @@
         parts = head(3, TEXT.noteTitle).concat([
           el('label', { for: 'ch-note', id: 'ch-frame', class: 'ch-frame', text: ce.frame }),
           el('p', { id: 'ch-note-help', class: 'note', text: TEXT.noteHelp }),
+          el('p', { id: 'ch-note-store', class: 'note', text: TEXT.noteStore }),
           area, status,
           el('div', { class: 'actions' }, [nextBtn('btn-ch-done', TEXT.done, true, function () { screen.innerHTML = ''; done(); })])
         ]);

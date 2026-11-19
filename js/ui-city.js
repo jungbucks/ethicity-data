@@ -30,18 +30,31 @@
     var screen = document.getElementById('screen-city');
     var T = DR.config.city, from = opts.from, to = opts.to, called = false;
     var timers = [], ended = false;
+    // 구간(플레이테스트 2026-11-18 P0-2): opts.sections = 켜진 구간(깬 임무, 새 구간 포함) · opts.add = 이번 구간.
+    //   왼쪽부터 차례로 켜졌으면 예전 그대로(city-from → city-to). 아니면 city-0 바탕 + 켜진 구간마다 city-5를 그 폭만 잘라 올린다(그림 파일은 그대로)
+    var lit = opts.sections || null, add = opts.add, bySec = !!(lit && !DR.CityLook.inOrder(lit, add));
     screen.innerHTML = '';
     screen.classList.remove('city-no-art', 'city-has-art');
-    var before = el('img', { class: 'city-img city-before', src: src(from), alt: '', draggable: 'false' });
-    var after = el('img', { class: 'city-img city-after', src: src(to), alt: '도시 복구 ' + to + '/5', draggable: 'false' });
+    var before = el('img', { class: 'city-img city-before', src: src(bySec ? 0 : from), alt: '', draggable: 'false' });
+    var after = el('img', { class: 'city-img city-after', src: src(bySec ? DR.CityLook.ZONES : to), alt: '도시 복구 ' + to + '/5', draggable: 'false' });
     var cable = el('span', { class: 'city-cable', 'aria-hidden': 'true' });
-    var art = el('figure', { id: 'city-art', class: 'city-art' + (to >= DR.CityLook.ZONES ? ' city-final' : '') }, [before, after, cable]);
-    var vars = DR.CityLook.css(from, to);
-    for (var k in vars) art.style.setProperty(k, vars[k]);
+    var vars = bySec ? DR.CityLook.sectionCss(lit, add) : DR.CityLook.css(from, to);
+    var secs = bySec ? vars.others.map(function (o) {
+      var im = el('img', { class: 'city-img city-sec', src: src(DR.CityLook.ZONES), alt: '', draggable: 'false', 'data-sec': String(o.i) });
+      for (var q in o) if (q !== 'i') im.style.setProperty(q, o[q]);
+      return im;
+    }) : [];
+    var final = bySec ? lit.length >= DR.CityLook.ZONES : to >= DR.CityLook.ZONES;
+    var art = el('figure', { id: 'city-art', class: 'city-art' + (final ? ' city-final' : '') + (bySec ? ' city-sections' : '') }, [before].concat(secs, [after, cable]));
+    if (lit) art.setAttribute('data-sections', lit.join(','));
+    for (var k in vars) if (k !== 'others') art.style.setProperty(k, vars[k]);
     art.style.setProperty('--city-cable-y', T.cableY);
     // 그림 자리는 두 장이 다 읽힌 뒤에만 보인다(빈 칸이 번쩍였다 사라지지 않게). 하나라도 없으면 계속 숨김(점 5칸 + 문구만)
     art.hidden = true;
+    // 점 5칸: 구간이 있으면 켜진 구간(새 구간 빼고)부터, 없으면 왼쪽부터 from칸
     var row = dots(from, 'city-dots-big');
+    function litBefore(i) { return lit ? lit.indexOf(i) >= 0 && i !== add : i < from; }
+    Array.prototype.forEach.call(row.children, function (d, i) { d.className = litBefore(i) ? 'on' : ''; });
     var line = el('p', { id: 'city-line', class: 'city-line', text: '도시 ' + to + '/5 — ' + opts.line });
     var next = el('button', { id: 'btn-city-next', class: 'btn btn-primary', type: 'button', text: '계속' });
     next.addEventListener('click', function () { if (called || page.dataset.phase !== 'ready') return; called = true; stop(); DR.Sfx.play('ui'); done(); });
@@ -101,7 +114,7 @@
     screen.addEventListener('click', onClick);
     DR.App.go('city');
     // 점 5칸(그림이 없을 때 보이는 대체 화면): 앞 칸 → 새 칸이 켜진다
-    function light() { Array.prototype.forEach.call(row.children, function (d, i) { if (i < to) d.classList.add('on'); }); }
+    function light() { Array.prototype.forEach.call(row.children, function (d, i) { if (lit ? lit.indexOf(i) >= 0 : i < to) d.classList.add('on'); }); }
     if (reducedMotion()) { light(); finish(true); }
     else {
       setTimeout(light, 60);

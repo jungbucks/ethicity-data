@@ -21,6 +21,8 @@ function store() {
   };
 }
 const raw = (st) => (st._m.has(KEY) ? JSON.parse(st._m.get(KEY)) : null);
+// 초기화 저장 = 튜토리얼 완료만 + 초기화 표시 epoch(다른 탭의 늦은 쓰기를 가려내는 글자 — 보안 검토 2026-11-18 #1, two-tabs.test)
+const plain = (st) => { const { epoch, ...o } = raw(st); assert.equal(typeof epoch, 'string', 'reset leaves an epoch'); return o; };
 // 튜토리얼을 끝내고 1 임무를 깬 뒤 2 임무 검수 중인 저장
 function played(st) {
   Save.markTutorialDone(st);
@@ -40,7 +42,7 @@ test('정상 초기화: 진행·기록·뒤 활동이 지워지고 튜토리얼 
   assert.equal(Save.load(st).mission, null);
   assert.equal(Save.load(st).tutorialDone, true);
   assert.equal(Save.ending(st), null);
-  assert.deepEqual(raw(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+  assert.deepEqual(plain(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
   Save.checkpoint('briefing', newRun, {}, st);
   assert.deepEqual(Save.records(st), {});
 });
@@ -72,11 +74,11 @@ test('쓰기만 막힘(지우기는 됨): 옛 기록을 지우고 unsaved — �
 
 test('용량 초과(큰 저장만 안 들어감): 작은 초기화 저장은 그대로 써진다', () => {
   const st = played(store());
-  const m = st._m, limit = 60;
+  const m = st._m, limit = 100; // 초기화 저장(epoch 포함 약 85자)은 들어가고 진행이 든 저장은 안 들어가는 크기
   st.setItem = (k, v) => { if (String(v).length > limit) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } m.set(k, String(v)); };
   assert.equal(Save.clear(st), true);
   assert.equal(Save.status(st), 'ok');
-  assert.deepEqual(raw(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+  assert.deepEqual(plain(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
 });
 
 test('쓰기가 자리 부족으로 막힘: 옛 기록을 지워 자리가 나면 초기화 저장이 써진다', () => {
@@ -86,7 +88,7 @@ test('쓰기가 자리 부족으로 막힘: 옛 기록을 지워 자리가 나�
   st.setItem = (k, v) => { if (m.has(k)) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } m.set(k, String(v)); };
   assert.equal(Save.clear(st), true);
   assert.equal(Save.status(st), 'ok');
-  assert.deepEqual(raw(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+  assert.deepEqual(plain(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
 });
 
 test('쓰기·지우기 모두 막힘(접근 거부): stale — 이 탭은 메모리의 저장본으로, 옛 기록은 다시 읽지 않는다', () => {
@@ -143,7 +145,7 @@ test('밀린 초기화 다시 쓰기(flush): 막혀 있으면 false, 풀리면 �
   st.fail.set = false;
   assert.equal(Save.flush(st), true);
   assert.equal(Save.status(st), 'ok');
-  assert.deepEqual(raw(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+  assert.deepEqual(plain(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
 });
 
 test('새로고침: stale인 채로 나가면 옛 기록이 다시 보인다(화면이 그렇게 알린 대로) — 저장이 풀린 뒤라면 새 진행만', () => {
@@ -198,7 +200,7 @@ test('밀린 초기화 중에 한 번 더 초기화해도 튜토리얼 완료는
   assert.equal(Save.load(st).tutorialDone, true);
   st.fail.set = false;
   assert.equal(Save.clear(st), true);
-  assert.deepEqual(raw(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
+  assert.deepEqual(plain(st), { v: 1, mission: null, tutorialDone: true, cityV: 1 });
 });
 
 test('읽기까지 막힘·저장소 없음: 던지지 않고 false, 읽을 옛 기록이 없으니 섞일 것도 없다', () => {

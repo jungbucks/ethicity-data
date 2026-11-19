@@ -54,8 +54,9 @@ const hint = (page) => page.locator('#screen-story .dialog-hint').innerText();
     // 4) 장면별 모아 보기도 구역 순서 · 5) 두 장면에 쓰는 종류에 '(두 장면 공통)'
     const sceneOrder = await page.locator('#inspect-scenes .scene-sum').evaluateAll((els) => els.map((e) => e.dataset.scene));
     assert.deepEqual(sceneOrder, ['S2', 'S4', 'S3', 'S1']);
-    assert.match(await page.locator('#inspect-scenes [data-scene="S3"] [data-combo="S3_night_wet"]').innerText(), /\(두 장면 공통\)/);
+    // 구역 순서로 먼저 나오는 장면(S4)에 '(두 장면 공통)', 뒤 장면(S3)은 한 줄로만(플레이테스트 2026-11-18 P1-8 — 같은 카드 썸네일·숫자가 두 번 나오지 않게)
     assert.match(await page.locator('#inspect-scenes [data-scene="S4"] [data-combo="S4_night_wet"]').innerText(), /\(두 장면 공통\)/);
+    assert.match(await page.locator('#inspect-scenes [data-scene="S3"] [data-combo="S3_night_wet"]').innerText(), /위와 같은 카드로 함께 채움/);
     assert.doesNotMatch(await page.locator('#inspect-scenes [data-scene="S2"]').innerText(), /두 장면 공통/);
     // 2) 단서 카드 글은 한 번만(캡션) — 그림 칸에는 글을 그리지 않는다
     await page.locator('#inspect-grid .bag-card[data-key="q_neon"] .bag-open').click();

@@ -32,7 +32,12 @@
     inspectNote: '개인정보가 있는 사진은 눌러서 중요한 정보를 가려야 해요.',
     maskButton: '가리기',
     unmaskButton: '가린 것 되돌리기',
-    maskedTag: '가림'
+    maskedTag: '가림',
+    // 임무 완료 요약 한 줄(플레이테스트 2026-11-18 P1-10, summaryLine) — ⚠️ 교사 검수 대기
+    sumMask: '개인정보 가리기: 담은 {got}장 중 {masked}장 가림',
+    sumMaskRemoved: ' · {removed}장 뺌',
+    sumRemoveOnly: '개인정보 빼기: 담은 {got}장 중 {removed}장 뺌',
+    sumNone: '개인정보 가리기: 담은 카드 없음'
   };
 
   // 임무별 문구: mission.privacy.text[key]가 있으면 그것, 없으면 공통 TEXT(2026-11-10 — 4 임무는 '사진'이 아니라 '답안지'이고, 개인정보가 '학생 이름'임을 말해 준다)
@@ -105,7 +110,24 @@
     return (caughtIds || []).filter(function (id) { return !ids[id]; }).length;
   }
 
-  var api = { TEXT: TEXT, text: text, on: on, defs: defs, def: def, mark: mark, canMask: canMask, toggleMask: toggleMask, check: check, openCards: openCards, left: left, caught: caught, wasted: wasted };
+  // 임무를 마칠 때의 개인정보 카드 셈(P1-10): got = 담은 장 수(첫 달리기 뒤 셈 gotAtStart와 마지막 가방 중 큰 쪽 — 개인정보 카드는 첫 판 코스에만 나온다),
+  //   masked = 마지막 가방에서 가린 장 수, removed = 담았다가 뺀 장 수. 판정과는 상관없다
+  function tally(mission, bag, gotAtStart) {
+    var inBag = left(mission, bag), masked = (bag || []).filter(function (c) { return !!(c.privateId && def(mission, c.privateId)) && c.masked; }).length;
+    var got = Math.max(gotAtStart || 0, inBag);
+    return { got: got, masked: masked, removed: got - inBag };
+  }
+  // 임무 완료 요약의 한 줄 — 개인정보 카드가 없는 임무는 null. 가리기로 되는 카드가 있으면 '가리기', 빼기만 되는 임무(2 임무 얼굴)는 '빼기'
+  function summaryLine(mission, t) {
+    if (!on(mission)) return null;
+    var fill = function (s) { return s.replace('{got}', t.got).replace('{masked}', t.masked).replace('{removed}', t.removed); };
+    if (!t.got) return TEXT.sumNone;
+    var maskable = defs(mission).some(function (d) { return d.fix === 'mask'; });
+    if (!maskable) return fill(TEXT.sumRemoveOnly);
+    return fill(TEXT.sumMask) + (t.removed ? fill(TEXT.sumMaskRemoved) : '');
+  }
+
+  var api = { TEXT: TEXT, text: text, on: on, defs: defs, def: def, mark: mark, canMask: canMask, toggleMask: toggleMask, check: check, openCards: openCards, left: left, caught: caught, wasted: wasted, tally: tally, summaryLine: summaryLine };
   root.DR = root.DR || {};
   root.DR.Privacy = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

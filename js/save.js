@@ -15,6 +15,14 @@
  *   - clear는 쓰기가 안 되면 옛 기록 지우기(removeItem)라도 해 본다. 지워졌으면 status 'unsaved'(옛 기록 없음, 새 진행은 탭에만),
  *     그것도 안 되면 'stale'(이 기기에 옛 기록이 남음 — 쓰기가 되기 전에 새로고침하면 옛 기록이 다시 보인다. 화면이 그렇게 알린다).
  *   - 초기화와 상관없는 쓰기 실패(체크포인트·기록)는 예전 그대로: 저장소에 있는 것이 기준이고 조용히 넘어간다.
+ *
+ * 다른 탭의 '처음부터'(보안 검토 2026-11-18 #1) — 두 탭이 한 저장소를 쓸 때, 초기화 전에 연 탭이 메모리에 든 옛 답안(챕터 끝 선택·메모 등)을
+ * 다시 써서 지운 기록을 되살리지 않게:
+ *   - clear는 저장에 새 초기화 표시 epoch(아무 글자)를 남긴다. 탭은 처음 읽은 저장의 epoch를 기억한다(옛 저장·저장 없음 = null).
+ *   - 쓰기 직전 저장소의 epoch가 기억한 것과 다르면 = 그 사이 다른 탭이 새로 시작했다 → 그 쓰기는 버리고(false) onStale 알림.
+ *     저장이 없거나 표시가 없는 저장이면 새 초기화가 아니니 그대로 쓴다(이 탭의 표시를 붙여서). 이 탭의 초기화가 밀려 있는 동안(pend)은 이 탭이 기준이라 검사하지 않는다.
+ *   - 다른 탭이 저장을 바꾸면 오는 storage 이벤트에서도 같은 검사 → 바로 onStale(app.js가 메모리 기록을 비우고 새로고침).
+ *   - 초기화 없이 두 탭이 번갈아 쓰는 것은 예전 그대로(epoch 같음 — 마지막에 쓴 것이 남는다).
  */
 (function (root) {
   'use strict';
@@ -35,7 +43,43 @@
   var pend = new WeakMap();
   function pending(st) { return st && typeof st === 'object' ? pend.get(st) || null : null; }
 
+  // 다른 탭의 초기화 알아채기(맨 위 설명) — 저장소 → 이 탭이 아는 epoch(null = 표시 없는 저장·저장 없음)
+  var epochs = new WeakMap();
+  // 저장소에 지금 있는 저장의 epoch: undefined = 저장 없음(읽을 수 없음·깨짐 포함) · null = 표시 없는 옛 저장
+  function storedEpoch(st) {
+    try {
+      var raw = st.getItem(KEY);
+      var o = raw ? JSON.parse(raw) : null;
+      if (!(o && typeof o === 'object')) return undefined;
+      return typeof o.epoch === 'string' ? o.epoch : null;
+    } catch (e) { return undefined; }
+  }
+  // 처음 만난 저장소는 지금 저장의 epoch를 기억한다(탭을 연 뒤 첫 읽기 = 타이틀)
+  function adopt(st) {
+    if (!st || typeof st !== 'object' || epochs.has(st)) return;
+    var e = storedEpoch(st);
+    epochs.set(st, e === undefined ? null : e);
+  }
+  // 이 탭이 연 뒤 다른 탭이 새로 시작했나
+  function isStale(st) {
+    if (!st || typeof st !== 'object' || pending(st)) return false;
+    if (!epochs.has(st)) { adopt(st); return false; }
+    var e = storedEpoch(st);
+    // 표시 없는 저장(옛 코드가 연 탭이 쓴 것 등)은 새 초기화가 아니다 — 다른 epoch 글자일 때만
+    return typeof e === 'string' && e !== epochs.get(st);
+  }
+  var staleFns = [], staleSent = false;
+  // 다른 탭의 초기화를 알아챘을 때 부를 함수(app.js). 한 번만 부른다(새로고침하면 다시 처음부터)
+  function onStale(fn) { if (typeof fn === 'function') staleFns.push(fn); }
+  function notifyStale() {
+    if (staleSent) return;
+    staleSent = true;
+    staleFns.forEach(function (f) { try { f(); } catch (e) { /* 알림 하나가 실패해도 나머지는 */ } });
+  }
+  function newEpoch() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+
   function read(st) {
+    adopt(st);
     try {
       var p = pending(st);
       var raw = p ? p.raw : st && st.getItem(KEY);
@@ -49,9 +93,13 @@
       return o;
     } catch (e) { return null; }
   }
-  function write(o, st) {
+  // force = clear(이 탭이 새로 시작 — 다른 탭의 표시보다 우선)
+  function write(o, st, force) {
     if (!st) return false;
+    if (!force && isStale(st)) { notifyStale(); return false; } // 다른 탭이 새로 시작한 뒤의 늦은 쓰기 — 옛 진행·답안을 되살리지 않게 버린다
     o.cityV = 1; // 이 저장은 튜토리얼도 기록(records.tutorial)으로 센다
+    var ep = st && typeof st === 'object' ? epochs.get(st) : null;
+    if (ep) o.epoch = ep; else delete o.epoch;
     var raw = JSON.stringify(o);
     try { st.setItem(KEY, raw); pend.delete(st); return true; } catch (e) {
       var p = pending(st);
@@ -153,11 +201,13 @@
     st = storage(st);
     var prev = read(st) || {};
     var o = { v: 1, mission: null, tutorialDone: !!prev.tutorialDone };
-    if (write(o, st)) return true;
+    // 새 초기화 표시 — 이 epoch를 모르는 다른 탭의 늦은 쓰기는 버려진다(맨 위 설명)
+    if (st && typeof st === 'object') { epochs.set(st, newEpoch()); staleSent = false; }
+    if (write(o, st, true)) return true;
     if (!st) return false;
     var gone = false;
     try { st.removeItem(KEY); gone = st.getItem(KEY) == null; } catch (e) { gone = false; }
-    if (gone && write(o, st)) return true;
+    if (gone && write(o, st, true)) return true;
     pend.set(st, { raw: JSON.stringify(o), gone: gone });
     return false;
   }
@@ -240,9 +290,19 @@
   // 화면에 쓰는 임무 이름(사용자 결정 2026-11-09: '1 임무' → '첫 번째 임무')
   var MISSION_ORD = { m1: '첫 번째', m2: '두 번째', m3: '세 번째', m4: '네 번째' };
   function missionName(id) { return (MISSION_ORD[id] || id) + ' 임무'; }
-  // 깬 직후 도시 복구 화면: 칸이 늘었을 때만(다시 깨면 건너뜀). 4 임무 = 도시 재연결, 이야기의 끝이라 늘 →5
+  // 도시 복구 그림의 구간(왼쪽부터 0~4) = 깬 임무(플레이테스트 2026-11-18 P0-2 — 전엔 깬 '수'만큼 왼쪽부터 켜서, 임무 고르기로
+  //   3 임무만 깨도 보호소·분실물 구간이 켜졌다): 보호소 = 튜토리얼, 분실물 = m1, 분리배출 = m2, 역·횡단보도 = m3, 학교 = m4
+  var CITY_SECTIONS = ['tutorial', 'm1', 'm2', 'm3', 'm4'];
+  function citySection(id) { return CITY_SECTIONS.indexOf(id); }
+  function citySections(recs) {
+    recs = recs || {};
+    var out = [];
+    CITY_SECTIONS.forEach(function (id, i) { if (recs[id] && recs[id].cleared) out.push(i); });
+    return out;
+  }
+  // 깬 직후 도시 복구 화면: 칸이 늘었을 때만(다시 깨면 건너뜀). 4 임무 = 도시 재연결, 이야기의 끝이라 늘 뜨지만 숫자는 깬 수 그대로(P0-2 — 전엔 늘 →5)
   function cityStep(id, before, after) {
-    if (id === 'm4') return { from: Math.min(before, 4), to: 5 };
+    if (id === 'm4') return after > before ? { from: before, to: after } : { from: Math.max(0, after - 1), to: after };
     return after > before ? { from: before, to: after } : null;
   }
 
@@ -293,7 +353,16 @@
     try { if (st) st.setItem(HERO_KEY, id); } catch (e) { /* 무시 */ }
   }
 
-  var api = { KEY: KEY, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, passTutorial: passTutorial, cityCount: cityCount, cityStep: cityStep, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, status: status, flush: flush, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
+  // 다른 탭이 저장을 바꿨다(storage 이벤트) → 새로 시작한 것이면 바로 알린다. key null = 저장소 전체 비움
+  if (root && typeof root.addEventListener === 'function') {
+    root.addEventListener('storage', function (e) {
+      if (e && e.key != null && e.key !== KEY) return;
+      var st = storage();
+      if (isStale(st)) notifyStale();
+    });
+  }
+
+  var api = { KEY: KEY, onStale: onStale, SOUND_KEY: SOUND_KEY, BGM_KEY: BGM_KEY, HERO_KEY: HERO_KEY, hero: hero, setHero: setHero, checkpoint: checkpoint, load: load, hasSave: hasSave, records: records, setRecord: setRecord, ending: ending, setEnding: setEnding, endingDone: endingDone, chapterOf: chapterOf, markTutorialDone: markTutorialDone, passTutorial: passTutorial, cityCount: cityCount, cityStep: cityStep, CITY_SECTIONS: CITY_SECTIONS, citySection: citySection, citySections: citySections, nextMission: nextMission, allCleared: allCleared, missionName: missionName, fitsMission: fitsMission, finish: finish, clear: clear, status: status, flush: flush, soundOn: soundOn, setSound: setSound, bgmOn: bgmOn, setBgm: setBgm };
   root.DR = root.DR || {};
   root.DR.Save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

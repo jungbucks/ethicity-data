@@ -78,9 +78,12 @@
   // 칸 수 = 튜토리얼 + 1~4 임무 중 깬 것(기록 기준, 0~5) — 타이틀 배지도 이것을 쓴다
   function cityCount() { return DR.Save.cityCount(App.records); }
   // step = DR.Save.cityStep(…) — null이면(칸이 늘지 않음) 건너뛴다
+  //   켜질 구간 = 깬 임무(DR.Save.citySections — 플레이테스트 2026-11-18 P0-2), 숫자 = 지금 기록의 깬 수(고치기 전 저장된 4 임무 {to:5}도 바로잡힘)
   function cityScreen(m, step, done) {
     if (!step) { done(); return; }
-    DR.UI.city({ from: step.from, to: step.to, line: m.cityLine || '' }, done);
+    var to = cityCount(), add = DR.Save.citySection(m.id), sections = DR.Save.citySections(App.records);
+    if (add < 0 || sections.indexOf(add) < 0) { to = step.to; sections = null; add = null; } // 구간이 없는 임무(옛 침수)는 예전처럼 칸 수로
+    DR.UI.city({ from: Math.max(0, Math.min(step.from, to - 1)), to: to, line: m.cityLine || '', sections: sections, add: add }, done);
   }
 
   /* ---------- 튜토리얼 ---------- */
@@ -282,15 +285,19 @@
     var sc = m.scenes.filter(function (s) { return s.id === m.showdownScene; })[0];
     var dangerMissing = sc.combos.some(function (c) { return s4.missing.indexOf(c.id) >= 0 && c.danger; });
     var read = ok ? true : (dangerMissing ? false : 'hold');
+    // 못 읽음: 선배 글씨 같은 카드를 뺀 적이 있으면 "또 지웠잖아", 모자라기만 했으면 failKept "또 못 읽잖아"(플레이테스트 2026-11-18 P0-4)
+    var failLines = DR.Showdown.erasedMine(m, App.state.erased) || !sd.failKept ? sd.fail : sd.failKept;
     var lines = sd.ask.map(function (l) { return sheetLine(m, l, null, sd.bg); })
       .concat([sheetLine(m, ok ? sd.readPass : read === 'hold' ? sd.readHold : sd.readFail, read, sd.bg)])
-      .concat((ok ? sd.pass : sd.fail).map(function (l) { return sheetLine(m, l, read, sd.bg); }));
+      .concat((ok ? sd.pass : failLines).map(function (l) { return sheetLine(m, l, read, sd.bg); }));
     var mode = null;
     if (ok) {
       if (!r.allPass && App.state.supplements < DR.config.maxSupplements) lines.push(Object.assign({ bg: sd.bg }, sd.passOthers));
     } else {
       mode = DR.Showdown.peerMode(App.state, DR.config);
-      if (App.state.peer === 'none') sd.peerJoin.forEach(function (l) { lines.push(Object.assign({ bg: sd.bg }, l)); });
+      // 동기 카드로 다 채워져 보충 달리기 없이 다시 제출로 가면 마지막 줄을 peerJoinNoRun으로(P0-3 — 보충 준비 화면과 말이 맞게)
+      var noRun = sd.peerJoinNoRun && DR.Showdown.peerNoRun(m, App.state, DR.config, DR.Judge.shortfall);
+      if (App.state.peer === 'none') sd.peerJoin.forEach(function (l, i) { lines.push(Object.assign({ bg: sd.bg }, noRun && i === sd.peerJoin.length - 1 ? sd.peerJoinNoRun : l)); });
       if (mode !== 'removable') lines.push(Object.assign({ bg: sd.bg }, sd.peerFixed));
     }
     DR.UI.dialogue(lines, function () {
@@ -367,6 +374,11 @@
     var rec = { cleared: true, passed: !!(App.lastJudge && App.lastJudge.allPass), firstTry: App.state.firstTry === true,
       supplements: App.state.supplements, firstFails: App.state.firstFails || [], fixedLabels: fixed };
     var cityBefore = cityCount();
+    // 개인정보 가리기 결과(임무 완료 요약 한 줄 — 플레이테스트 2026-11-18 P1-10). 저장하지 않는 값: 이 탭에서 끝낸 직후에만 보인다
+    //   (뒤 활동을 새로고침 뒤 이어 하면 줄이 없다 — 저장 형식을 바꾸지 않으려고). 담은 장 수 = 첫 달리기 뒤 셈(privStart)과 남은 카드·뺀 가리기 카드 중 큰 쪽
+    var st = App.state, gotAtStart = Math.max(st.privStart || 0, DR.Privacy.left(m, st.bag) + DR.Privacy.wasted(m, st.privCaught, st.bag));
+    //   새로고침 뒤 결과 화면에서 이어 끝냈으면 첫 달리기 뒤 셈이 없다 — 빼기만 되는 카드(2 임무 얼굴)는 셀 길이 없어, 셈이 0이면 줄을 내지 않는다(없다고 잘못 말하지 않게)
+    App.privacyDone = { mission: m.id, t: DR.Privacy.tally(m, st.bag, gotAtStart), known: st.privStart !== undefined };
     // 챕터 끝 답(설계 2026-11-08 ②)은 다시 깨도 이어 간다 — 이전 답을 채운 채 보여 주고, 처음 선택은 처음 값 그대로
     if (m.chapterEnd) rec.chapter = DR.Save.chapterOf(App.records, m.id);
     App.records[m.id] = rec;
@@ -397,6 +409,9 @@
       '보충 달리기: ' + (rec.supplements || 0) + '번'
     ];
     if (m.labels && m.relabel !== false) summary.push('고친 이름표: ' + (rec.fixedLabels || 0) + '장');
+    var pdx = App.privacyDone && App.privacyDone.mission === m.id ? App.privacyDone : null;
+    var pd = pdx && (pdx.known || pdx.t.got) ? DR.Privacy.summaryLine(m, pdx.t) : null;
+    if (pd) summary.push(pd);
     // 마무리 배경: 끝내 통과하지 못하고 끝난 판(rec.passed === false)은 story.outroFailBg가 있으면 그 그림 — 1 임무의 '해결된 장면'이 실패한 판에 깔리지 않게.
     //   마지막 대화(선배)·마무리 대화·임무 완료 화면(어둡게)이 같은 그림을 쓴다(플레이테스트 2026-11-12 — 선배 대사가 어두운 바탕에 대화창만 떴다)
     var obg = rec.passed === false && m.story.outroFailBg ? m.story.outroFailBg : m.story.outroBg;
@@ -473,12 +488,27 @@
     if (started === false) { App.course = null; DR.UI.no3d(function () { go('title'); }, '처음 화면으로'); }
   }
 
+  // 검수·보충 준비에서 카드를 뺐다/되돌렸다(js/ui-inspect.js removeWithUndo) — 이번 임무에서 뺀 종류(App.state.erased, 저장하지 않는 값).
+  //   4 임무 결판의 선배 대사가 읽는다(P0-4). 새로고침 뒤에는 비어 있다 = "또 못 읽잖아" 쪽
+  function noteRemoved(card, undo) {
+    if (!App.state || !card || !card.key) return;
+    var e = App.state.erased = App.state.erased || [];
+    if (!undo) e.push(card.key);
+    else { var at = e.indexOf(card.key); if (at >= 0) e.splice(at, 1); }
+  }
+
   var App = {
-    screen: 'title', state: null, lastJudge: null, course: null, records: DR.Save.records(),
+    screen: 'title', state: null, lastJudge: null, course: null, records: DR.Save.records(), noteRemoved: noteRemoved,
     go: go, cityCount: cityCount, startTutorial: startTutorial, practiceTutorial: practiceTutorial, startMission: startMission, afterRun: afterRun, debugFill: debugFill, resume: resume, resumeEnding: resumeEnding,
     mission: function () { return App.state ? DR.Missions[App.state.mission] : null; }
   };
   DR.App = App;
+  // 다른 탭에서 '처음부터'를 눌렀다(보안 검토 2026-11-18 #1, js/save.js 맨 위) — 이 탭이 메모리에 든 옛 기록·챕터 끝 답안을
+  //   다시 저장하지 않게 비우고, 새로고침해 새 저장(처음 화면)에서 다시 시작한다. 그 사이의 늦은 쓰기는 save.js가 버린다
+  DR.Save.onStale(function () {
+    App.records = {};
+    if (root.location && typeof root.location.reload === 'function') root.location.reload();
+  });
 
   var params = new URLSearchParams(root.location.search);
   if (params.get('run')) debugRun(params.get('run'));
